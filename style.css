@@ -1,0 +1,1327 @@
+/* ===== Themes =====
+   Every colour, font and corner shape comes from these settings ("variables").
+   Each theme below changes them, and the whole page follows.
+   The theme is picked in ⚙️ Settings and stored on the page as data-theme="...". */
+
+/* Starting values for every theme: each theme below only changes some of them,
+   so nothing carries over from one theme to another. */
+:root,
+[data-theme] {
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --heading-font: var(--font);
+  --heading-style: normal;
+  --heading-transform: none;
+  --heading-spacing: normal;
+
+  --bg: #f4f4f7;            /* Page background */
+  --text: #222;             /* Normal text */
+  --muted: #666;            /* Hints and small text */
+  --title: #222;            /* The big title */
+
+  --card: white;            /* The boxes */
+  --card-border: 1px solid transparent; /* Every theme has a 1px border (invisible here), so sizes never change */
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --radius: 12px;           /* Corners of boxes */
+  --radius-small: 8px;      /* Corners of buttons and text boxes */
+
+  --accent: #e62117;        /* Main buttons and the chosen tab */
+  --accent-text: white;     /* Text on main buttons */
+  --accent-ink: #e62117;    /* Accent colour used for text and lines */
+
+  --nav-bg: white;          /* The navigation bar */
+  --nav-text: #222;
+  --nav-active-bg: var(--accent);
+  --nav-active-text: var(--accent-text);
+
+  --chip: #eee;             /* Grey buttons: filters, Edit, ✕ */
+  --chip-text: #444;
+  --soft: #f4f4f7;          /* Hover background */
+  --line: #eee;             /* Thin lines between things */
+  --input-bg: white;
+  --input-border: #ccc;
+  --selected-bg: #fff0f0;   /* The selected entry */
+  --bubble: #333;           /* The hover bubble under a sentence */
+  --bubble-text: white;
+  --glass: none;            /* Blur behind see-through boxes (only the coffee theme uses it) */
+
+  /* CEFR level colours: A (beginner), B (intermediate), C (advanced) */
+  --level-a: #2e9e4f;  --level-a-text: white;
+  --level-b: #e08a00;  --level-b-text: white;
+  --level-c: #7b3fbf;  --level-c-text: white;
+}
+
+/* Orchid Cabana Club: a beach bar with orchids and palm trees (image 2) */
+[data-theme="cabana"] {
+  --font: "Jost", -apple-system, BlinkMacSystemFont, sans-serif;
+  --heading-font: "Marcellus", Georgia, serif; /* Includes Polish and Turkish letters too */
+  --heading-spacing: 0.02em;
+
+  --bg: linear-gradient(180deg, #6CAEDE 0%, #7FB9B9 100%);
+  --text: #554345;
+  --muted: #665354;
+  --title: #554345;
+
+  --card: #F8E6D3;
+  --shadow: none;
+  --radius: 0;              /* Square blocks, like the colour cards */
+  --radius-small: 0;
+
+  --accent: #b4448a;    /* Deep orchid, so white letters are easy to read */
+  --accent-text: white;
+  --accent-ink: #9e3874;   /* Deep orchid text, easy to read on sugar cookie */
+
+  --nav-bg: #554345;
+  --nav-text: #a9d6d6;
+  --nav-active-bg: #b4448a;
+  --nav-active-text: white;
+
+  --chip: #7FB9B9;
+  --chip-text: #2f2526;
+  --soft: #EEC7A0;
+  --line: #e8cdb2;
+  --input-bg: #fffaf4;
+  --input-border: #d9b48f;
+  --selected-bg: #fbe0ee;
+  --bubble: #554345;
+  --bubble-text: #EEC7A0;
+  --level-a: #1b7070;  --level-a-text: white;     /* Deep seafoam */
+  --level-b: #235271;  --level-b-text: white;   /* Sky */
+  --level-c: #b4448a;  --level-c-text: white;     /* Deep orchid */
+}
+
+/* Cold Brew Amber Reserve: iced coffee, glossy ice cubes and foam (image 4).
+   A dark theme with see-through "glass" boxes. */
+[data-theme="coffee"] {
+  color-scheme: dark; /* Dark text boxes, lists and scrollbars too */
+  --font: "DM Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+  --heading-font: "DM Serif Display", Georgia, serif;
+
+  --bg:
+    radial-gradient(circle at 20% 15%, rgba(214, 160, 100, 0.35), transparent 40%),
+    radial-gradient(circle at 85% 55%, rgba(180, 110, 60, 0.3), transparent 45%),
+    radial-gradient(circle at 30% 92%, rgba(230, 190, 140, 0.22), transparent 40%),
+    linear-gradient(160deg, #2a170d, #120905);
+  --text: #f3e2cf;
+  --muted: #c9a585;
+  --title: #f0c99a;
+
+  --card: rgba(70, 40, 24, 0.55);
+  --card-border: 1px solid rgba(255, 225, 190, 0.18);
+  --shadow: inset 0 1px 0 rgba(255, 240, 220, 0.25), 0 8px 24px rgba(0, 0, 0, 0.45);
+  --glass: blur(8px);
+  --radius: 18px;           /* Rounded like ice cubes */
+  --radius-small: 10px;
+
+  --accent: #d9b38c;        /* Coffee foam */
+  --accent-text: #2a170d;
+  --accent-ink: #e8a965;
+
+  --nav-bg: rgba(40, 22, 12, 0.7);
+  --nav-text: #e6cfb5;
+  --nav-active-bg: #d9b38c;
+  --nav-active-text: #2a170d;
+
+  --chip: rgba(255, 225, 190, 0.12);
+  --chip-text: #f0d6b8;
+  --soft: rgba(255, 225, 190, 0.1);
+  --line: rgba(255, 225, 190, 0.14);
+  --input-bg: rgba(18, 9, 5, 0.55);
+  --input-border: rgba(255, 225, 190, 0.25);
+  --selected-bg: rgba(217, 179, 140, 0.18);
+  --bubble: #d9b38c;
+  --bubble-text: #2a170d;
+  --level-a: #ead3b8;  --level-a-text: #2a170d;   /* Foam */
+  --level-b: #d99a58;  --level-b-text: #2a170d;   /* Amber */
+  --level-c: #9c5428;  --level-c-text: #fff3e4;   /* Roasted espresso */
+}
+
+/* Lists that open over other things need a solid background, not glass */
+[data-theme="coffee"] .dropdown-menu {
+  background: #2b1810;
+}
+
+/* The theme's card in Settings shows the dark coffee look, even on a light page */
+.theme-card[data-theme="coffee"] {
+  background: linear-gradient(160deg, #3a2214, #140a06);
+}
+
+
+
+/* Kyoto Iced Matcha: frothy iced matcha with ice cubes (image 8).
+   Colours only, calm and easy on the eyes: milk-foam boxes, soft matcha green and deep tea green.
+   Kaisei Decol (headings) and Noto Sans (text) include every letter for English, French,
+   German, Polish and Turkish. */
+[data-theme="matcha"] {
+  --font: "Noto Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+  --heading-font: "Kaisei Decol", "Noto Serif Display", Georgia, serif; /* Exotic, decorative strokes */
+
+  /* A deeper matcha: from whisked tea at the top to a richer green below */
+  --bg: linear-gradient(180deg, #bccb8e 0%, #a6b874 100%);
+  --text: #26331a;
+  --muted: #56643f;
+  --title: #2c4117;
+
+  --card: #dbea9dde;          /* Milk foam */
+  --card-border: 1px solid #d6e0bd;
+  --shadow: 0 2px 10px rgba(52, 70, 28, 0.08);
+  --radius: 14px;
+  --radius-small: 10px;
+
+  --accent: #55731f;        /* Matcha */
+  --accent-text: #f7f9ef;
+  --accent-ink: #4a6a17;
+
+  --nav-bg: #33461d;        /* Deep tea green */
+  --nav-text: #e6efcf;
+  --nav-active-bg: #bfd46a; /* Fresh matcha foam */
+  --nav-active-text: #1f2b10;
+
+  --chip: #e4ecce;
+  --chip-text: #2f3d1c;
+  --soft: #edf2dc;
+  --line: #dde6c6;
+  --input-bg: #fdfef8;
+  --input-border: #c7d4a6;
+  --selected-bg: #e8f0cf;
+  --bubble: #33461d;
+  --bubble-text: #eef4dc;
+  --level-a: #c9dc7a;  --level-a-text: #1f2b10;   /* Light foam */
+  --level-b: #55731f;  --level-b-text: #f7f9ef;   /* Matcha */
+  --level-c: #33461d;  --level-c-text: #eef4dc;   /* Deep tea */
+
+  scrollbar-color: #55731f #bccb8e;
+}
+
+[data-theme="matcha"] ::selection {
+  background: #bfd46a;
+  color: #1f2b10;
+}
+
+/* The theme's card in Settings shows its foam and matcha colours */
+.theme-card[data-theme="matcha"] {
+  background: linear-gradient(180deg, #f7f9ef 0%, #e3ebcc 100%);
+}
+
+
+/* ===== Basic look for the whole page ===== */
+body {
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.4;
+  background: var(--bg);
+  background-attachment: fixed; /* Gradient backgrounds stay put while scrolling */
+  min-height: 100vh;
+  color: var(--text);
+  margin: 0;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+/* Fixed text sizes and line heights, so every theme's fonts take up exactly the same
+   height and nothing moves when the theme changes */
+h1, h2, h3 {
+  font-family: var(--heading-font);
+  font-style: var(--heading-style);
+  text-transform: var(--heading-transform);
+  letter-spacing: var(--heading-spacing);
+}
+
+h1 { font-size: 32px; line-height: 40px; }
+h2 { font-size: 24px; line-height: 32px; }
+h3 { font-size: 18px; line-height: 24px; }
+
+button, input, select, textarea {
+  line-height: 20px;
+}
+
+/* Three columns: language button on the left, title in the centre, empty space on the right
+   (the empty right column is as wide as the left one, which keeps the title truly centred) */
+header {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px; /* Full page width, so the language button sits further left than the tabs */
+  text-align: center;
+}
+
+header .dropdown {
+  justify-self: start;
+  text-align: left;
+}
+
+h1 {
+  margin: 0;
+  color: var(--title);
+}
+
+/* Keep content from getting too wide on a computer screen */
+main {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* The "cards" for each part of the page */
+.box {
+  background: var(--card);
+  backdrop-filter: var(--glass);
+  -webkit-backdrop-filter: var(--glass); /* Safari on iPhone */
+  border: var(--card-border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow);
+}
+
+.box h2 {
+  margin-top: 0;
+}
+
+button {
+  padding: 10px 16px;
+  font-size: 16px;
+  font-family: inherit;
+  border: none;
+  border-radius: var(--radius-small);
+  background: var(--accent);
+  color: var(--accent-text);
+  cursor: pointer;
+}
+
+/* ===== Navigation bar ===== */
+/* A bar with the four pages side by side (they wrap on very narrow screens) */
+#main-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-width: 800px;
+  margin: 0 auto 16px;
+  padding: 6px;
+  box-sizing: border-box;
+  background: var(--nav-bg);
+  backdrop-filter: var(--glass);
+  -webkit-backdrop-filter: var(--glass);
+  border: var(--card-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+/* The pages in the bar */
+.tab {
+  flex: 1;
+  background: none;
+  color: var(--nav-text);
+  white-space: nowrap;
+}
+
+.tab:hover {
+  background: var(--soft);
+  color: var(--text);
+}
+
+/* The page you're currently on */
+.tab.active {
+  background: var(--nav-active-bg);
+  color: var(--nav-active-text);
+}
+
+/* ===== Settings ===== */
+/* Language checkboxes in columns */
+#language-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+}
+
+#language-options label {
+  cursor: pointer;
+}
+
+/* The "Add languages in Settings" item in the 🌐 list */
+.dropdown-menu li.hint-item {
+  color: var(--muted);
+  font-style: italic;
+}
+
+/* ===== Sentences tab ===== */
+.hint {
+  color: var(--muted);
+  margin-top: 0;
+}
+
+#sentence-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px;
+  font-size: 16px;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius-small);
+  margin-bottom: 8px;
+}
+
+/* No numbers: each sentence shows its language's flag instead (see .sentence-flag) */
+#sentence-list ol {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+}
+
+/* The flag at the start of each sentence, at the top beside its first line.
+   Always the same width, so every sentence starts in the same place. */
+.sentence-row .sentence-flag {
+  font-size: 20px;
+  line-height: 1.3;
+}
+
+#sentence-list li {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+/* Three columns: flag and topics | the sentence | date, Edit and Delete.
+   Everything lines up at the top. */
+.sentence-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+/* The sentence takes all the space in the middle */
+.sentence-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* The source's web address under the sentence: one line, cut with "…" if it's long */
+.source-link {
+  color: var(--accent-ink);
+  font-size: 13px;
+  line-height: 18px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.source-link:hover {
+  text-decoration-thickness: 2px;
+}
+
+/* Left column: always the same width, so every sentence starts in the same place */
+.sentence-side {
+  flex: 0 0 78px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+/* Topics under the flag, one per line */
+.sentence-topics {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+}
+
+/* Topics look the same as the date: small, soft-coloured plain text */
+.topic-tag {
+  max-width: 100%;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 18px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis; /* A very long topic ends in "…" */
+}
+
+/* Right column: as tall as the sentence, with the date at the top
+   and the buttons in the middle of the space below it */
+.sentence-actions {
+  flex: 0 0 auto;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.sentence-date {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.sentence-buttons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-block: auto; /* Equal space above and below: centred */
+}
+
+/* Grey buttons: Edit, ✕ and Cancel */
+.small-button {
+  background: var(--chip);
+  color: var(--chip-text);
+  padding: 4px 10px;
+}
+
+/* ===== Editing a sentence ===== */
+/* 16px font stops the iPhone from zooming in when you tap a box */
+.edit-form textarea,
+.edit-form input,
+.edit-form select {
+  padding: 8px;
+  font-size: 16px;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius-small);
+}
+
+.edit-form textarea {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 8px;
+}
+
+.edit-form .sentence-details input,
+.edit-form .sentence-details select {
+  flex: 1;
+  min-width: 140px;
+}
+
+.edit-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+/* Language, source and date boxes, side by side (stacked on narrow screens) */
+.sentence-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.sentence-details label {
+  flex: 1;
+  min-width: 140px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.sentence-details input,
+.sentence-details select {
+  padding: 10px;
+  font-size: 16px;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius-small);
+}
+
+/* Language, source and date: a little bubble that pops up under the sentence */
+.sentence-row {
+  position: relative;
+}
+
+.sentence-info {
+  display: none;
+  position: absolute;
+  left: 0;
+  top: 100%;
+  z-index: 5;
+  background: var(--bubble);
+  color: var(--bubble-text);
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+/* Sentences with details get a "help" cursor, hinting there's something to see */
+.has-info {
+  cursor: help;
+}
+
+/* Computer: show the bubble while the cursor is over the sentence */
+@media (hover: hover) {
+  .has-info:hover .sentence-info {
+    display: block;
+  }
+}
+
+/* iPhone: show the bubble after tapping the sentence */
+.show-info .sentence-info {
+  display: block;
+}
+
+/* ===== Language selection ===== */
+.dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+#language-button {
+  width: 190px; /* Same width in every theme, whatever the font */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis; /* A very long name ends in "…" instead of making the button wider */
+  text-align: left;
+  background: var(--card);
+  color: var(--text);
+  border: 1px solid var(--input-border);
+}
+
+/* The list is closed until opened */
+.dropdown-menu {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 10;
+  min-width: 180px;
+  max-height: 300px;
+  overflow-y: auto;
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  background: var(--card);
+  border-radius: var(--radius-small);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  text-align: left;
+}
+
+/* Computer: open while the cursor is over the button or the list */
+@media (hover: hover) {
+  .dropdown:hover .dropdown-menu {
+    display: block;
+  }
+}
+
+/* iPhone: open after tapping the button */
+.dropdown.open .dropdown-menu {
+  display: block;
+}
+
+.dropdown-menu li {
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.dropdown-menu li:hover {
+  background: var(--soft);
+}
+
+/* The chosen language */
+.dropdown-menu li.selected {
+  color: var(--accent-ink);
+  font-weight: bold;
+}
+
+/* ===== Language level (CEFR) ===== */
+#level-picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Level buttons are grey until one is picked */
+.level {
+  background: var(--chip);
+  color: var(--chip-text);
+  padding: 6px 12px;
+  width: 52px; /* Same width in every theme, whatever the font */
+  font-weight: bold;
+}
+
+/* A = beginner, B = intermediate, C = advanced: colours come from the theme */
+.level.selected[data-level^="A"] { background: var(--level-a); color: var(--level-a-text); }
+.level.selected[data-level^="B"] { background: var(--level-b); color: var(--level-b-text); }
+.level.selected[data-level^="C"] { background: var(--level-c); color: var(--level-c-text); }
+
+/* ===== Study: Select entry ===== */
+#entry-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 300px; /* Long lists scroll instead of filling the page */
+  overflow-y: auto;
+}
+
+/* Each entry is a clickable card */
+#entry-list li {
+  padding: 10px 12px;
+  margin-bottom: 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-small);
+  cursor: pointer;
+}
+
+#entry-list li:hover {
+  background: var(--soft);
+}
+
+/* The selected entry */
+#entry-list li.selected {
+  border-color: var(--accent-ink);
+  background: var(--selected-bg);
+  font-weight: bold;
+}
+
+/* ===== My sentences and My audios: language filter ===== */
+#sentence-filter,
+#audio-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+/* Grey until chosen, accent colour when chosen */
+.filter-button {
+  background: var(--chip);
+  color: var(--chip-text);
+  padding: 6px 12px;
+  font-size: 14px;
+}
+
+.filter-button.selected {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+/* ===== Study: Practice / Immerse tabs ===== */
+/* Smaller than the main navigation bar, with a line under the chosen one */
+#study-nav {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 12px;
+  border-bottom: 2px solid var(--line);
+  /* The same backing as the boxes, so the tab names are easy to read on any background */
+  background: var(--study-nav-bg, var(--card));
+  backdrop-filter: var(--glass);
+  -webkit-backdrop-filter: var(--glass);
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+
+.subtab {
+  flex: 1;
+  background: none;
+  color: var(--muted);
+  border-radius: var(--radius-small) var(--radius-small) 0 0;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px; /* Lets the coloured line sit on top of the plain line */
+}
+
+.subtab:hover {
+  color: var(--text);
+}
+
+.subtab.active {
+  color: var(--accent-ink);
+  font-weight: bold;
+  border-bottom-color: var(--accent-ink);
+}
+
+/* ===== Topics: status messages and "Try a sentence" ===== */
+.status-line {
+  margin: 8px 0 0;
+}
+
+.try-form {
+  display: flex;
+  gap: 8px;
+}
+
+.try-form input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px;
+  font-size: 16px;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius-small);
+}
+
+/* The scores, one topic per line */
+#try-topics-result {
+  font-family: inherit;
+  white-space: pre-wrap;
+  color: var(--text);
+  margin: 8px 0 0;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ===== Immerse: Pure Text / Grammar Lens ===== */
+#immerse-options {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+/* The selected entry, big and easy to read */
+.immerse-sentence {
+  font-family: var(--heading-font);
+  font-size: 24px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* The "Select an entry above" message stays small */
+.immerse-sentence.hint {
+  font-family: var(--font);
+  font-size: 16px;
+}
+
+/* ===== Settings: theme picker ===== */
+#theme-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 10px;
+}
+
+/* Each theme is a little card with its name and colours.
+   Each card carries its own data-theme, so it always shows in its own look. */
+.theme-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  padding: 12px;
+  text-align: left;
+  background: var(--card);
+  color: var(--text);
+  border: 2px solid var(--line);
+  font-family: var(--font);
+  border-radius: var(--radius);
+}
+
+.theme-card.selected {
+  border-color: var(--accent-ink);
+  box-shadow: 0 0 0 2px var(--accent-ink);
+}
+
+.theme-name {
+  font-family: var(--heading-font);
+  font-style: var(--heading-style);
+  font-size: 17px;
+  line-height: 22px;
+  font-weight: bold;
+}
+
+/* ===== "Saved ✓" message ===== */
+#save-message {
+  position: fixed;
+  right: 16px;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px)); /* Above the iPhone's home bar */
+  z-index: 40;
+  max-width: calc(100% - 32px);
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: #2e9e4f;
+  color: white;
+  font-size: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* When saving didn't work */
+#save-message.failed {
+  background: #c0392b;
+}
+
+/* ===== Settings: OpenAI ===== */
+.openai-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.openai-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.openai-form input {
+  padding: 10px;
+  font-size: 16px;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius-small);
+}
+
+/* ===== Grammar Lens: nouns coloured by gender ===== */
+/* Like a highlighter pen: a soft colour behind the word, with dark letters that are easy to read
+   in every theme (padding doesn't change the line height, so nothing moves) */
+.noun {
+  padding: 0 4px;
+  border-radius: 6px;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+.noun.feminine  { background: #ffc6de; color: #5a1036; } /* Pink */
+.noun.masculine { background: #bfdcff; color: #0d2f5c; } /* Blue */
+.noun.neuter    { background: #c4efcf; color: #10401f; } /* Green */
+
+/* ===== Practice: target (Noun / Verb / Adjective) ===== */
+#practice-target {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* ===== Immerse: listen (speaker button + 5× / 10× / ∞) ===== */
+#audio-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+/* A square button with just the speaker icon (same size in every theme) */
+#audio-play {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#audio-count {
+  margin: 0 0 0 6px;
+  font-size: 14px;
+}
+
+/* Loop buttons: an icon with the number beside it (lines drawn in the button's text colour) */
+.loop-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 32px;
+}
+
+.loop-icon {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* The infinity loop is wider than tall, so its two rings and the arrow are easy to see */
+.infinity-icon {
+  width: 28px;
+  height: 16px;
+  stroke-width: 2.2;
+}
+
+/* ===== My sentences: "Delete it?" ===== */
+.delete-question {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+/* Settings → Backup: "Replace everything…? Yes / No" under the buttons (wraps on a phone) */
+#backup-confirm {
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+/* "Yes" is red, so it's clear it removes the sentence (white on red is easy to read in every theme) */
+.small-button.delete-yes {
+  background: #c0392b;
+  color: white;
+}
+
+/* ===== Audio files (Add and Edit forms) ===== */
+/* The file chooser: small text, so it fits beside the other boxes */
+#audio-input,
+.edit-audio input[type="file"] {
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--text);
+  max-width: 100%;
+}
+
+/* Edit form: the current file, a box to choose a new one, and "Remove audio" */
+.edit-audio {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.edit-audio .hint {
+  margin: 0;
+  font-size: 14px;
+}
+
+/* ===== Audio picker (Add and Edit forms) ===== */
+.audio-picker {
+  margin-bottom: 8px;
+}
+
+.audio-picker > label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.audio-picker select,
+.audio-times input {
+  padding: 10px;
+  font-size: 16px;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius-small);
+}
+
+/* The small player to listen and find the times */
+.audio-part audio {
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+/* Start [0]:[12],[250]   End [0]:[18],[500] */
+.audio-times {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px 20px;
+}
+
+.time-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+/* The three boxes in a row, with ":" and "," between them */
+.time-boxes {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.audio-times .time-box {
+  box-sizing: border-box;
+  padding-left: 0;
+  padding-right: 0;
+  text-align: center;
+  font-variant-numeric: tabular-nums; /* Every digit the same width */
+}
+
+.audio-times .time-box-2 {
+  width: 40px; /* Seconds: 2 digits */
+}
+
+.audio-times .time-box-3 {
+  width: 50px; /* Minutes and milliseconds: up to 3 digits */
+}
+
+.time-separator {
+  color: var(--text);
+  font-weight: 700;
+}
+
+
+/* ===== Settings: audio files ===== */
+#audio-library {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Each file is laid out like a sentence in My sentences:
+   flag | name, source and sentence count | date, Edit and Delete */
+.audio-file-row {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.audio-file-name {
+  overflow-wrap: anywhere;
+}
+
+.audio-file-count {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* The language label of each audio file in Settings */
+.audio-file-language {
+  padding: 6px 8px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius-small);
+}
+
+/* ===== Audio source ===== */
+/* The source box (Settings) */
+.audio-file-source {
+  padding: 8px 10px;
+  font-size: 16px;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius-small);
+}
+
+/* "Please add where this audio is from." */
+.error-text {
+  color: #c0392b;
+  font-size: 14px;
+}
+
+/* In Settings: the source box takes its own full line under the file's name */
+.audio-file-source {
+  flex: 1 0 100%;
+  box-sizing: border-box;
+  font-size: 14px;
+}
+
+/* A file without a source (uploaded before it was required): red outline as a reminder */
+.audio-file-source.missing {
+  border-color: #c0392b;
+}
+
+/* ===== Settings: audio files (read-only, with Edit and Delete) ===== */
+/* The source (a link like "▶ YouTube", or text) on its own line under the file's name */
+.audio-file-source-text {
+  font-size: 13px;
+  line-height: 18px;
+}
+
+/* "No source yet: add one with Edit" */
+.missing-text {
+  color: #c0392b;
+}
+
+/* Editing a file: Name, Language and Source boxes side by side (stacked on narrow screens) */
+.audio-edit-form {
+  flex: 1 0 100%;
+}
+
+.audio-edit-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.audio-edit-form input,
+.audio-edit-form select {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.audio-edit-form .error-text {
+  display: block;
+  margin-bottom: 8px;
+}
+
+/* ===== Practice: questions ===== */
+#quiz-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+}
+
+/* Each question is a card */
+/* Each question is its own card: a light background, rounded corners and space around it */
+.quiz-card {
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-left: 5px solid var(--input-border); /* Turns green or red once answered */
+  border-radius: var(--radius);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.quiz-card.answered-right {
+  border-left-color: #2e7d46;
+}
+
+.quiz-card.answered-wrong {
+  border-left-color: #c0392b;
+}
+
+/* Card header: numbered circle, type with icon, instruction */
+.quiz-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+.quiz-number {
+  flex: 0 0 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-text);
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 28px;
+  text-align: center;
+}
+
+.quiz-instruction {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* "Mini reading · Read and choose" */
+/* "📖 Mini reading" */
+.quiz-kind {
+  margin: 0;
+  color: var(--text);
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 28px; /* Lines up with the numbered circle */
+}
+
+/* The short reading text, in the bigger sentence font */
+.quiz-passage {
+  margin: 0 0 6px;
+  font-family: var(--heading-font);
+  font-size: 19px;
+  line-height: 1.5;
+}
+
+.quiz-question {
+  margin: 0 0 8px;
+}
+
+.quiz-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* Answered options stay fully visible (not faded) */
+.quiz-option:disabled {
+  opacity: 1;
+}
+
+/* Right and wrong: green and red with white letters (easy to read in every theme) */
+.quiz-option.right {
+  background: #2e7d46;
+  color: white;
+}
+
+.quiz-option.wrong {
+  background: #c0392b;
+  color: white;
+}
+
+/* Word order: the sentence being built */
+.quiz-built {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 34px;
+  padding: 6px;
+  margin-bottom: 8px;
+  border: 1px dashed var(--input-border);
+  border-radius: var(--radius-small);
+}
+
+.quiz-built.right {
+  border: 2px solid #2e7d46;
+}
+
+.quiz-built.wrong {
+  border: 2px solid #c0392b;
+}
+
+.quiz-card > button {
+  margin-top: 8px;
+}
+
+/* ✓ Correct. / ✗ Not quite. with the explanation: normal text colour (readable in every theme)
+   with a green or red bar beside it */
+.quiz-result {
+  margin: 8px 0 0;
+  padding-left: 8px;
+  border-left: 4px solid;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.quiz-result.right {
+  border-color: #2e7d46;
+}
+
+.quiz-result.wrong {
+  border-color: #c0392b;
+}
+
+/* Gender question: "Masculine", "Feminine", "Neuter" with the Grammar Lens colours */
+.quiz-option.gender-option {
+  text-transform: capitalize;
+  padding: 6px 12px; /* The same size as the other answer buttons */
+}
+
+/* A1-B1: meanings of new words in a question ("📖 sklepu – shop · chleb – bread") */
+.quiz-glossary {
+  margin: 0 0 8px;
+  padding: 6px 10px;
+  border-radius: var(--radius-small);
+  background: var(--soft);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.quiz-glossary b {
+  font-weight: 600;
+}

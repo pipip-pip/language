@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <!-- This line makes the page fit nicely on an iPhone screen -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Video Study</title>
+
+  <!-- Fonts used by the themes (if they can't load, similar built-in fonts are used) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600&family=Kaisei+Decol:wght@500;700&family=DM+Sans:wght@400;700&family=DM+Serif+Display&family=Marcellus&family=Jost:wght@400;600&display=swap">
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Put the saved theme on straight away, so the page doesn't flash in the wrong colours.
+       Orchid Cabana Club ("cabana") is used until another theme is chosen. -->
+  <script>
+    document.documentElement.dataset.theme = "cabana";
+    try {
+      const savedTheme = JSON.parse(localStorage.getItem("theme"));
+      if (["cabana", "coffee", "matcha"].includes(savedTheme)) {
+        document.documentElement.dataset.theme = savedTheme;
+      }
+    } catch (error) {
+      // No saved theme: Orchid Cabana Club stays on
+    }
+  </script>
+</head>
+<body>
+  <!-- Top row: language button on the left, title next to it -->
+  <header>
+    <!-- Language selection: the list opens when the cursor is over it (or on tap, on iPhone) -->
+    <div class="dropdown" id="language-dropdown">
+      <button type="button" id="language-button"><span id="language-name">Choose language</span> ▾</button>
+      <ul class="dropdown-menu" id="language-menu"></ul>
+    </div>
+
+    <!-- Shows the chosen language (or ✧💎✧ when none is chosen) -->
+    <h1 id="page-title">✧💎✧</h1>
+  </header>
+
+  <!-- ===== Navigation bar: always visible, switches between the pages ===== -->
+  <nav id="main-nav">
+    <button type="button" class="tab active" data-tab="study-tab">🌱 Study</button>
+    <button type="button" class="tab" data-tab="sentences-tab">💎 My Collection</button>
+    <button type="button" class="tab" data-tab="audios-tab">🎧 My Playlist</button>
+    <button type="button" class="tab" data-tab="settings-tab">⚙️ Settings</button>
+  </nav>
+
+  <!-- ===== Study tab ===== -->
+  <main id="study-tab">
+    <!-- Your sentences in the language chosen with 🌐. Click one to select it. -->
+    <section class="box">
+      <h2>Select entry</h2>
+      <p id="no-entries" class="hint"></p>
+      <ul id="entry-list"></ul>
+    </section>
+
+    <!-- Smaller tabs inside Study: Practice and Immerse -->
+    <nav id="study-nav">
+      <button type="button" class="subtab active" data-subtab="practice-panel">Practice</button>
+      <button type="button" class="subtab" data-subtab="immerse-panel">Immerse</button>
+    </nav>
+
+    <section class="box" id="practice-panel">
+      <h2>Practice</h2>
+
+      <!-- Your language level (CEFR) -->
+      <h3>How Deep Today?</h3>
+      <div id="level-picker">
+        <button class="level" data-level="A1">A1</button>
+        <button class="level" data-level="A2">A2</button>
+        <button class="level" data-level="B1">B1</button>
+        <button class="level" data-level="B2">B2</button>
+        <button class="level" data-level="C1">C1</button>
+        <button class="level" data-level="C2">C2</button>
+      </div>
+
+      <!-- What kind of word to practise -->
+      <h3>Today’s focus</h3>
+      <div id="practice-target">
+        <button type="button" class="filter-button" data-target="noun">Nouns</button>
+        <button type="button" class="filter-button" data-target="verb">Verbs</button>
+        <button type="button" class="filter-button" data-target="adjective">Adjectives</button>
+        <button type="button" class="filter-button" data-target="mix">Mix</button>
+      </div>
+
+      <!-- Questions made by GPT from the selected entry, at the chosen level and target -->
+      <h3>Questions</h3>
+      <button type="button" id="make-questions">✨ Let’s go</button>
+      <p id="quiz-status" class="hint status-line" hidden></p>
+      <ol id="quiz-list"></ol>
+    </section>
+
+    <section class="box" id="immerse-panel" hidden>
+      <h2>Immerse</h2>
+
+      <!-- Two ways to look at the selected entry -->
+      <div id="immerse-options">
+        <button type="button" class="filter-button selected" data-view="pure-text">Pure Text</button>
+        <button type="button" class="filter-button" data-view="grammar-lens">Grammar Lens</button>
+      </div>
+
+      <!-- Listen: reads the selected entry aloud, 5 times, 10 times or until stopped -->
+      <div id="audio-controls">
+        <button type="button" id="audio-play" aria-label="Play the sentence" title="Play the sentence"></button>
+        <!-- Repeat icon (two arrows going round) with the number of times -->
+        <button type="button" class="filter-button loop-button" data-loops="5" title="Repeat 5 times" aria-label="Repeat 5 times">
+          <svg class="loop-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>
+          <span>5</span>
+        </button>
+        <button type="button" class="filter-button loop-button" data-loops="10" title="Repeat 10 times" aria-label="Repeat 10 times">
+          <svg class="loop-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>
+          <span>10</span>
+        </button>
+        <!-- Forever: an infinity loop drawn as one flowing line that ends in an arrow -->
+        <button type="button" class="filter-button loop-button" data-loops="infinite" title="Repeat forever" aria-label="Repeat forever">
+          <svg class="loop-icon infinity-icon" viewBox="0 0 32 18" aria-hidden="true"><path d="M16 9C18.5 5.5 22 4 25 5.2C28.5 6.6 28.5 11.4 25 12.8C22 14 18.5 12.5 16 9C13.5 5.5 10 4 7 5.2C3.5 6.6 3.5 11.4 7 12.8C9.6 13.8 12.3 13 14.2 11.3"/><path d="M11 11.65 14.2 11.3 13.45 14.4"/></svg>
+        </button>
+        <span id="audio-count" class="hint"></span>
+      </div>
+
+      <!-- Pure Text: just the selected entry, big and clear -->
+      <div id="pure-text" class="immerse-view">
+        <p id="pure-text-sentence" class="immerse-sentence"></p>
+      </div>
+
+      <!-- Grammar Lens: the selected entry with its nouns coloured by gender (found by GPT) -->
+      <div id="grammar-lens" class="immerse-view" hidden>
+        <p id="grammar-sentence" class="immerse-sentence"></p>
+        <p id="grammar-status" class="hint status-line" hidden></p>
+      </div>
+    </section>
+  </main>
+
+  <!-- ===== Sentences tab (hidden until chosen in the navigation bar) ===== -->
+  <main id="sentences-tab" hidden>
+    <section class="box">
+      <h2>Add sentences</h2>
+      <p class="hint">Type or paste sentences. Put each one on its own line.</p>
+      <form id="sentence-form">
+        <textarea id="sentence-input" rows="4" placeholder="Write a sentence here"></textarea>
+
+        <!-- Extra details, saved with every sentence added -->
+        <div class="sentence-details">
+          <label>
+            Language
+            <!-- Filled with the languages chosen in Settings -->
+            <select id="sentence-language"></select>
+          </label>
+          <label>
+            Source
+            <input id="source-input" type="text" placeholder="e.g. YouTube video, book, friend">
+          </label>
+        </div>
+        <!-- Audio: choose a saved sound file (or upload one) and the part this sentence is in.
+             Filled by app.js. The listen button in Immerse plays that part. -->
+        <div id="add-audio"></div>
+        <!-- No date box: today's date is saved with each sentence automatically -->
+
+        <button type="submit">Add</button>
+        <!-- Shows "Finding topics…" etc. while the AI model works -->
+        <p id="topic-status" class="hint status-line" hidden></p>
+      </form>
+    </section>
+
+    <section class="box">
+      <h2>My sentences</h2>
+      <!-- Filter buttons: All, then one per language -->
+      <div id="sentence-filter"></div>
+      <p id="no-sentences" class="hint">No sentences yet.</p>
+      <!-- The numbered list of sentences (filled by app.js) -->
+      <div id="sentence-list"></div>
+    </section>
+
+    <!-- Topics you've used before, suggested when typing in a Topic box -->
+    <datalist id="topic-suggestions"></datalist>
+  </main>
+
+  <!-- ===== Settings tab (hidden until chosen in the navigation bar) ===== -->
+  <main id="settings-tab" hidden>
+    <section class="box">
+      <h2>Theme</h2>
+      <p class="hint">Pick a look for the whole app.</p>
+      <!-- Filled with one card per theme (see THEMES in app.js) -->
+      <div id="theme-options"></div>
+    </section>
+
+    <section class="box">
+      <h2>My languages</h2>
+      <p class="hint">Tick the languages you're learning. Only these appear in the language button and when adding sentences.</p>
+      <!-- Filled with one checkbox per language -->
+      <div id="language-options"></div>
+    </section>
+
+    <section class="box">
+      <h2>Topics</h2>
+      <p class="hint">Sentences get their topics automatically. A small AI model in your browser
+        reads each sentence and picks the topics that fit its meaning best.</p>
+      <p id="ai-status" class="hint"></p>
+
+      <h3>Check all sentences again</h3>
+      <p class="hint">Finds the best topics for every sentence. Topics you typed yourself are kept.</p>
+      <button type="button" id="detect-topics-button">Check topics again</button>
+      <p id="detect-topics-result" class="hint status-line" hidden></p>
+
+      <h3>Try a sentence</h3>
+      <p class="hint">See how well a sentence fits each topic (nothing is saved).</p>
+      <form id="try-topics-form" class="try-form">
+        <input id="try-topics-input" type="text" placeholder="Type any sentence">
+        <button type="submit">Try</button>
+      </form>
+      <pre id="try-topics-result"></pre>
+    </section>
+
+    <!-- OpenAI connection: the key is kept only in this browser, never in the website's files -->
+    <section class="box">
+      <h2>OpenAI</h2>
+      <p class="hint">Paste your OpenAI API key here. It's saved only in this browser on this device, never in the website's files.</p>
+      <form id="openai-form" class="openai-form">
+        <label>
+          API key
+          <input id="openai-key" type="password" placeholder="sk-..." autocomplete="off">
+        </label>
+        <label>
+          Model
+          <input id="openai-model" type="text" autocomplete="off">
+        </label>
+        <div class="edit-buttons">
+          <button type="submit">Save key and model</button>
+          <button type="button" id="openai-forget" class="small-button">Remove key</button>
+        </div>
+      </form>
+      <p id="openai-status" class="hint status-line"></p>
+    </section>
+
+    <!-- Backup: everything in one file, to keep safe or to move to another device -->
+    <section class="box">
+      <h2>Backup</h2>
+      <p class="hint">Download one file with all your sentences, audio files and settings. Keep it somewhere safe
+        (e.g. iCloud Drive). Restore it here, or on another device, to get everything back.
+        Your OpenAI key isn't included, for safety.</p>
+      <div class="edit-buttons">
+        <button type="button" id="backup-download">⬇️ Download backup</button>
+        <button type="button" id="backup-restore" class="small-button">⬆️ Restore backup</button>
+      </div>
+      <!-- Hidden: opened by Restore backup -->
+      <input type="file" id="backup-file" accept=".json,application/json" hidden>
+      <!-- "Replace everything…? Yes / No", shown after a backup file is chosen -->
+      <div id="backup-confirm" class="sentence-buttons" hidden>
+        <span id="backup-question" class="delete-question"></span>
+        <button type="button" id="backup-yes" class="small-button delete-yes">Yes</button>
+        <button type="button" id="backup-no" class="small-button">No</button>
+      </div>
+      <p id="backup-status" class="hint status-line" hidden></p>
+    </section>
+  </main>
+
+  <!-- ===== My audios tab (hidden until chosen in the navigation bar) ===== -->
+  <main id="audios-tab" hidden>
+    <!-- Every sound file uploaded, with how many sentences use it -->
+    <section class="box">
+      <h2>My audios</h2>
+      <p class="hint">Sound files you've uploaded, labelled by language. Each one can be used by many sentences in that language. They're kept in this browser on this device only.</p>
+      <!-- Filter buttons: All, then one per language (same as My sentences) -->
+      <div id="audio-filter"></div>
+      <p id="no-audio-files" class="hint">No audio files yet. Add one with the Audio box when adding a sentence.</p>
+      <ul id="audio-library"></ul>
+    </section>
+  </main>
+
+  <!-- A small "Saved ✓" message in the bottom corner (shown by app.js) -->
+  <div id="save-message" hidden></div>
+
+  <!-- Our own code: the topic keyword lists first, then the rest of the app -->
+  <script src="topics.js"></script>
+  <script src="ai-topics.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
