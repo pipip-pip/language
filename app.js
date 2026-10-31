@@ -2474,9 +2474,14 @@ backupDownload.addEventListener("click", async function () {
 
     // Every sound file in the library, with its name and type
     const audio = {};
+    const missing = []; // Files listed in My audios whose sound isn't in this browser
     for (const item of audioLibrary) {
       const file = await loadAudioFile(item.id);
-      if (file) audio[item.id] = { name: item.name, type: file.type, data: await fileToText(file) };
+      if (file) {
+        audio[item.id] = { name: item.name, type: file.type, data: await fileToText(file) };
+      } else {
+        missing.push(item.name);
+      }
     }
 
     const backup = { app: "language-app", date: todayForDateBox(), saved: saved, audio: audio };
@@ -2491,8 +2496,10 @@ backupDownload.addEventListener("click", async function () {
     link.remove();
     setTimeout(function () { URL.revokeObjectURL(link.href); }, 10000);
 
-    showBackupStatus("Backup downloaded: " + countOf(sentences.length, "sentence") + ", " +
-      countOf(Object.keys(audio).length, "audio file") + ".");
+    showBackupStatus("Backup downloaded: " + countOf(sentences.length, "sentence") + " and " +
+      countOf(Object.keys(audio).length, "audio file") + "." +
+      (missing.length > 0 ? " Not included (their sound isn't saved in this browser, upload them again): " +
+        missing.join(", ") + "." : ""));
   } catch {
     showBackupStatus("The backup couldn't be made. Please try again.");
   }
@@ -2517,9 +2524,9 @@ backupFile.addEventListener("change", async function () {
     return;
   }
   const count = JSON.parse(backupToRestore.saved.sentences || "[]").length;
-  backupQuestion.textContent = "Replace everything on this device with the backup from " +
-    (backupToRestore.date ? europeanDate(backupToRestore.date) : "this file") + " (" + countOf(count, "sentence") + ", " +
-    countOf(Object.keys(backupToRestore.audio || {}).length, "audio file") + ")?";
+  backupQuestion.textContent = (backupToRestore.date ? "Made on " + europeanDate(backupToRestore.date) + ": " : "") +
+    countOf(count, "sentence") + " and " +
+    countOf(Object.keys(backupToRestore.audio || {}).length, "audio file") + ".";
   backupConfirm.hidden = false;
   showBackupStatus("");
 });

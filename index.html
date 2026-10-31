@@ -237,20 +237,24 @@
     <!-- Backup: everything in one file, to keep safe or to move to another device -->
     <section class="box">
       <h2>Backup</h2>
-      <p class="hint">Download one file with all your sentences, audio files and settings. Keep it somewhere safe
-        (e.g. iCloud Drive). Restore it here, or on another device, to get everything back.
-        Your OpenAI key isn't included, for safety.</p>
+      <p class="hint">Download one file with all your sentences, settings and the audio files themselves
+        (the sound, not just their names). Keep it somewhere safe (e.g. iCloud Drive). Restore it here,
+        or on another device, to get everything back. Your OpenAI key isn't included, for safety.</p>
       <div class="edit-buttons">
         <button type="button" id="backup-download">⬇️ Download backup</button>
         <button type="button" id="backup-restore" class="small-button">⬆️ Restore backup</button>
       </div>
       <!-- Hidden: opened by Restore backup -->
       <input type="file" id="backup-file" accept=".json,application/json" hidden>
-      <!-- "Replace everything…? Yes / No", shown after a backup file is chosen -->
-      <div id="backup-confirm" class="sentence-buttons" hidden>
-        <span id="backup-question" class="delete-question"></span>
-        <button type="button" id="backup-yes" class="small-button delete-yes">Yes</button>
-        <button type="button" id="backup-no" class="small-button">No</button>
+      <!-- Shown after a backup file is chosen: what's in it, and a clear choice before anything is replaced -->
+      <div id="backup-confirm" hidden>
+        <p class="backup-confirm-title">Restore this backup?</p>
+        <p id="backup-question"></p>
+        <p class="backup-warning">⚠️ Everything now on this device is replaced by the backup.</p>
+        <div class="edit-buttons">
+          <button type="button" id="backup-yes" class="small-button delete-yes">Replace with backup</button>
+          <button type="button" id="backup-no" class="small-button">Cancel</button>
+        </div>
       </div>
       <p id="backup-status" class="hint status-line" hidden></p>
     </section>

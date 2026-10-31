@@ -51,7 +51,7 @@ Scripts load in this order: `topics.js` → `ai-topics.js` → `app.js`. They sh
     - middle: the text and a source link;
     - right: the date and the Edit/Delete buttons, where Delete asks "Delete it?" with Yes/No.
   - Topics are detected automatically and are not edited in the UI.
-- **Settings tab:** Theme cards, My languages (checkboxes), Topics (status, re-check all, try a sentence), OpenAI key and model, and **Backup** (⬇️ Download / ⬆️ Restore: one JSON file with the `BACKUP_KEYS` localStorage values plus every MP3 as a data URL; the OpenAI key is deliberately left out; restore asks Yes/No, stores the new audio before removing old, then reloads). **When adding a new saved key, add it to `BACKUP_KEYS`.**
+- **Settings tab:** Theme cards, My languages (checkboxes), Topics (status, re-check all, try a sentence), OpenAI key and model, and **Backup** (⬇️ Download / ⬆️ Restore: one JSON file with the `BACKUP_KEYS` localStorage values plus every MP3 as a data URL; the OpenAI key is deliberately left out; restore shows a "Restore this backup?" box with Replace with backup / Cancel, stores the new audio before removing old, then reloads). **When adding a new saved key, add it to `BACKUP_KEYS`.**
 - **🎧 My audios tab** (`#audios-tab`): the uploaded audio files, laid out like sentence rows (flag | name, source, sentence count | date, Edit/Delete), with the same language filter (`makeLanguageFilter` is shared by both lists). Both lists show newest first via `newestFirst(items, all)`, which only changes the on-screen order; rows still use their index in the saved array. Source is required when editing.
 
 ## Data (all in the browser, per device)

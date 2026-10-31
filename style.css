@@ -952,9 +952,27 @@ button:disabled {
 }
 
 /* Settings → Backup: "Replace everything…? Yes / No" under the buttons (wraps on a phone) */
+/* Settings → Backup: the "Restore this backup?" box, set apart from the buttons above */
 #backup-confirm {
-  flex-wrap: wrap;
   margin-top: 12px;
+  padding: 12px 14px;
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-left: 5px solid #c0392b; /* Red edge: this replaces your data */
+  border-radius: var(--radius-small);
+}
+
+#backup-confirm p {
+  margin: 0 0 8px;
+}
+
+.backup-confirm-title {
+  font-weight: 700;
+}
+
+.backup-warning {
+  color: var(--muted);
+  font-size: 14px;
 }
 
 /* "Yes" is red, so it's clear it removes the sentence (white on red is easy to read in every theme) */
