@@ -22,7 +22,7 @@ A personal language-learning website. You save sentences you meet (from YouTube 
 
 | File | What it is |
 |---|---|
-| [index.html](index.html) | All markup. Three main tabs (`#study-tab`, `#sentences-tab`, `#settings-tab`) shown and hidden with the `hidden` attribute. A small inline script in `<head>` applies the saved theme before paint, using a whitelist `["cabana","coffee","matcha"]`. **Update that whitelist when adding or removing a theme.** |
+| [index.html](index.html) | All markup. Three main tabs (`#study-tab`, `#sentences-tab`, `#settings-tab`) shown and hidden with the `hidden` attribute. A small inline script in `<head>` applies the saved theme before paint, using a whitelist `["riviera","cabana","coffee","matcha"]`. **Update that whitelist when adding or removing a theme.** |
 | [app.js](app.js) | All app logic (~2300 lines, plain global functions, no modules). Sections are marked with `// ===== Name =====` headers. The start-up calls are at the very end. |
 | [style.css](style.css) | Theme variables, then layout. |
 | [topics.js](topics.js) | `TOPIC_EXAMPLES` (English example phrases per topic) and `TOPIC_KEYWORDS` (EN/PL/TR keywords), plus `detectTopics(text, language)` as the keyword fallback. |
@@ -43,6 +43,7 @@ Scripts load in this order: `topics.js` → `ai-topics.js` → `app.js`. They sh
   - *Immerse* subtab:
     - **Pure Text**: the sentence, big.
     - **Grammar Lens**: GPT finds the nouns, which are coloured by gender (`NOUN_GENDERS`; English and Turkish have none).
+    - **Word Focus**: GPT lists every word of the entry once (word, base, type, form, meaning) as cards (`findWords` → `drawWordList`, `showWordFocus`). Saved on the sentence as `words: { text, list }`, like `grammar: { text, nouns }`, so each entry is asked about only once. No filtering of words seen in other entries (owner's choice). Tapping a card marks the word as known (`toggleKnown`); known words are stored per language in localStorage `knownWords` = `{ Polish: ["dzisiaj", …] }` by lower-case dictionary form, shown only as small "✓ Known" chips under that entry's cards (tap to undo; no overview page, by request), and sent to `askForQuestions` (newest 300) so questions practise other words and glossaries skip them.
     - **Audio controls**: play, plus repeat 5 / 10 / infinite. The audio plays the attached MP3 part if there is one, otherwise browser text-to-speech.
 - **My sentences tab**
   - The add form: a textarea (one sentence per line), Language, Source, and an audio picker (choose or upload an MP3 and mark the start/end times).
@@ -52,6 +53,8 @@ Scripts load in this order: `topics.js` → `ai-topics.js` → `app.js`. They sh
     - right: the date and the Edit/Delete buttons, where Delete asks "Delete it?" with Yes/No.
     - Phones (≤600px): the same row is stacked with CSS grid (flag+topics | date, then the text full width, then the buttons); `.sentence-actions` becomes `display: contents`. These phone rules must stay **after** the normal `.sentence-*` rules in style.css.
     - Long sentences are clamped to 3 lines with a "Show all ▾" toggle (`expandedSentences`, `showTextToggles`, re-measured on tab switch and resize). Audio file names are clamped to 2 lines.
+  - Pasting is tidied (`tidyText(text, oneLine)` via `tidyWhenPasted`): no empty lines, trimmed lines, single spaces. The Add box keeps one sentence per line; the Edit box joins lines with a space. Add and Save tidy the text too.
+  - The Source boxes (Add and Edit) suggest earlier non-link sources in the form's language (`addSourceSuggestions`, a `<datalist>` refilled on focus and language change).
   - Topics are detected automatically and are not edited in the UI.
 - **Settings tab:** Theme cards, My languages (checkboxes), Topics (status, re-check all, try a sentence), OpenAI key and model, and **Backup** (⬇️ Download / ⬆️ Restore: one JSON file with the `BACKUP_KEYS` localStorage values plus every MP3 as a data URL; the OpenAI key is deliberately left out; restore shows a "Restore this backup?" box with Replace with backup / Cancel, stores the new audio before removing old, then reloads). **When adding a new saved key, add it to `BACKUP_KEYS`.**
 - **🎧 My audios tab** (`#audios-tab`): the uploaded audio files, laid out like sentence rows (flag | name, source, sentence count | date, Edit/Delete), with the same language filter (`makeLanguageFilter` is shared by both lists). Both lists show newest first via `newestFirst(items, all)`, which only changes the on-screen order; rows still use their index in the saved array. Source is required when editing.
@@ -66,6 +69,7 @@ Use the helpers `loadSaved(key, fallback)`, `loadSavedText(key)` and `save(key, 
 | `audioLibrary` | `[{ id, name, language, source, date }]` (date = day uploaded; older files get the date of their first sentence). The MP3 data itself lives in **IndexedDB** db `language-app`, store `audio`, keyed by id (`storeAudioFile` / `loadAudioFile` / `removeAudioFile`). One file can serve many sentences. |
 | `myLanguage`, `myLanguages` | The current language, and the languages ticked in Settings. |
 | `myLevel`, `practiceTarget`, `audioLoops`, `theme` | Settings that are remembered. |
+| `knownWords` | Words marked known in Word Focus, per language (see Word Focus). |
 | `openaiKey`, `openaiModel` | The user's key, and the model (default `DEFAULT_MODEL = "gpt-4.1"`). |
 | `view` | The open tab, subtab, Immerse view, both language filters and the selected entry (`saveView` / `restoreView`). |
 
@@ -87,18 +91,22 @@ Languages: `LANGUAGE_FLAGS` = English, French, German, Polish, Turkish. Adding a
 ## Audio and speech
 
 - **New uploads get the link:** a web link typed in Source becomes the new file's source (`fileBox` change in `makeAudioPicker`; a link auto-filled from another file is cleared instead), and `giveAudioTheLink` copies the sentence's link to a source-less file when the sentence is added or edited.
-- **MP3 parts:** `playRecording(entry)` plays from `audioStart` to `audioEnd`, checked by a 10 ms interval. start and end are typed in three number-only boxes, minutes : seconds , milliseconds (`makeTimeBoxes(title, seconds, readOnly)` → `{ element, get(), set(), clear() }`). Above them, read-only **Now** (live player position) and **Length** boxes in the same format; below, **▶ Play this part** plays Start→End in the picker's player; the end-time check runs every 10 ms.
+- **MP3 parts:** `playRecording(entry)` plays from `audioStart` to `audioEnd`, checked by a 10 ms interval. start and end are typed in three number-only boxes, minutes : seconds , milliseconds (`makeTimeBoxes(title, seconds, readOnly)` → `{ element, get(), set(), clear() }`). Above them, read-only **Now** (live player position) and **Length** boxes in the same format; below, **Use the whole audio** (Start 0, End = file length; a hint beside it explains it and then shows the times it set) and **▶ Play this part** plays Start→End in the picker's player; the end-time check runs every 10 ms.
 - **Text-to-speech:** `speakOnce` uses `speechSynthesis`. `voiceFor` ranks the voices with `voiceQuality` (Siri, then Premium/Enhanced, and novelty voices are excluded). Setting `utterance.voice` sits in a try/catch so playback falls back to the device voice.
 - Loops: `playedOnce` repeats the playback, and `stopAudio` stops it. Changing the entry stops the audio (`stopAudioIfEntryChanged`).
 
 ## Themes
 
-- `THEMES` in app.js: `cabana` "Orchid Cabana Club" (default), `coffee` "Cold Brew Amber Reserve" (dark), and `matcha` "Kyoto Iced Matcha".
+- `THEMES` in app.js: `riviera` "Velvet Dusk" (default, dark editorial: sunset gradient `--bg`, blurred light shafts in `body::before`, film grain in `body::after`, smoked glass with champagne-gold #E3B866 hairlines, cream #F3E7D0 text; Playfair Display / Noto Serif Display (reading, `.immerse-sentence`, `.quiz-passage`) / Jost, with Frank Ruhl Libre + Heebo for Hebrew and Hahmlet, Nanum Myeongjo + IBM Plex Sans KR for Korean; piña colada cream accent (#FFF3D6 / #F5DE9E / #E9C46A) on main buttons (`button:not([class])`), chosen chips, the active tab line and the selected entry's gradient border; uppercase spaced `.tab`/`.subtab`/form labels at 13px for tabs; italic h3; gold outlines via inset box-shadow; muted quiz colours), `cabana` "Orchid Cabana Club", `coffee` "Cold Brew Coffee" (dark), and `matcha` "Kyoto Iced Matcha".
+- **Typography roles:** every text element belongs to one of seven roles (display, heading, subheading, reading, nav, ui, meta) listed in the "Typography roles" section of style.css (with `.type-…` classes). Fonts come only from the role variables (`--font-display`, `--font-heading`, `--font-subheading`, `--font-reading`, `--font-ui`, plus `--…-weight`, `--nav-spacing`, `--ui-spacing`, and `--ui-size` = 15px for all buttons/chips/levels/the language list — don't give a button its own font-size). Don't add `font-family` to components; add the selector to a role instead. Reading text has line-height 1.7 in every theme. A reset makes `button, input, select, textarea, option` inherit the font.
+- All fonts load from **one** Google Fonts `<link>` in index.html; add new families to it.
+- No decorative emojis in the UI (functional symbols like ✓ ✗ ▾ ▶ ■ and the language flags stay).
 - Each theme is a `[data-theme="…"]` block in style.css, setting CSS variables. The defaults live in `:root, [data-theme]`.
 - The variables are: `--bg`, `--text`, `--muted`, `--title`, `--card`, `--accent`, `--accent-text`, `--nav-*`, `--chip`, `--soft`, `--line`, `--input-bg`, `--input-border`, `--selected-bg`, `--level-a/b/c` (+`-text`), `--font`, `--heading-font`, `--radius`, …
-- Layout must not depend on the theme. That's why line heights, button widths (`.level` 52px; `#language-button` is auto-width, max 220px, at the owner's request) and transparent borders are fixed.
+- Reading text (`.immerse-sentence`, `.sentence-text`, `.entry-text`, quiz passage/question, word cards) has `unicode-bidi: plaintext` so Hebrew runs right to left.
+- Layout must not depend on the theme. That's why line heights, button widths (`.level` 52px; `#language-button` is auto-width, max 220px, at the owner's request) and transparent borders are fixed. `#main-nav` is a fixed grid (4 columns, 2 at ≤760px) for the same reason. Tabs and buttons have no emojis (owner's request).
 - To add a theme: add a CSS block, an entry in `THEMES`, and the id in the `<head>` whitelist. Check the contrast of text, buttons, level colours and the quiz right/wrong colours.
-- Themes the owner has rejected or deleted: cherry, sunset/mango, leopard, mint, diamond, dusk.
+- Themes the owner has rejected or deleted: cherry, sunset/mango, leopard, mint, diamond, dusk, honey (Golden Hour Lounge).
 
 ## Testing (what has worked)
 

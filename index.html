@@ -6,23 +6,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Video Study</title>
 
-  <!-- Fonts used by the themes (if they can't load, similar built-in fonts are used) -->
+  <!-- Fonts used by the themes, all in one link (if they can't load, similar built-in fonts are used).
+       Fonts for other alphabets (Hebrew: Frank Ruhl Libre, Heebo; Korean: Hahmlet, Nanum Myeongjo,
+       IBM Plex Sans KR) are only downloaded when such letters are on the page. -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600&family=Kaisei+Decol:wght@500;700&family=DM+Sans:wght@400;700&family=DM+Serif+Display&family=Marcellus&family=Jost:wght@400;600&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600&family=Kaisei+Decol:wght@500;700&family=DM+Sans:wght@400;700&family=DM+Serif+Display&family=Marcellus&family=Jost:wght@400;500;600&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Noto+Serif+Display:wght@400;500&family=Frank+Ruhl+Libre:wght@400;500;700&family=Hahmlet:wght@400;600&family=Nanum+Myeongjo:wght@400;700&family=Heebo:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
   <link rel="stylesheet" href="style.css">
 
   <!-- Put the saved theme on straight away, so the page doesn't flash in the wrong colours.
-       Orchid Cabana Club ("cabana") is used until another theme is chosen. -->
+       Velvet Dusk ("riviera") is used until another theme is chosen. -->
   <script>
-    document.documentElement.dataset.theme = "cabana";
+    document.documentElement.dataset.theme = "riviera";
     try {
       const savedTheme = JSON.parse(localStorage.getItem("theme"));
-      if (["cabana", "coffee", "matcha"].includes(savedTheme)) {
+      if (["riviera", "cabana", "coffee", "matcha"].includes(savedTheme)) {
         document.documentElement.dataset.theme = savedTheme;
       }
     } catch (error) {
-      // No saved theme: Orchid Cabana Club stays on
+      // No saved theme: Velvet Dusk stays on
     }
   </script>
 </head>
@@ -35,16 +37,16 @@
       <ul class="dropdown-menu" id="language-menu"></ul>
     </div>
 
-    <!-- Shows the chosen language (or ✧💎✧ when none is chosen) -->
-    <h1 id="page-title">✧💎✧</h1>
+    <!-- Shows the chosen language (or "Language Study" when none is chosen) -->
+    <h1 id="page-title">Language Study</h1>
   </header>
 
   <!-- ===== Navigation bar: always visible, switches between the pages ===== -->
   <nav id="main-nav">
-    <button type="button" class="tab active" data-tab="study-tab">🌱 Study</button>
-    <button type="button" class="tab" data-tab="sentences-tab">💎 My Collection</button>
-    <button type="button" class="tab" data-tab="audios-tab">🎧 My Playlist</button>
-    <button type="button" class="tab" data-tab="settings-tab">⚙️ Settings</button>
+    <button type="button" class="tab active" data-tab="study-tab">Study</button>
+    <button type="button" class="tab" data-tab="sentences-tab">My Collection</button>
+    <button type="button" class="tab" data-tab="audios-tab">My Playlist</button>
+    <button type="button" class="tab" data-tab="settings-tab">Settings</button>
   </nav>
 
   <!-- ===== Study tab ===== -->
@@ -87,7 +89,7 @@
 
       <!-- Questions made by GPT from the selected entry, at the chosen level and target -->
       <h3>Questions</h3>
-      <button type="button" id="make-questions">✨ Let’s go</button>
+      <button type="button" id="make-questions">Let’s go</button>
       <p id="quiz-status" class="hint status-line" hidden></p>
       <ol id="quiz-list"></ol>
     </section>
@@ -99,6 +101,7 @@
       <div id="immerse-options">
         <button type="button" class="filter-button selected" data-view="pure-text">Pure Text</button>
         <button type="button" class="filter-button" data-view="grammar-lens">Grammar Lens</button>
+        <button type="button" class="filter-button" data-view="word-focus">Word Focus</button>
       </div>
 
       <!-- Listen: reads the selected entry aloud, 5 times, 10 times or until stopped -->
@@ -129,6 +132,14 @@
       <div id="grammar-lens" class="immerse-view" hidden>
         <p id="grammar-sentence" class="immerse-sentence"></p>
         <p id="grammar-status" class="hint status-line" hidden></p>
+      </div>
+
+      <!-- Word Focus: every word of the selected entry with its meaning (found by GPT) -->
+      <div id="word-focus" class="immerse-view" hidden>
+        <p id="word-focus-status" class="hint status-line" hidden></p>
+        <ol id="word-list"></ol>
+        <!-- Words of this entry marked as known: small chips, tap one to bring it back -->
+        <div id="words-known" hidden></div>
       </div>
     </section>
   </main>
@@ -241,8 +252,8 @@
         (the sound, not just their names). Keep it somewhere safe (e.g. iCloud Drive). Restore it here,
         or on another device, to get everything back. Your OpenAI key isn't included, for safety.</p>
       <div class="edit-buttons">
-        <button type="button" id="backup-download">⬇️ Download backup</button>
-        <button type="button" id="backup-restore" class="small-button">⬆️ Restore backup</button>
+        <button type="button" id="backup-download">Download backup</button>
+        <button type="button" id="backup-restore" class="small-button">Restore backup</button>
       </div>
       <!-- Hidden: opened by Restore backup -->
       <input type="file" id="backup-file" accept=".json,application/json" hidden>
@@ -250,7 +261,7 @@
       <div id="backup-confirm" hidden>
         <p class="backup-confirm-title">Restore this backup?</p>
         <p id="backup-question"></p>
-        <p class="backup-warning">⚠️ Everything now on this device is replaced by the backup.</p>
+        <p class="backup-warning">Everything now on this device is replaced by the backup.</p>
         <div class="edit-buttons">
           <button type="button" id="backup-yes" class="small-button delete-yes">Replace with backup</button>
           <button type="button" id="backup-no" class="small-button">Cancel</button>

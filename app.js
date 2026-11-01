@@ -193,13 +193,13 @@ function webAddress(source) {
 }
 
 // A short name for a link, instead of the address itself:
-// YouTube links show "▶ YouTube", others show the site's name, e.g. "🔗 example.com"
+// YouTube links show "YouTube", others show the site's name, e.g. "example.com"
 function sourceLabel(url) {
   const site = new URL(url).hostname.replace(/^(www|m)\./i, "");
   if (site === "youtube.com" || site === "youtu.be" || site.endsWith(".youtube.com")) {
-    return "▶ YouTube";
+    return "YouTube";
   }
-  return "🔗 " + site;
+  return site;
 }
 
 // The audio picker, used in the Add and Edit forms:
@@ -288,7 +288,33 @@ function makeAudioPicker(current, languageSelect, sourceBox) {
     }, 10);
   });
 
-  part.append(player, clock, times, playPart);
+  // Use the whole audio: Start at 0:00,000 and End at the file's full length,
+  // so the times are the same as in the original recording.
+  // A short line next to the button says what it does, and then what it just did.
+  const WHOLE_HINT = "Sets Start to the beginning and End to the very end of the file.";
+  const wholeHint = document.createElement("span");
+  wholeHint.className = "hint";
+  wholeHint.textContent = WHOLE_HINT;
+  const wholeFile = makeButton("Use the whole audio", "small-button", function () {
+    startTime.set(0);
+    if (isFinite(player.duration)) {
+      endTime.set(player.duration);
+      wholeHint.textContent = "✓ Done: Start 0:00,000, End " + timeLabel(player.duration) + ".";
+    } else {
+      // Length not known yet (file still loading): an empty End also means "to the end"
+      endTime.set(null);
+      wholeHint.textContent = "✓ Done: Start 0:00,000, End left empty (= to the end).";
+    }
+  });
+  // Typing a new time by hand: show the explanation again
+  times.addEventListener("input", function () {
+    wholeHint.textContent = WHOLE_HINT;
+  });
+  const whole = document.createElement("div");
+  whole.className = "audio-whole";
+  whole.append(wholeFile, wholeHint);
+
+  part.append(player, clock, times, whole, playPart);
 
   picker.append(label, fileBox, part);
 
@@ -334,7 +360,7 @@ function makeAudioPicker(current, languageSelect, sourceBox) {
     choice.innerHTML = "";
     choice.append(new Option("No audio", ""));
     matching.forEach(function (item) {
-      choice.append(new Option("🎵 " + item.name, item.id));
+      choice.append(new Option(item.name, item.id));
     });
     choice.append(new Option("＋ Upload a new file…", "__new__"));
     choice.value = selected;
@@ -451,7 +477,7 @@ let saveMessageTimer = null;
 function showSaveMessage(worked) {
   saveMessage.textContent = worked
     ? "Saved ✓"
-    : "⚠️ Couldn't save. Private browsing, or storage full? Changes will be lost when you leave.";
+    : "Couldn't save. Private browsing, or storage full? Changes will be lost when you leave.";
   saveMessage.classList.toggle("failed", !worked);
   saveMessage.hidden = false;
 
@@ -584,13 +610,13 @@ function fillLanguageMenu() {
   languageName.textContent = myLanguage ? languageLabel(myLanguage) : "Choose language";
 
   // The big title (and the browser tab's name) show the chosen language
-  pageTitle.textContent = myLanguage ? "✧ " + languageLabel(myLanguage) + " ✧" : "✧💎✧";
+  pageTitle.textContent = myLanguage ? languageLabel(myLanguage) : "Language Study";
   document.title = myLanguage ? languageLabel(myLanguage) : "Video Study";
 
   if (myLanguages.length === 0) {
     // Nothing ticked yet: offer a shortcut to Settings
     const item = document.createElement("li");
-    item.textContent = "Add languages in ⚙️ Settings";
+    item.textContent = "Add languages in Settings";
     item.className = "hint-item";
     item.addEventListener("click", function () {
       languageDropdown.classList.remove("open");
@@ -717,6 +743,39 @@ const sentenceLanguage = document.getElementById("sentence-language");
 const topicSuggestions = document.getElementById("topic-suggestions");
 const sourceInput = document.getElementById("source-input");
 
+// Tidies pasted or typed text: no spaces at the start or end of a line, one space between words
+// (tabs and double spaces become one), and no empty lines in between.
+// oneLine = true joins the lines with a space (an entry being edited is one piece of text);
+// otherwise each sentence stays on its own line, right under the one before (the Add box).
+function tidyText(text, oneLine) {
+  return text
+    .split(/\r\n|\r|\n/)
+    .map(function (line) { return line.replace(/[^\S\n]+/g, " ").trim(); })
+    .filter(function (line) { return line !== ""; })
+    .join(oneLine ? " " : "\n");
+}
+
+// Pasting into a text box puts in the tidied text instead of the original, where the cursor is
+function tidyWhenPasted(box, oneLine) {
+  box.addEventListener("paste", function (event) {
+    const pasted = event.clipboardData && event.clipboardData.getData("text/plain");
+    if (!pasted) {
+      return; // Nothing we can read (e.g. a picture): let the browser paste as usual
+    }
+    event.preventDefault();
+    let tidy = tidyText(pasted, oneLine);
+    // Pasting in the middle of a line: keep a space between the old and the new words
+    const before = box.value.slice(0, box.selectionStart);
+    if (oneLine && tidy && before !== "" && !/\s$/.test(before)) {
+      tidy = " " + tidy;
+    }
+    box.setRangeText(tidy, box.selectionStart, box.selectionEnd, "end");
+    box.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+}
+
+tidyWhenPasted(sentenceInput, false);
+
 // Today's date, saved with each new sentence: "2026-10-27"
 function todayForDateBox() {
   const now = new Date();
@@ -826,6 +885,33 @@ function fillTopicSuggestions() {
   });
 }
 
+// Sources typed before that aren't links (e.g. "Pan Tadeusz", "my teacher"),
+// suggested in a Source box. Only sources of sentences (and audio files) in that form's language.
+let sourceListCount = 0; // Each list needs its own id
+function addSourceSuggestions(sourceBox, languageSelect) {
+  const list = document.createElement("datalist");
+  sourceListCount += 1;
+  list.id = "source-suggestions-" + sourceListCount;
+  sourceBox.setAttribute("list", list.id);
+  sourceBox.after(list); // A datalist is never shown on the page itself
+
+  function fill() {
+    const language = languageSelect.value;
+    const found = [];
+    sentences.concat(audioLibrary).forEach(function (item) {
+      const source = (item.source || "").trim();
+      if (item.language === language && source && !webAddress(source) && !found.includes(source)) {
+        found.push(source);
+      }
+    });
+    list.innerHTML = "";
+    found.sort().forEach(function (source) { list.append(new Option(source)); });
+  }
+  fill();
+  languageSelect.addEventListener("change", fill);
+  sourceBox.addEventListener("focus", fill); // So sources added a moment ago are there too
+}
+
 function saveSentences() {
   save("sentences", sentences);
 }
@@ -852,6 +938,7 @@ if (libraryChanged) saveAudioLibrary();
 // The Audio picker in the Add form
 addAudioPicker = makeAudioPicker({}, sentenceLanguage, sourceInput);
 document.getElementById("add-audio").append(addAudioPicker.element);
+addSourceSuggestions(sourceInput, sentenceLanguage);
 
 // The number of the sentence being edited right now (null = none)
 let editingIndex = null;
@@ -964,7 +1051,7 @@ function makeSentenceRow(sentence, index) {
     question.textContent = "Delete it?";
 
     const yesButton = makeButton("Yes", "small-button delete-yes", function () {
-      // Its sound file stays in the library (other sentences may use it); delete files in ⚙️ Settings
+      // Its sound file stays in the library (other sentences may use it); delete files in Settings
       sentences.splice(index, 1); // Remove this one sentence
       if (editingIndex !== null && editingIndex > index) editingIndex--;
       confirmingIndex = null;
@@ -1007,6 +1094,7 @@ function makeEditRow(sentence, index) {
   const textBox = document.createElement("textarea");
   textBox.rows = 2;
   textBox.value = sentence.text;
+  tidyWhenPasted(textBox, true);
 
   const languageBox = document.createElement("select");
   fillLanguageSelect(languageBox, sentence.language, sentence.language);
@@ -1020,6 +1108,7 @@ function makeEditRow(sentence, index) {
   const details = document.createElement("div");
   details.className = "sentence-details";
   details.append(languageBox, sourceBox);
+  addSourceSuggestions(sourceBox, languageBox); // After append, so the list can go next to the box
 
   // Audio: the same picker as in the Add form, showing this sentence's file and part
   editAudioPicker = makeAudioPicker(sentence, languageBox, sourceBox);
@@ -1042,7 +1131,7 @@ function makeEditRow(sentence, index) {
 
   form.addEventListener("submit", async function (event) {
     event.preventDefault();
-    const newText = textBox.value.trim();
+    const newText = tidyText(textBox.value, true); // Typed extra spaces or line breaks are tidied too
     if (newText === "") {
       return; // Don't allow an empty sentence (use ✕ to delete instead)
     }
@@ -1178,10 +1267,9 @@ function showSentences() {
 sentenceForm.addEventListener("submit", async function (event) {
   event.preventDefault();
 
-  // Each non-empty line becomes its own sentence
-  const newSentences = sentenceInput.value
+  // Each non-empty line becomes its own sentence (with extra spaces tidied away)
+  const newSentences = tidyText(sentenceInput.value, false)
     .split("\n")
-    .map(function (line) { return line.trim(); })
     .filter(function (line) { return line !== ""; });
 
   if (newSentences.length === 0) {
@@ -1313,7 +1401,7 @@ function showEntries() {
   entryList.innerHTML = "";
 
   if (!myLanguage) {
-    noEntries.textContent = "Choose a language with 🌐 to see your entries.";
+    noEntries.textContent = "Choose a language at the top to see your entries.";
     noEntries.hidden = false;
     return;
   }
@@ -1323,7 +1411,7 @@ function showEntries() {
   });
 
   if (matching.length === 0) {
-    noEntries.textContent = "No entries in " + languageLabel(myLanguage) + " yet. Add some in 💎 My Collection.";
+    noEntries.textContent = "No entries in " + languageLabel(myLanguage) + " yet. Add some in My Collection.";
     noEntries.hidden = false;
     return;
   }
@@ -1359,7 +1447,7 @@ function showEntries() {
     });
     const title = document.createElement("span");
     title.className = "entry-group-title";
-    title.textContent = openEntryGroup === "none" ? "📝 Without audio" : "🎵 " + audioFileName(openEntryGroup);
+    title.textContent = openEntryGroup === "none" ? "Without audio" : audioFileName(openEntryGroup);
     back.append(title);
     entryList.append(back);
     showGroupEntries(groups[openEntryGroup], openEntryGroup !== "none");
@@ -1375,7 +1463,7 @@ function showEntries() {
     item.classList.toggle("selected", groups[groupId].includes(selectedEntry));
     const name = document.createElement("span");
     name.className = "entry-group-name";
-    name.textContent = groupId === "none" ? "📝 Without audio" : "🎵 " + audioFileName(groupId);
+    name.textContent = groupId === "none" ? "Without audio" : audioFileName(groupId);
     const count = document.createElement("span");
     count.className = "entry-group-count";
     count.textContent = groups[groupId].length === 1 ? "1 entry ›" : groups[groupId].length + " entries ›";
@@ -1447,6 +1535,9 @@ function showImmerseView(viewId) {
   if (viewId === "grammar-lens") {
     showGrammarLens(); // Colour the nouns of the selected entry (asks GPT if needed)
   }
+  if (viewId === "word-focus") {
+    showWordFocus(); // The words of the selected entry and their meanings (asks GPT if needed)
+  }
 }
 
 immerseButtons.forEach(function (button) {
@@ -1475,6 +1566,10 @@ function showImmerse() {
   // If Grammar Lens is open, show the (newly) selected entry there too
   if (!document.getElementById("grammar-lens").hidden) {
     showGrammarLens();
+  }
+  // The same for Word Focus
+  if (!document.getElementById("word-focus").hidden) {
+    showWordFocus();
   }
 }
 
@@ -1744,7 +1839,12 @@ showAudioState();
 // ===== Settings: themes =====
 // Each theme's colours and fonts are in style.css. This list gives each one a name.
 // The first theme is used when none has been chosen yet.
+// The first one is used until another is chosen
 const THEMES = [
+  {
+    id: "riviera",
+    name: "Velvet Dusk",
+  },
   {
     id: "cabana",
     name: "Orchid Cabana Club",
@@ -1847,7 +1947,7 @@ function showAudioLibrary() {
 
     const name = document.createElement("span");
     name.className = "audio-file-name";
-    name.textContent = "🎵 " + item.name;
+    name.textContent = item.name;
     name.title = item.name; // Long names are cut to two lines; the full name shows on hover
 
     // Editing this file: boxes for its name, language and source, with Save and Cancel
@@ -2071,15 +2171,15 @@ async function askOpenai(request) {
     });
   } catch {
     // The browser hides OpenAI's error replies (e.g. for a wrong key), so this can mean either
-    throw new Error("Couldn't get an answer from OpenAI. Check your internet connection, and that the API key in ⚙️ Settings → OpenAI is correct.");
+    throw new Error("Couldn't get an answer from OpenAI. Check your internet connection, and that the API key in Settings → OpenAI is correct.");
   }
 
   const data = await response.json();
   if (response.ok) {
     return data.choices[0].message.content;
   }
-  if (response.status === 401) throw new Error("The API key wasn't accepted. Check it in ⚙️ Settings → OpenAI.");
-  if (response.status === 404) throw new Error("OpenAI doesn't know the model \"" + openaiModel + "\". Check it in ⚙️ Settings → OpenAI.");
+  if (response.status === 401) throw new Error("The API key wasn't accepted. Check it in Settings → OpenAI.");
+  if (response.status === 404) throw new Error("OpenAI doesn't know the model \"" + openaiModel + "\". Check it in Settings → OpenAI.");
   if (response.status === 429) throw new Error("Too many requests, or no credit left on your OpenAI account. Try again later.");
   throw new Error("Something went wrong (" + response.status + "): " + (data.error ? data.error.message : ""));
 }
@@ -2232,7 +2332,7 @@ async function showGrammarLens() {
 
   grammarSentence.textContent = entry.text;
   if (!openaiKey) {
-    showGrammarStatus("Add your OpenAI API key in ⚙️ Settings → OpenAI to use Grammar Lens.");
+    showGrammarStatus("Add your OpenAI API key in Settings → OpenAI to use Grammar Lens.");
     return;
   }
   if (grammarBeingFound === entry) {
@@ -2259,16 +2359,225 @@ async function showGrammarLens() {
 }
 
 
+// ===== Immerse: Word Focus (the words of an entry and their meanings) =====
+// GPT lists every word of the selected entry once, in order: as written, its dictionary form,
+// what kind of word it is, its form in the sentence and its English meaning.
+// Like Grammar Lens, the answer is saved with the entry, so each entry is only asked about once.
+const wordList = document.getElementById("word-list");
+const wordFocusStatus = document.getElementById("word-focus-status");
+const wordsKnownRow = document.getElementById("words-known");
+let wordsBeingFound = null; // The entry waiting for GPT's answer (so it's only asked once)
+
+function showWordFocusStatus(message) {
+  wordFocusStatus.textContent = message;
+  wordFocusStatus.hidden = !message;
+}
+
+async function findWords(sentence) {
+  const answer = await askOpenai({
+    model: openaiModel,
+    messages: [
+      {
+        role: "system",
+        content:
+          "You help a language learner understand the vocabulary of a text. List every word and fixed " +
+          "expression in the user's text, in the order they first appear, each only once. Leave out names of " +
+          "people and places, and numbers. For each: word exactly as written in the text; base: its dictionary " +
+          "form (infinitive for verbs, nominative singular for nouns, masculine singular for adjectives); " +
+          "type: its kind of word; form: a short English description of its form in the text (e.g. \"genitive " +
+          "plural\", \"1st person singular, present\") or \"\" if it is the dictionary form or the language has " +
+          "no such forms; meaning: a short English meaning that fits this text (1-4 words).",
+      },
+      {
+        role: "user",
+        content: "Language: " + (sentence.language || "unknown") + "\nText: " + sentence.text,
+      },
+    ],
+    response_format: {
+      type: "json_schema",
+      json_schema: {
+        name: "vocabulary",
+        strict: true,
+        schema: {
+          type: "object",
+          properties: {
+            words: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  word: { type: "string" },
+                  base: { type: "string" },
+                  type: {
+                    type: "string",
+                    enum: ["noun", "verb", "adjective", "adverb", "pronoun", "preposition", "conjunction",
+                      "particle", "numeral", "expression", "other"],
+                  },
+                  form: { type: "string" },
+                  meaning: { type: "string" },
+                },
+                required: ["word", "base", "type", "form", "meaning"],
+                additionalProperties: false,
+              },
+            },
+          },
+          required: ["words"],
+          additionalProperties: false,
+        },
+      },
+    },
+  });
+  return JSON.parse(answer).words;
+}
+
+// One card per word:  pociągiem → pociąg   noun
+//                      train
+//                      instrumental singular
+// Words you've marked as known, per language, by their dictionary form in lower case:
+// { Polish: ["dzisiaj", "do"], ... }. Only kept as data (and used when making questions).
+let knownWords = loadSaved("knownWords", {});
+
+function knownKey(item) {
+  return (item.base || item.word).toLocaleLowerCase();
+}
+
+function isKnown(language, item) {
+  return (knownWords[language] || []).includes(knownKey(item));
+}
+
+// Tap a word: mark it as known, or tap it again (under "Known") to bring it back
+function toggleKnown(language, item) {
+  const list = knownWords[language] || [];
+  const key = knownKey(item);
+  knownWords[language] = list.includes(key)
+    ? list.filter(function (other) { return other !== key; })
+    : list.concat(key);
+  save("knownWords", knownWords, true);
+  showWordFocus();
+}
+
+// The words you still need, as cards. Known words go in a small row underneath.
+function drawWordList(words, language) {
+  wordList.innerHTML = "";
+  wordsKnownRow.innerHTML = "";
+  const known = words.filter(function (item) { return isKnown(language, item); });
+  words.forEach(function (item) {
+    if (isKnown(language, item)) return;
+    const card = document.createElement("li");
+    card.className = "word-card";
+    card.title = "Tap when you know this word";
+    card.addEventListener("click", function () { toggleKnown(language, item); });
+
+    const top = document.createElement("div");
+    top.className = "word-top";
+    const word = document.createElement("span");
+    word.className = "word-written";
+    word.textContent = item.word;
+    top.append(word);
+    // The dictionary form, if it's different from how it's written in the entry
+    if (item.base && item.base.toLocaleLowerCase() !== item.word.toLocaleLowerCase()) {
+      const base = document.createElement("span");
+      base.className = "word-base";
+      base.textContent = "→ " + item.base;
+      top.append(base);
+    }
+    const type = document.createElement("span");
+    type.className = "word-type";
+    type.textContent = item.type;
+    top.append(type);
+
+    const meaning = document.createElement("p");
+    meaning.className = "word-meaning";
+    meaning.textContent = item.meaning;
+    card.append(top, meaning);
+
+    if (item.form) {
+      const form = document.createElement("p");
+      form.className = "word-form";
+      form.textContent = item.form;
+      card.append(form);
+    }
+    wordList.append(card);
+  });
+
+  // ✓ Known: small chips; tap one to bring it back to the cards
+  wordsKnownRow.hidden = known.length === 0;
+  if (known.length > 0) {
+    const label = document.createElement("span");
+    label.className = "words-known-label";
+    label.textContent = "✓ Known (tap to bring back):";
+    wordsKnownRow.append(label);
+    known.forEach(function (item) {
+      wordsKnownRow.append(makeButton("✓ " + item.word, "word-known-chip", function () {
+        toggleKnown(language, item);
+      }));
+    });
+  }
+}
+
+// Fill the Word Focus view for the selected entry. Asks GPT only when needed.
+async function showWordFocus() {
+  const entry = selectedEntry;
+  const visible = entry && sentences.includes(entry) && entry.language === myLanguage;
+  wordList.innerHTML = "";
+  wordsKnownRow.innerHTML = "";
+  wordsKnownRow.hidden = true;
+
+  if (!visible) {
+    showWordFocusStatus("Select an entry above to see its words and their meanings.");
+    return;
+  }
+
+  // Already found earlier for this exact text: show it straight away (no new request)
+  if (entry.words && entry.words.text === entry.text) {
+    drawWordList(entry.words.list, entry.language);
+    const toLearn = entry.words.list.filter(function (item) { return !isKnown(entry.language, item); }).length;
+    let message = countOf(toLearn, "word") + " to learn. Tap a word when you know it.";
+    if (entry.words.list.length === 0) message = "No words found in this entry.";
+    else if (toLearn === 0) message = "You know every word in this entry!";
+    showWordFocusStatus(message);
+    return;
+  }
+
+  if (!openaiKey) {
+    showWordFocusStatus("Add your OpenAI API key in Settings → OpenAI to use Word Focus.");
+    return;
+  }
+  if (wordsBeingFound === entry) {
+    showWordFocusStatus("Finding the words…");
+    return; // Already asking GPT about this entry
+  }
+
+  showWordFocusStatus("Finding the words…");
+  wordsBeingFound = entry;
+  try {
+    const words = await findWords(entry);
+    entry.words = { text: entry.text, list: words }; // Remember it, so it's never asked twice
+    saveSentences();
+  } catch (error) {
+    if (selectedEntry === entry) showWordFocusStatus(error.message);
+    wordsBeingFound = null;
+    return;
+  }
+  wordsBeingFound = null;
+
+  // Only redraw if the same entry is still selected and Word Focus is still open
+  if (selectedEntry === entry && !document.getElementById("word-focus").hidden) {
+    showWordFocus();
+  }
+}
+
+
 // ===== Practice: questions made by GPT =====
 // Short questions from the selected entry, at the chosen level (How Deep Today?)
 // and practice target (noun, verb, adjective or mix): one of each type, in this order.
 // The gender question is added for A1-B2, in languages whose nouns have a gender.
 const QUESTION_TYPES = {
-  reading: "📖 Mini reading",
-  form: "✏️ Correct form",
-  order: "🔀 Word order",
-  odd: "🧩 Odd one out",
-  gender: "🎨 Gender",
+  reading: "Mini reading",
+  form: "Correct form",
+  order: "Word order",
+  odd: "Odd one out",
+  gender: "Gender",
 };
 
 const GENDER_QUESTION_LEVELS = ["A1", "A2", "B1", "B2"];
@@ -2318,6 +2627,13 @@ async function askForQuestions(entry, level, target) {
       "question has new words, so fill the glossary for every question that has them (also for words in the " +
       "options). Use [] only if every word really appears in the learner's sentence."
     : "glossary: always [].";
+  // Words marked as known in Word Focus: questions practise the other words instead,
+  // and known words aren't explained again (the newest 300 are sent, to keep the request short)
+  const known = (knownWords[entry.language] || []).slice(-300);
+  const knownPart = known.length === 0 ? "" :
+    "\nWords the learner already knows (dictionary forms): " + known.join(", ") +
+    "\nPrefer the other words of the sentence for the questions (above all the form, odd and gender questions), " +
+    "and never list a known word in a glossary.";
   const genderPart = genders.length === 0 ? "" :
     "5. type \"gender\": passage is one noun from the sentence in its dictionary form (e.g. \"poczta\"); " +
     "question is \"\"; options are exactly " + JSON.stringify(genders) + " in that order; answer_index is " +
@@ -2352,7 +2668,7 @@ async function askForQuestions(entry, level, target) {
       {
         role: "user",
         content: "Learner's sentence (" + entry.language + "): " + entry.text +
-          (entry.topics.length > 0 ? "\nTopics: " + entry.topics.join(", ") : ""),
+          (entry.topics.length > 0 ? "\nTopics: " + entry.topics.join(", ") : "") + knownPart,
       },
     ],
     response_format: {
@@ -2515,7 +2831,7 @@ function showQuestions(questions) {
     const card = document.createElement("li");
     card.className = "quiz-card";
 
-    // Card header: a numbered circle, the type (with its icon), and the instruction underneath
+    // Card header: a numbered circle, the type, and the instruction underneath
     const header = document.createElement("div");
     header.className = "quiz-header";
 
@@ -2555,7 +2871,7 @@ function showQuestions(questions) {
     if (question.glossary && question.glossary.length > 0) {
       const words = document.createElement("p");
       words.className = "quiz-glossary";
-      words.append("💡 New words: ");
+      words.append("New words: ");
       question.glossary.forEach(function (item, index) {
         if (index > 0) words.append(" · ");
         const word = document.createElement("b");
@@ -2581,7 +2897,7 @@ makeQuestionsButton.addEventListener("click", async function () {
     return;
   }
   if (!openaiKey) {
-    showQuizStatus("Add your OpenAI API key in ⚙️ Settings → OpenAI first.");
+    showQuizStatus("Add your OpenAI API key in Settings → OpenAI first.");
     return;
   }
 
@@ -2610,7 +2926,7 @@ makeQuestionsButton.addEventListener("click", async function () {
 // sentences (from localStorage) and the sound files (from IndexedDB, written out as text).
 // The OpenAI key is left out, so the file is safe to keep in iCloud Drive etc.
 const BACKUP_KEYS = ["sentences", "audioLibrary", "myLanguage", "myLanguages", LEVEL_KEY,
-  "practiceTarget", "audioLoops", "theme", "openaiModel", "view"];
+  "practiceTarget", "audioLoops", "theme", "openaiModel", "view", "knownWords"];
 
 const backupDownload = document.getElementById("backup-download");
 const backupRestore = document.getElementById("backup-restore");

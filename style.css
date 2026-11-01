@@ -13,6 +13,29 @@
   --heading-transform: none;
   --heading-spacing: normal;
 
+  /* Typography roles (used in "Typography roles" below). Every text on the page takes
+     its font from one of these, so a theme changes its fonts here and nowhere else. */
+  --font-display: var(--font-heading);      /* The app title */
+  --font-heading: var(--heading-font);      /* Box titles */
+  --font-subheading: var(--heading-font);   /* Small headings under them */
+  --font-reading: var(--heading-font);      /* Sentences, passages, quiz questions */
+  --font-ui: var(--font);                   /* Tabs, buttons, chips, labels, small print */
+  --display-weight: bold;
+  --heading-weight: bold;
+  --subheading-style: var(--heading-style);
+  --subheading-weight: bold;
+  --reading-weight: normal;
+  --reading-strong-weight: bold;            /* The selected entry, the word on a word card */
+  --nav-transform: none;                    /* Tabs: e.g. uppercase */
+  --nav-spacing: normal;                    /* Tabs: space between letters */
+  --nav-weight: normal;
+  --nav-active-weight: bold;                /* The chosen Practice / Immerse tab */
+  --ui-weight: normal;                      /* Buttons and chips */
+  --ui-strong-weight: bold;                 /* Level buttons, the chosen language, quiz numbers */
+  --ui-spacing: normal;
+  --ui-size: 15px;                          /* One size for every button, chip, level and the language list */
+  --meta-weight: normal;                    /* Dates, file names, "#2 · 0:05", hints */
+
   --bg: #f4f4f7;            /* Page background */
   --text: #222;             /* Normal text */
   --muted: #666;            /* Hints and small text */
@@ -203,9 +226,268 @@
 }
 
 
+/* Velvet Dusk: golden-hour light across creamy drinks, warm wood and linen, styled like a fashion magazine.
+   A layered sunset (apricot top right → burnt orange → rosewood → deep cocoa bottom left),
+   smoked amber glass boxes with thin champagne-gold lines, cream text instead of white.
+   Playfair Display (headings) and Noto Serif Display (reading) cover Polish, Turkish and Russian;
+   Frank Ruhl Libre takes over for Hebrew, Hahmlet / Nanum Myeongjo for Korean.
+   Buttons use Jost, with Heebo (Hebrew) and IBM Plex Sans KR (Korean). Colours only: no pictures.
+   A piña colada cream accent (coconut milk #FFF3D6, pineapple cream #F5DE9E, custard gold #E9C46A)
+   is used sparingly: main buttons, chosen chips, the chosen tab's line and the title. */
+[data-theme="riviera"] {
+  color-scheme: dark;
+  --heading-font: "Playfair Display", "Frank Ruhl Libre", "Hahmlet", Georgia, serif;
+  --heading-spacing: 0.005em;
+
+  /* The typography roles: Playfair Display for titles, Noto Serif Display for reading, Jost for the rest.
+     After each comes the font for Hebrew, then for Korean. */
+  --font-ui: "Jost", "Heebo", "IBM Plex Sans KR", sans-serif;
+  --font-reading: "Noto Serif Display", "Frank Ruhl Libre", "Nanum Myeongjo", Georgia, serif;
+  --display-weight: 600;
+  --heading-weight: 600;
+  --subheading-style: italic;
+  --subheading-weight: 500;
+  --reading-weight: 400;
+  --reading-strong-weight: 500;
+  --nav-transform: uppercase;
+  --nav-spacing: 0.2em;
+  --nav-weight: 500;
+  --nav-active-weight: 500;
+  --ui-weight: 500;
+  --ui-strong-weight: 500;
+  --ui-spacing: 0.04em;
+  --meta-weight: 400;
+
+  /* The sunset: a muted apricot glow top right, fading through burnt orange and rosewood
+     into deep cocoa at the bottom left. Mid-tones only, so nothing glares. */
+  --bg:
+    radial-gradient(ellipse 70% 55% at 100% 0%, rgba(222, 150, 86, 0.5), transparent 70%),
+    linear-gradient(225deg, #9C5A34 0%, #7A3A26 26%, #5C2B30 52%, #2F1A16 78%, #1E110D 100%);
+  --text: #F3E7D0;          /* Cream, never pure white */
+  --muted: #D2BC9C;
+  --title: #F5DE9E;          /* Pineapple cream */
+
+  --card: rgba(30, 17, 13, 0.64);  /* Smoked amber glass */
+  --card-border: 1px solid rgba(227, 184, 102, 0.24);  /* Champagne-gold hairline */
+  --shadow: inset 0 1px 0 rgba(243, 231, 208, 0.14), 0 14px 36px rgba(15, 6, 4, 0.4);
+  --glass: blur(14px);
+  --radius: 6px;            /* Crisp, editorial corners */
+  --radius-small: 4px;
+
+  --accent: #F5DE9E;        /* Pineapple cream: chosen chips and quiz numbers (main buttons get a gradient below) */
+  --accent-text: #3A2216;   /* Deep cocoa on the cream */
+  --accent-ink: #E3B866;    /* Champagne gold */
+
+  --nav-bg: rgba(30, 17, 13, 0.55);
+  --nav-text: #DCC6A4;
+  --nav-active-bg: rgba(227, 184, 102, 0.12);
+  --nav-active-text: #E3B866;
+
+  --chip: rgba(243, 231, 208, 0.08);
+  --chip-text: #EAD9BC;
+  --soft: rgba(243, 231, 208, 0.07);
+  --line: rgba(227, 184, 102, 0.18);
+  --input-bg: rgba(20, 11, 8, 0.5);
+  --input-border: rgba(227, 184, 102, 0.26);
+  --selected-bg: rgba(227, 184, 102, 0.12);
+  --bubble: #2B1915;
+  --bubble-text: #F3E7D0;
+  /* The chosen level is pineapple cream with cocoa letters, like the other chosen chips */
+  --level-a: #F5DE9E;  --level-a-text: #3A2216;
+  --level-b: #F5DE9E;  --level-b-text: #3A2216;
+  --level-c: #F5DE9E;  --level-c-text: #3A2216;
+
+  scrollbar-color: rgba(227, 184, 102, 0.3) #1E110D;
+}
+
+[data-theme="riviera"] ::selection {
+  background: rgba(227, 184, 102, 0.35);
+  color: #F3E7D0;
+}
+
+/* Lists that open over other things need a solid background, not glass */
+[data-theme="riviera"] .dropdown-menu {
+  background: #2B1915;
+  border: 1px solid rgba(227, 184, 102, 0.3);
+}
+
+/* Main buttons (Let’s go, Add, Save…: the ones without a class) look like the drink itself:
+   frothy coconut milk to pineapple cream, with a frosted highlight along the top.
+   The shadows are drawn inside, so no button changes size. */
+[data-theme="riviera"] button:not([class]):not(#language-button),
+[data-theme="riviera"] button[class=""] {
+  background: linear-gradient(180deg, #FFF3D6 0%, #F5DE9E 100%);
+  color: #3A2216;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), inset 0 -1px 0 rgba(233, 196, 106, 0.55);
+}
+
+[data-theme="riviera"] button:not([class]):not(#language-button):hover,
+[data-theme="riviera"] button[class=""]:hover {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), inset 0 -1px 0 rgba(233, 196, 106, 0.55),
+    0 0 18px rgba(245, 222, 158, 0.28);
+}
+
+/* The chosen page: a soft fill with a pineapple-cream-to-custard-gold line under the name */
+[data-theme="riviera"] .tab.active {
+  background:
+    linear-gradient(90deg, #F5DE9E, #E9C46A) center bottom 5px / calc(100% - 32px) 2px no-repeat,
+    rgba(227, 184, 102, 0.12);
+  color: #F5DE9E;
+}
+
+/* Practice / Immerse: the same gradient line */
+[data-theme="riviera"] .subtab.active {
+  color: #F5DE9E;
+  border-image: linear-gradient(90deg, #F5DE9E, #E9C46A) 1;
+}
+
+/* The selected entry: a gradient border, drawn on a layer on top (a normal border can't be a
+   gradient with round corners). The real border is see-through, so nothing changes size. */
+[data-theme="riviera"] #entry-list li.selected {
+  position: relative;
+  border-color: transparent;
+}
+
+[data-theme="riviera"] #entry-list li.selected::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  padding: 1px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, #F5DE9E, #E9C46A);
+  /* Cut out the middle, leaving just the 1px edge */
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  pointer-events: none;
+}
+
+/* The title glows very faintly, like warm light */
+[data-theme="riviera"] h1 {
+  text-shadow: 0 0 18px rgba(245, 222, 158, 0.28);
+}
+
+/* A faint creamy glow behind the top of the page's boxes, as if light passes through a creamy drink */
+[data-theme="riviera"] main {
+  position: relative;
+}
+
+[data-theme="riviera"] main::before {
+  content: "";
+  position: absolute;
+  top: -40px;
+  left: 10%;
+  right: 10%;
+  height: 420px;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 35%, rgba(255, 243, 214, 0.1), transparent 70%);
+}
+
+/* Sun through blinds: a few wide, very blurred diagonal light shafts drifting almost imperceptibly.
+   Drawn with colour gradients only (no pictures), behind everything and never in the way. */
+[data-theme="riviera"] body::before {
+  content: "";
+  position: fixed;
+  inset: -25%;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(115deg,
+    transparent 22%, rgba(255, 212, 150, 0.09) 27%, transparent 32%,
+    transparent 46%, rgba(255, 212, 150, 0.07) 52%, transparent 57%,
+    transparent 68%, rgba(255, 212, 150, 0.05) 72%, transparent 76%);
+  filter: blur(28px);
+  animation: light-shafts 90s ease-in-out infinite alternate;
+}
+
+@keyframes light-shafts {
+  from { transform: translate(0, 0); }
+  to   { transform: translate(-5%, 2%); }
+}
+
+/* Film grain: a fine noise over everything so the gradients feel analog (drawn by the browser) */
+[data-theme="riviera"] body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0.07;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* People who've asked their device for less motion: the light stays still */
+@media (prefers-reduced-motion: reduce) {
+  [data-theme="riviera"] body::before {
+    animation: none;
+  }
+}
+
+/* Slow, languid fades on hover (nothing moves or changes size) */
+[data-theme="riviera"] button,
+[data-theme="riviera"] #entry-list li,
+[data-theme="riviera"] .word-card,
+[data-theme="riviera"] .theme-card {
+  transition: background-color 0.6s ease, border-color 0.6s ease, box-shadow 0.6s ease, color 0.6s ease;
+}
+
+/* Magazine touches: navigation and small labels in capitals with wide spacing
+   (the tabs' capitals and spacing come from --nav-… above).
+   The tab letters are a little smaller so the wider words still fit in the same space. */
+[data-theme="riviera"] .tab,
+[data-theme="riviera"] .subtab {
+  font-size: 13px;
+}
+
+[data-theme="riviera"] .sentence-details label,
+[data-theme="riviera"] .openai-form label,
+[data-theme="riviera"] .audio-picker > label,
+[data-theme="riviera"] .audio-edit-form label,
+[data-theme="riviera"] .quiz-kind {
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* …but what you type in those boxes stays as it is */
+[data-theme="riviera"] label input,
+[data-theme="riviera"] label select,
+[data-theme="riviera"] label textarea {
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+/* Noun genders: muted see-through tints behind cream text (dusky blue, rosewood, olive sage) */
+[data-theme="riviera"] .noun.masculine { background: rgba(104, 132, 170, 0.34); color: #F3E7D0; }
+[data-theme="riviera"] .noun.feminine  { background: rgba(170, 90, 102, 0.36); color: #F3E7D0; }
+[data-theme="riviera"] .noun.neuter    { background: rgba(128, 142, 92, 0.36); color: #F3E7D0; }
+
+/* Quiz right / wrong: muted sage and terracotta with cream text, instead of bright green and red */
+[data-theme="riviera"] .quiz-option.right { background: rgba(112, 150, 96, 0.5); color: #F3E7D0; }
+[data-theme="riviera"] .quiz-option.wrong { background: rgba(182, 72, 60, 0.55); color: #F3E7D0; }
+[data-theme="riviera"] .quiz-card.answered-right { border-left-color: #8FB07A; }
+[data-theme="riviera"] .quiz-card.answered-wrong { border-left-color: #C9705F; }
+[data-theme="riviera"] .quiz-built.right,
+[data-theme="riviera"] .quiz-result.right { border-color: #8FB07A; }
+[data-theme="riviera"] .quiz-built.wrong,
+[data-theme="riviera"] .quiz-result.wrong { border-color: #C9705F; }
+
+/* The theme's card in Settings shows a little sunset */
+.theme-card[data-theme="riviera"] {
+  background: linear-gradient(225deg, #9C5A34 0%, #6B3329 45%, #2F1A16 100%);
+}
+
+
 /* ===== Basic look for the whole page ===== */
+/* Buttons, boxes and lists take the page's font and colour, instead of the browser's own
+   (each one's size and colour is set further down) */
+button, input, select, textarea, option {
+  font: inherit;
+  color: inherit;
+}
+
 body {
-  font-family: var(--font);
+  font-family: var(--font-ui);
   font-size: 16px;
   line-height: 1.4;
   background: var(--bg);
@@ -219,19 +501,154 @@ body {
 
 /* Fixed text sizes and line heights, so every theme's fonts take up exactly the same
    height and nothing moves when the theme changes */
-h1, h2, h3 {
-  font-family: var(--heading-font);
-  font-style: var(--heading-style);
-  text-transform: var(--heading-transform);
-  letter-spacing: var(--heading-spacing);
-}
-
 h1 { font-size: 32px; line-height: 40px; }
 h2 { font-size: 24px; line-height: 32px; }
 h3 { font-size: 18px; line-height: 24px; }
 
 button, input, select, textarea {
   line-height: 20px;
+}
+
+/* ===== Typography roles =====
+   Every piece of text on the page has exactly one of these seven roles, and gets its font
+   only from here (the fonts themselves are the theme's --font-… variables at the top).
+   Sizes stay in the rules further down and are the same in every theme, so the layout never moves.
+   Something new can use a role by adding its class: .type-display, .type-heading, .type-subheading,
+   .type-reading, .type-nav, .type-ui or .type-meta. */
+
+/* 1. Display: the app title (the language) */
+h1,
+.type-display {
+  font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  font-style: var(--heading-style);
+  text-transform: var(--heading-transform);
+  letter-spacing: var(--heading-spacing);
+}
+
+/* 2. Section headings: box titles, theme names, "Restore this backup?" */
+h2,
+.theme-name,
+.backup-confirm-title,
+.type-heading {
+  font-family: var(--font-heading);
+  font-weight: var(--heading-weight);
+  font-style: var(--heading-style);
+  text-transform: var(--heading-transform);
+  letter-spacing: var(--heading-spacing);
+}
+
+/* 3. Subheadings: "How Deep Today?", "Today’s focus", an opened audio group's name */
+h3,
+.entry-group-title,
+.type-subheading {
+  font-family: var(--font-subheading);
+  font-weight: var(--subheading-weight);
+  font-style: var(--subheading-style);
+  text-transform: var(--heading-transform);
+  letter-spacing: var(--heading-spacing);
+}
+
+/* 4. Reading text: the sentences themselves, passages, questions and explanations.
+   Roomy lines (the same in every theme) so long passages are easy on the eyes. */
+.immerse-sentence:not(.hint),
+.sentence-text,
+.entry-text,
+.quiz-passage,
+.quiz-question,
+.quiz-result,
+.word-written,
+.word-base,
+.type-reading {
+  font-family: var(--font-reading);
+  font-weight: var(--reading-weight);
+  line-height: 1.7;
+}
+
+/* The selected entry, and the word on each word card, a little stronger */
+#entry-list li.selected .entry-text,
+.word-written {
+  font-weight: var(--reading-strong-weight);
+}
+
+/* 5. Navigation: the four pages, and Practice / Immerse */
+.tab,
+.subtab,
+.type-nav {
+  font-family: var(--font-ui);
+  font-weight: var(--nav-weight);
+  text-transform: var(--nav-transform);
+  letter-spacing: var(--nav-spacing);
+}
+
+.subtab.active {
+  font-weight: var(--nav-active-weight);
+}
+
+/* 6. Buttons, chips and answer options (answer options are buttons too),
+   the language list, and the "Saved ✓" and error messages.
+   (Tabs are buttons too, but the Navigation rule above is more specific, so it wins.) */
+button,
+.dropdown-menu li,
+#save-message,
+.error-text,
+.type-ui {
+  font-family: var(--font-ui);
+  font-size: var(--ui-size);
+  font-weight: var(--ui-weight);
+  letter-spacing: var(--ui-spacing);
+}
+
+/* Level buttons, the chosen language and quiz numbers stand out a little more */
+.level,
+.dropdown-menu li.selected,
+.quiz-number {
+  font-weight: var(--ui-strong-weight);
+}
+
+/* Plain page text, and what you type in a box, use the UI font at normal weight */
+body,
+input,
+select,
+textarea {
+  font-family: var(--font-ui);
+}
+
+input,
+select,
+textarea {
+  font-weight: var(--meta-weight);
+}
+
+/* 7. Meta and small labels: "#2 · 0:05", dates, topics, file names, "← All audios",
+   form labels, hints, empty lists and the small print in quizzes and word cards */
+.hint,
+.sentence-details label,
+.openai-form label,
+.audio-picker > label,
+.audio-edit-form label,
+.sentence-date,
+.topic-tag,
+.source-link,
+.entry-label,
+.entry-group-name,
+.entry-group-count,
+#entry-list li.entry-back,
+.audio-file-name,
+.audio-file-count,
+.time-field,
+.time-separator,
+.word-type,
+.word-meaning,
+.word-form,
+.words-known-label,
+.quiz-kind,
+.quiz-instruction,
+.quiz-glossary,
+.backup-warning,
+.type-meta {
+  font-family: var(--font-ui);
+  font-weight: var(--meta-weight);
 }
 
 /* Three columns: language button on the left, title in the centre, empty space on the right
@@ -297,8 +714,6 @@ main {
 
 button {
   padding: 10px 16px;
-  font-size: 16px;
-  font-family: inherit;
   border: none;
   border-radius: var(--radius-small);
   background: var(--accent);
@@ -307,10 +722,11 @@ button {
 }
 
 /* ===== Navigation bar ===== */
-/* A bar with the four pages side by side (they wrap on very narrow screens) */
+/* A bar with the four pages side by side. A fixed grid (not wrapping), so the tabs sit
+   in exactly the same places in every theme, whatever the font. */
 #main-nav {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
   gap: 6px;
   max-width: 800px;
   margin: 0 auto 16px;
@@ -322,6 +738,13 @@ button {
   border: var(--card-border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
+}
+
+/* Narrower screens (like an iPhone): two rows of two */
+@media (max-width: 760px) {
+  #main-nav {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 /* The pages in the bar */
@@ -358,7 +781,6 @@ button {
 /* The "Add languages in Settings" item in the 🌐 list */
 .dropdown-menu li.hint-item {
   color: var(--muted);
-  font-style: italic;
 }
 
 /* ===== Sentences tab ===== */
@@ -372,7 +794,6 @@ button {
   box-sizing: border-box;
   padding: 10px;
   font-size: 16px;
-  font-family: inherit;
   color: var(--text);
   background: var(--input-bg);
   border: 1px solid var(--input-border);
@@ -574,7 +995,6 @@ button {
 .edit-form select {
   padding: 8px;
   font-size: 16px;
-  font-family: inherit;
   color: var(--text);
   background: var(--input-bg);
   border: 1px solid var(--input-border);
@@ -620,7 +1040,6 @@ button {
 .sentence-details select {
   padding: 10px;
   font-size: 16px;
-  font-family: inherit;
   color: var(--text);
   background: var(--input-bg);
   border: 1px solid var(--input-border);
@@ -724,7 +1143,6 @@ button {
 /* The chosen language */
 .dropdown-menu li.selected {
   color: var(--accent-ink);
-  font-weight: bold;
 }
 
 /* ===== Language level (CEFR) ===== */
@@ -741,7 +1159,6 @@ button {
   color: var(--chip-text);
   padding: 6px 12px;
   width: 52px; /* Same width in every theme, whatever the font */
-  font-weight: bold;
 }
 
 /* A = beginner, B = intermediate, C = advanced: colours come from the theme */
@@ -814,7 +1231,6 @@ button {
 
 .entry-group-title {
   color: var(--text);
-  font-weight: 700;
   font-size: 15px;
   overflow-wrap: anywhere;
 }
@@ -838,10 +1254,9 @@ button {
   overflow: hidden;
 }
 
-/* The selected entry is shown in full, in bold */
+/* The selected entry is shown in full */
 #entry-list li.selected .entry-text {
   display: block;
-  font-weight: bold;
 }
 
 /* ===== My sentences and My audios: language filter ===== */
@@ -858,7 +1273,6 @@ button {
   background: var(--chip);
   color: var(--chip-text);
   padding: 6px 12px;
-  font-size: 14px;
 }
 
 .filter-button.selected {
@@ -895,7 +1309,6 @@ button {
 
 .subtab.active {
   color: var(--accent-ink);
-  font-weight: bold;
   border-bottom-color: var(--accent-ink);
 }
 
@@ -914,7 +1327,6 @@ button {
   min-width: 0;
   padding: 10px;
   font-size: 16px;
-  font-family: inherit;
   color: var(--text);
   background: var(--input-bg);
   border: 1px solid var(--input-border);
@@ -923,7 +1335,6 @@ button {
 
 /* The scores, one topic per line */
 #try-topics-result {
-  font-family: inherit;
   white-space: pre-wrap;
   color: var(--text);
   margin: 8px 0 0;
@@ -943,16 +1354,112 @@ button:disabled {
 
 /* The selected entry, big and easy to read */
 .immerse-sentence {
-  font-family: var(--heading-font);
   font-size: 24px;
-  line-height: 1.5;
   margin: 0;
+}
+
+/* Right-to-left languages like Hebrew: each piece of reading text runs in its own direction
+   (right to left for Hebrew, left to right for the others), in every theme */
+.immerse-sentence,
+.sentence-text,
+.entry-text,
+.quiz-passage,
+.quiz-question,
+.word-written,
+.word-base {
+  unicode-bidi: plaintext;
+  text-align: start;
 }
 
 /* The "Select an entry above" message stays small */
 .immerse-sentence.hint {
-  font-family: var(--font);
   font-size: 16px;
+}
+
+/* ===== Immerse: Word Focus ===== */
+/* Cards side by side on a computer, one per row on a phone */
+#word-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 8px;
+}
+
+/* Each card can be tapped to mark the word as known */
+.word-card {
+  padding: 10px 12px;
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius-small);
+  cursor: pointer;
+}
+
+.word-card:hover {
+  border-color: var(--accent-ink);
+}
+
+/* "✓ Known (tap to bring back):" and the known words as small soft chips */
+#words-known {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.words-known-label {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.word-known-chip {
+  padding: 2px 10px;
+  background: var(--soft);
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 13px;
+}
+
+/* pociągiem → pociąg   noun */
+.word-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+}
+
+.word-written {
+  font-size: 17px;
+  overflow-wrap: anywhere;
+}
+
+.word-base {
+  color: var(--accent-ink);
+  overflow-wrap: anywhere;
+}
+
+/* The kind of word, as a small soft label on the right */
+.word-type {
+  margin-left: auto;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--chip);
+  color: var(--chip-text);
+  font-size: 12px;
+}
+
+.word-meaning {
+  margin: 4px 0 0;
+}
+
+/* "instrumental singular": small and soft, under the meaning */
+.word-form {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 13px;
 }
 
 /* ===== Settings: theme picker ===== */
@@ -974,7 +1481,6 @@ button:disabled {
   background: var(--card);
   color: var(--text);
   border: 2px solid var(--line);
-  font-family: var(--font);
   border-radius: var(--radius);
 }
 
@@ -984,11 +1490,8 @@ button:disabled {
 }
 
 .theme-name {
-  font-family: var(--heading-font);
-  font-style: var(--heading-style);
   font-size: 17px;
   line-height: 22px;
-  font-weight: bold;
 }
 
 /* ===== "Saved ✓" message ===== */
@@ -1029,7 +1532,6 @@ button:disabled {
 .openai-form input {
   padding: 10px;
   font-size: 16px;
-  font-family: inherit;
   color: var(--text);
   background: var(--input-bg);
   border: 1px solid var(--input-border);
@@ -1127,10 +1629,6 @@ button:disabled {
   margin: 0 0 8px;
 }
 
-.backup-confirm-title {
-  font-weight: 700;
-}
-
 .backup-warning {
   color: var(--muted);
   font-size: 14px;
@@ -1147,7 +1645,6 @@ button:disabled {
 #audio-input,
 .edit-audio input[type="file"] {
   font-size: 14px;
-  font-family: inherit;
   color: var(--text);
   max-width: 100%;
 }
@@ -1184,7 +1681,6 @@ button:disabled {
 .audio-times input {
   padding: 10px;
   font-size: 16px;
-  font-family: inherit;
   color: var(--text);
   background: var(--input-bg);
   border: 1px solid var(--input-border);
@@ -1197,10 +1693,25 @@ button:disabled {
   margin-bottom: 8px;
 }
 
-/* Now/Length, then Start/End, then ▶ Play this part, with a little space between the rows */
+/* Now/Length, then Start/End, then Use the whole audio, then ▶ Play this part,
+   with a little space between the rows */
 .audio-part > .audio-times,
+.audio-part > .audio-whole,
 .audio-part > .small-button {
   margin-bottom: 10px;
+}
+
+/* [Use the whole audio]  Sets Start to the beginning… (the line goes under the button on narrow screens) */
+.audio-whole {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+}
+
+.audio-whole .hint {
+  margin: 0;
+  font-size: 14px;
 }
 
 /* Start [0]:[12],[250]   End [0]:[18],[500] */
@@ -1251,7 +1762,6 @@ button:disabled {
 
 .time-separator {
   color: var(--text);
-  font-weight: 700;
 }
 
 
@@ -1288,7 +1798,6 @@ button:disabled {
 .audio-file-language {
   padding: 6px 8px;
   font-size: 14px;
-  font-family: inherit;
   color: var(--text);
   background: var(--input-bg);
   border: 1px solid var(--input-border);
@@ -1300,7 +1809,6 @@ button:disabled {
 .audio-file-source {
   padding: 8px 10px;
   font-size: 16px;
-  font-family: inherit;
   color: var(--text);
   background: var(--input-bg);
   border: 1px solid var(--input-border);
@@ -1405,7 +1913,6 @@ button:disabled {
   border-radius: 50%;
   background: var(--accent);
   color: var(--accent-text);
-  font-weight: 700;
   font-size: 14px;
   line-height: 28px;
   text-align: center;
@@ -1422,7 +1929,6 @@ button:disabled {
 .quiz-kind {
   margin: 0;
   color: var(--text);
-  font-weight: 700;
   font-size: 15px;
   line-height: 28px; /* Lines up with the numbered circle */
 }
@@ -1430,9 +1936,7 @@ button:disabled {
 /* The short reading text, in the bigger sentence font */
 .quiz-passage {
   margin: 0 0 6px;
-  font-family: var(--heading-font);
   font-size: 19px;
-  line-height: 1.5;
 }
 
 .quiz-question {
