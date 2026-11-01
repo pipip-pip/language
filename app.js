@@ -473,6 +473,7 @@ function showTab(tabId) {
     button.classList.toggle("active", isThisOne);
     document.getElementById(button.dataset.tab).hidden = !isThisOne;
   });
+  showTextToggles(); // Long sentences can only be measured once their tab is on screen
 }
 
 tabButtons.forEach(function (button) {
@@ -870,6 +871,19 @@ function makeButton(label, className, onClick) {
 
 // A sentence as it normally looks, in three columns:
 //   left: flag and topics | middle: the sentence | right: date, then Edit and Delete
+// Sentences opened with "Show all" (kept open when the list is redrawn)
+const expandedSentences = new Set();
+
+// "Show all" only appears under sentences that are really cut off. That can only be measured
+// while the list is on screen, so this runs again when the tab opens or the screen size changes.
+function showTextToggles() {
+  document.querySelectorAll("#sentence-list .sentence-text").forEach(function (text) {
+    const toggle = text.nextElementSibling;
+    toggle.hidden = !text.classList.contains("expanded") && text.scrollHeight <= text.clientHeight + 1;
+  });
+}
+window.addEventListener("resize", showTextToggles);
+
 function makeSentenceRow(sentence, index) {
   const row = document.createElement("div");
   row.className = "sentence-row";
@@ -900,9 +914,23 @@ function makeSentenceRow(sentence, index) {
   const main = document.createElement("div");
   main.className = "sentence-main";
 
+  // Long sentences show three lines; "Show all" opens the rest (see showTextToggles)
   const text = document.createElement("span");
+  text.className = "sentence-text";
+  text.classList.toggle("expanded", expandedSentences.has(sentence));
   text.textContent = sentence.text;
-  main.append(text);
+  const toggle = makeButton(expandedSentences.has(sentence) ? "Show less ▴" : "Show all ▾", "text-toggle", function () {
+    if (expandedSentences.has(sentence)) {
+      expandedSentences.delete(sentence);
+    } else {
+      expandedSentences.add(sentence);
+    }
+    const open = expandedSentences.has(sentence);
+    text.classList.toggle("expanded", open);
+    toggle.textContent = open ? "Show less ▴" : "Show all ▾";
+  });
+  toggle.hidden = true;
+  main.append(text, toggle);
 
   // The sentence's own source if it's a link, otherwise the source of its audio file
   const audioItem = audioLibrary.find(function (item) { return item.id === sentence.audioId; });
@@ -1139,6 +1167,7 @@ function showSentences() {
     list.append(item);
   });
   sentenceList.append(list);
+  showTextToggles();
 
   fillTopicSuggestions();
   showEntries(); // Keep the Study list up to date too
@@ -1819,6 +1848,7 @@ function showAudioLibrary() {
     const name = document.createElement("span");
     name.className = "audio-file-name";
     name.textContent = "🎵 " + item.name;
+    name.title = item.name; // Long names are cut to two lines; the full name shows on hover
 
     // Editing this file: boxes for its name, language and source, with Save and Cancel
     if (editingAudioId === item.id) {

@@ -413,7 +413,32 @@ button {
   min-width: 0;
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: 4px;
+}
+
+/* Long sentences: three lines, ending in "…", until "Show all" is pressed */
+.sentence-text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
+}
+
+.sentence-text.expanded {
+  display: block;
+}
+
+/* "Show all ▾" / "Show less ▴": a small text link, not a big button */
+.text-toggle {
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--accent-ink);
+  font-size: 13px;
+  line-height: 18px;
+  cursor: pointer;
 }
 
 /* The source's web address under the sentence: one line, cut with "…" if it's long */
@@ -482,6 +507,57 @@ button {
   align-items: center;
   gap: 6px;
   margin-block: auto; /* Equal space above and below: centred */
+}
+
+/* Phone: three columns are too narrow, so each row is stacked instead:
+   flag and topics ........ date
+   the sentence (full width)
+                 Edit  Delete */
+@media (max-width: 600px) {
+  .sentence-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "side date"
+      "main main"
+      "buttons buttons";
+    gap: 6px 10px;
+  }
+
+  .sentence-side {
+    grid-area: side;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 10px;
+  }
+
+  .sentence-topics {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0 8px;
+  }
+
+  .sentence-main {
+    grid-area: main;
+  }
+
+  /* The date and the buttons each get their own place in the grid */
+  .sentence-actions {
+    display: contents;
+  }
+
+  .sentence-date {
+    grid-area: date;
+  }
+
+  .sentence-buttons {
+    grid-area: buttons;
+    justify-self: end;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    margin: 0;
+  }
 }
 
 /* Grey buttons: Edit, ✕ and Cancel */
@@ -1193,8 +1269,14 @@ button:disabled {
   border-bottom: 1px solid var(--line);
 }
 
+/* Long file names: two lines, ending in "…" */
 .audio-file-name {
   overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
 }
 
 .audio-file-count {
