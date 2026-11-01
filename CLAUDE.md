@@ -94,7 +94,7 @@ Languages: `LANGUAGE_FLAGS` = English, French, German, Polish, Turkish. Adding a
 - `THEMES` in app.js: `cabana` "Orchid Cabana Club" (default), `coffee` "Cold Brew Amber Reserve" (dark), and `matcha` "Kyoto Iced Matcha".
 - Each theme is a `[data-theme="…"]` block in style.css, setting CSS variables. The defaults live in `:root, [data-theme]`.
 - The variables are: `--bg`, `--text`, `--muted`, `--title`, `--card`, `--accent`, `--accent-text`, `--nav-*`, `--chip`, `--soft`, `--line`, `--input-bg`, `--input-border`, `--selected-bg`, `--level-a/b/c` (+`-text`), `--font`, `--heading-font`, `--radius`, …
-- Layout must not depend on the theme. That's why line heights, button widths (`.level` 52px, `#language-button` 190px) and transparent borders are fixed.
+- Layout must not depend on the theme. That's why line heights, button widths (`.level` 52px; `#language-button` is auto-width, max 220px, at the owner's request) and transparent borders are fixed.
 - To add a theme: add a CSS block, an entry in `THEMES`, and the id in the `<head>` whitelist. Check the contrast of text, buttons, level colours and the quiz right/wrong colours.
 - Themes the owner has rejected or deleted: cherry, sunset/mango, leopard, mint, diamond, dusk.
 

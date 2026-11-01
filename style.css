@@ -593,7 +593,8 @@ button {
 }
 
 #language-button {
-  width: 190px; /* Same width in every theme, whatever the font */
+  width: auto; /* Just as wide as the language name, flag and ▾ */
+  max-width: 220px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis; /* A very long name ends in "…" instead of making the button wider */
