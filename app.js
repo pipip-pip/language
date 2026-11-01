@@ -1846,10 +1846,6 @@ const THEMES = [
     name: "Velvet Dusk",
   },
   {
-    id: "cabana",
-    name: "Orchid Cabana Club",
-  },
-  {
     id: "coffee",
     name: "Cold Brew Coffee",
   },

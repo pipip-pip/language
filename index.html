@@ -11,7 +11,7 @@
        IBM Plex Sans KR) are only downloaded when such letters are on the page. -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600&family=Kaisei+Decol:wght@500;700&family=DM+Sans:wght@400;700&family=DM+Serif+Display&family=Marcellus&family=Jost:wght@400;500;600&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Noto+Serif+Display:wght@400;500&family=Frank+Ruhl+Libre:wght@400;500;700&family=Hahmlet:wght@400;600&family=Nanum+Myeongjo:wght@400;700&family=Heebo:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600&family=Kaisei+Decol:wght@500;700&family=Oranienbaum&family=Bellefair&family=Song+Myung&family=Spectral:wght@300;400&family=Noto+Serif+KR:wght@300;400&family=Tenor+Sans&family=Miriam+Libre:wght@400&family=Gothic+A1:wght@300;400&family=Jost:wght@400;500;600&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Noto+Serif+Display:wght@400;500&family=Frank+Ruhl+Libre:wght@400;500;700&family=Hahmlet:wght@400;600&family=Nanum+Myeongjo:wght@400;700&family=Heebo:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
   <link rel="stylesheet" href="style.css">
 
   <!-- Put the saved theme on straight away, so the page doesn't flash in the wrong colours.
@@ -20,7 +20,7 @@
     document.documentElement.dataset.theme = "riviera";
     try {
       const savedTheme = JSON.parse(localStorage.getItem("theme"));
-      if (["riviera", "cabana", "coffee", "matcha"].includes(savedTheme)) {
+      if (["riviera", "coffee", "matcha"].includes(savedTheme)) {
         document.documentElement.dataset.theme = savedTheme;
       }
     } catch (error) {

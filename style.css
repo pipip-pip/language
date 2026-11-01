@@ -20,6 +20,7 @@
   --font-subheading: var(--heading-font);   /* Small headings under them */
   --font-reading: var(--heading-font);      /* Sentences, passages, quiz questions */
   --font-ui: var(--font);                   /* Tabs, buttons, chips, labels, small print */
+  --font-meta: var(--font-ui);              /* Dates, hints, form labels (a theme may make these monospace) */
   --display-weight: bold;
   --heading-weight: bold;
   --subheading-style: var(--heading-style);
@@ -73,99 +74,247 @@
   --level-c: #7b3fbf;  --level-c-text: white;
 }
 
-/* Orchid Cabana Club: a beach bar with orchids and palm trees (image 2) */
-[data-theme="cabana"] {
-  --font: "Jost", -apple-system, BlinkMacSystemFont, sans-serif;
-  --heading-font: "Marcellus", Georgia, serif; /* Includes Polish and Turkish letters too */
-  --heading-spacing: 0.02em;
-
-  --bg: linear-gradient(180deg, #6CAEDE 0%, #7FB9B9 100%);
-  --text: #554345;
-  --muted: #665354;
-  --title: #554345;
-
-  --card: #F8E6D3;
-  --shadow: none;
-  --radius: 0;              /* Square blocks, like the colour cards */
-  --radius-small: 0;
-
-  --accent: #b4448a;    /* Deep orchid, so white letters are easy to read */
-  --accent-text: white;
-  --accent-ink: #9e3874;   /* Deep orchid text, easy to read on sugar cookie */
-
-  --nav-bg: #554345;
-  --nav-text: #a9d6d6;
-  --nav-active-bg: #b4448a;
-  --nav-active-text: white;
-
-  --chip: #7FB9B9;
-  --chip-text: #2f2526;
-  --soft: #EEC7A0;
-  --line: #e8cdb2;
-  --input-bg: #fffaf4;
-  --input-border: #d9b48f;
-  --selected-bg: #fbe0ee;
-  --bubble: #554345;
-  --bubble-text: #EEC7A0;
-  --level-a: #1b7070;  --level-a-text: white;     /* Deep seafoam */
-  --level-b: #235271;  --level-b-text: white;   /* Sky */
-  --level-c: #b4448a;  --level-c-text: white;     /* Deep orchid */
-}
-
-/* Cold Brew Amber Reserve: iced coffee, glossy ice cubes and foam (image 4).
-   A dark theme with see-through "glass" boxes. */
+/* Cold Brew Coffee: a close-up of iced coffee. Translucent caramel-amber coffee with darker
+   angular ice cubes in it, and small white glints and bubbles where the light hits.
+   Golden-brown, never red or plum (so it stays different from Velvet Dusk). Roughly 60% warm
+   caramel-brown, 30% dark espresso and ice, 10% icy white and cream. Icy silver only for glints,
+   hairlines and the focus outline; milk cream for chosen chips and main buttons.
+   Fonts (light and sharp, no bold; size and spacing make the hierarchy):
+   Oranienbaum (titles), Spectral Light (reading), Tenor Sans (everything else).
+   After each comes the font for Hebrew (Bellefair, Miriam Libre), then Korean
+   (Song Myung, Noto Serif KR, Gothic A1). Prata was asked for reading, but it has no
+   Polish or Turkish letters (ą ę ł ğ ş…), so Spectral, which has them all, is used instead. */
 [data-theme="coffee"] {
   color-scheme: dark; /* Dark text boxes, lists and scrollbars too */
-  --font: "DM Sans", -apple-system, BlinkMacSystemFont, sans-serif;
-  --heading-font: "DM Serif Display", Georgia, serif;
+  --font-display: "Oranienbaum", "Bellefair", "Song Myung", Georgia, serif;
+  --font-heading: var(--font-display);
+  --font-subheading: var(--font-display);
+  --font-reading: "Spectral", "Bellefair", "Noto Serif KR", Georgia, serif;
+  --font-ui: "Tenor Sans", "Miriam Libre", "Gothic A1", sans-serif;
+  --font-meta: var(--font-ui);
+  --heading-spacing: 0.01em;
+  --display-weight: 400;
+  --heading-weight: 400;
+  --subheading-weight: 400;
+  --reading-weight: 300;
+  --reading-strong-weight: 400;
+  --nav-transform: uppercase;
+  --nav-spacing: 0.22em;
+  --nav-weight: 400;
+  --nav-active-weight: 400;
+  --ui-weight: 300;         /* Tenor Sans has one weight; Gothic A1 (Korean) uses its light one */
+  --ui-strong-weight: 400;
+  --ui-spacing: 0.02em;
+  --meta-weight: 300;
 
+  /* Light passing through coffee: a glowing caramel-amber area off-centre (top right),
+     through dark toffee, to deep roast at the edges. A second, softer glow lower left. */
   --bg:
-    radial-gradient(circle at 20% 15%, rgba(214, 160, 100, 0.35), transparent 40%),
-    radial-gradient(circle at 85% 55%, rgba(180, 110, 60, 0.3), transparent 45%),
-    radial-gradient(circle at 30% 92%, rgba(230, 190, 140, 0.22), transparent 40%),
-    linear-gradient(160deg, #2a170d, #120905);
-  --text: #f3e2cf;
-  --muted: #c9a585;
-  --title: #f0c99a;
+    radial-gradient(ellipse 45% 40% at 22% 78%, rgba(122, 74, 34, 0.45), transparent 70%),
+    radial-gradient(ellipse 80% 70% at 68% 30%, #7A4A22 0%, #3D2716 50%, #1E140C 100%);
+  --text: #ECE6DC;          /* Off-white, never pure white */
+  --muted: #C9A983;         /* Soft caramel cream for dates, labels and secondary text */
+  --title: #ECE6DC;
 
-  --card: rgba(70, 40, 24, 0.55);
-  --card-border: 1px solid rgba(255, 225, 190, 0.18);
-  --shadow: inset 0 1px 0 rgba(255, 240, 220, 0.25), 0 8px 24px rgba(0, 0, 0, 0.45);
-  --glass: blur(8px);
-  --radius: 18px;           /* Rounded like ice cubes */
-  --radius-small: 10px;
+  --card: rgba(24, 15, 8, 0.65);  /* Dark espresso glass: the caramel glow shows through */
+  --card-border: 1px solid rgba(230, 236, 238, 0.14);  /* Icy silver hairline */
+  /* A crisp line along the top edge with a faint blue-grey tint, like ice, and a soft shadow underneath */
+  --shadow: inset 0 1px 0 rgba(190, 206, 213, 0.3), 0 10px 30px rgba(12, 7, 3, 0.4);
+  --glass: blur(12px);
+  --radius: 6px;            /* Sharp, like ice */
+  --radius-small: 4px;
 
-  --accent: #d9b38c;        /* Coffee foam */
-  --accent-text: #2a170d;
-  --accent-ink: #e8a965;
+  --accent: #EBDDC5;        /* Milk cream: chosen chips, ticked boxes and quiz numbers (main buttons get a marbled swirl below) */
+  --accent-text: #1E140C;   /* Espresso on the cream */
+  --accent-ink: #DDBB8E;    /* Light caramel for links and the chosen theme card */
 
-  --nav-bg: rgba(40, 22, 12, 0.7);
-  --nav-text: #e6cfb5;
-  --nav-active-bg: #d9b38c;
-  --nav-active-text: #2a170d;
+  --nav-bg: rgba(24, 15, 8, 0.65);
+  --nav-text: #DCC6A6;
+  --nav-active-bg: rgba(235, 221, 197, 0.1);  /* A soft creamy fill, with a cream-to-caramel line underneath (below) */
+  --nav-active-text: #ECE6DC;
 
-  --chip: rgba(255, 225, 190, 0.12);
-  --chip-text: #f0d6b8;
-  --soft: rgba(255, 225, 190, 0.1);
-  --line: rgba(255, 225, 190, 0.14);
-  --input-bg: rgba(18, 9, 5, 0.55);
-  --input-border: rgba(255, 225, 190, 0.25);
-  --selected-bg: rgba(217, 179, 140, 0.18);
-  --bubble: #d9b38c;
-  --bubble-text: #2a170d;
-  --level-a: #ead3b8;  --level-a-text: #2a170d;   /* Foam */
-  --level-b: #d99a58;  --level-b-text: #2a170d;   /* Amber */
-  --level-c: #9c5428;  --level-c-text: #fff3e4;   /* Roasted espresso */
+  --chip: rgba(24, 15, 8, 0.5);  /* Dark glass until chosen */
+  --chip-text: #ECE6DC;
+  --soft: rgba(230, 236, 238, 0.07);
+  --line: rgba(230, 236, 238, 0.15);
+  --input-bg: rgba(18, 11, 6, 0.55);
+  --input-border: rgba(230, 236, 238, 0.22);
+  --selected-bg: rgba(235, 221, 197, 0.08);
+  --bubble: #2A1B10;
+  --bubble-text: #ECE6DC;
+  /* Chosen levels go from milk to latte to caramel, always with espresso letters */
+  --level-a: #EBDDC5;  --level-a-text: #1E140C;   /* Milk */
+  --level-b: #D9BE98;  --level-b-text: #1E140C;   /* Latte */
+  --level-c: #C29A6C;  --level-c-text: #1E140C;   /* Caramel */
+
+  scrollbar-color: rgba(201, 169, 131, 0.35) #1E140C;
+}
+
+[data-theme="coffee"] ::selection {
+  background: rgba(185, 130, 75, 0.4);
+  color: #ECE6DC;
 }
 
 /* Lists that open over other things need a solid background, not glass */
 [data-theme="coffee"] .dropdown-menu {
-  background: #2b1810;
+  background: #2A1B10;
+  border: 1px solid rgba(230, 236, 238, 0.2);
 }
+
+/* Ice cubes in the drink: a few big, soft-edged, angular shapes in near-black espresso,
+   tilted a little and slightly blurred. Drawn as shapes in the CSS itself (no pictures), behind everything. */
+[data-theme="coffee"] body::before,
+[data-theme="coffee"] body::after {
+  content: "";
+  position: fixed;
+  inset: -10%;
+  z-index: -1;
+  pointer-events: none;
+  transform: rotate(-6deg);
+}
+
+[data-theme="coffee"] body::before {
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 1000' preserveAspectRatio='xMidYMid slice'%3E%3Cg fill='rgb(12,7,4)'%3E%3Cpolygon points='60,90 300,40 370,270 120,330' fill-opacity='0.42'/%3E%3Cpolygon points='690,520 900,560 860,780 650,740' fill-opacity='0.36'/%3E%3Cpolygon points='160,640 400,600 440,840 200,900' fill-opacity='0.4'/%3E%3Cpolygon points='780,60 960,110 930,300 750,260' fill-opacity='0.3'/%3E%3C/g%3E%3C/svg%3E") center / cover no-repeat;
+  filter: blur(6px);
+}
+
+/* On top of them, not blurred: thin icy glints along an edge of each ice cube (same places,
+   because both layers are sized and tilted the same way), and a few faint bubbles in two spots */
+[data-theme="coffee"] body::after {
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 1000' preserveAspectRatio='xMidYMid slice'%3E%3Cg fill='none' stroke='rgb(242,244,242)' stroke-width='1.4' stroke-linecap='round'%3E%3Cpolyline points='70,96 296,48' stroke-opacity='0.28'/%3E%3Cpolyline points='300,46 364,262' stroke-opacity='0.14'/%3E%3Cpolyline points='696,526 894,564' stroke-opacity='0.22'/%3E%3Cpolyline points='168,646 394,608' stroke-opacity='0.24'/%3E%3Cpolyline points='786,66 952,114' stroke-opacity='0.18'/%3E%3C/g%3E%3Cg fill='rgb(242,244,242)'%3E%3Ccircle cx='560' cy='180' r='2' fill-opacity='0.16'/%3E%3Ccircle cx='585' cy='205' r='1.4' fill-opacity='0.12'/%3E%3Ccircle cx='540' cy='230' r='2.6' fill-opacity='0.1'/%3E%3Ccircle cx='612' cy='170' r='1.2' fill-opacity='0.14'/%3E%3Ccircle cx='598' cy='246' r='1.8' fill-opacity='0.1'/%3E%3Ccircle cx='572' cy='272' r='1.1' fill-opacity='0.12'/%3E%3Ccircle cx='540' cy='880' r='1.8' fill-opacity='0.12'/%3E%3Ccircle cx='566' cy='904' r='1.2' fill-opacity='0.1'/%3E%3Ccircle cx='520' cy='922' r='2.2' fill-opacity='0.08'/%3E%3Ccircle cx='590' cy='870' r='1' fill-opacity='0.12'/%3E%3C/g%3E%3C/svg%3E") center / cover no-repeat;
+}
+
+/* Glass boxes, in layers (the top layer is listed first):
+   1–2. glints: thin, crisp diagonal streaks in the top-left and bottom-right corners, like light on ice
+        (silver with a faint blue-grey tint);
+   3–4. tiny foam bubbles in a row along the top and bottom edges, barely visible;
+   5.   a faint cool tint fading down from the top;
+   6.   the espresso glass itself. */
+[data-theme="coffee"] .box,
+[data-theme="coffee"] #main-nav {
+  background:
+    linear-gradient(135deg, transparent 22px, rgba(196, 210, 216, 0.2) 23px, transparent 24.5px,
+      transparent 30px, rgba(196, 210, 216, 0.1) 31px, transparent 32px) top left / 80px 80px no-repeat,
+    linear-gradient(135deg, transparent 48px, rgba(196, 210, 216, 0.09) 49px, transparent 50px) bottom right / 60px 60px no-repeat,
+    radial-gradient(circle, rgba(238, 241, 242, 0.09) 0.8px, transparent 1.4px) 5px 3px / 17px 9px repeat-x,
+    radial-gradient(circle, rgba(238, 241, 242, 0.07) 0.7px, transparent 1.3px) 11px bottom / 23px 8px repeat-x,
+    linear-gradient(180deg, rgba(159, 176, 184, 0.07), transparent 140px),
+    var(--card);
+}
+
+/* Main buttons (Let’s go, Add, Save…: the ones without a class): a soft swirl of milk cream,
+   with espresso letters. A thin glint waits off to the left.
+   On hover the swirl drifts slowly and the glint sweeps across. */
+[data-theme="coffee"] button:not([class]):not(#language-button),
+[data-theme="coffee"] button[class=""] {
+  background:
+    linear-gradient(110deg, transparent 42%, rgba(238, 241, 242, 0.6) 50%, transparent 58%) 160% 0 / 250% 100% no-repeat,
+    linear-gradient(105deg, #EBDDC5 0%, #E0CDAF 22%, #F2E7D6 38%, #DCC6A6 60%, #EBDDC5 74%, #D3BC9A 100%) 0 0 / 220% 100%;
+  color: #1E140C;
+  box-shadow: inset 0 1px 0 rgba(238, 241, 242, 0.7);
+  transition: background-position 1.2s ease, box-shadow 0.15s ease; /* The swirl drifts slowly */
+}
+
+[data-theme="coffee"] button:not([class]):not(#language-button):hover,
+[data-theme="coffee"] button[class=""]:hover {
+  background-position: -60% 0, 100% 0;
+}
+
+/* The chosen page: a soft creamy fill, with a cream-to-caramel line under the name */
+[data-theme="coffee"] .tab.active {
+  background:
+    linear-gradient(90deg, #EBDDC5, #B9824B) center bottom 5px / calc(100% - 32px) 2px no-repeat,
+    rgba(235, 221, 197, 0.1);
+}
+
+/* Practice / Immerse: the same cream-to-caramel line */
+[data-theme="coffee"] .subtab.active {
+  color: #ECE6DC;
+  border-image: linear-gradient(90deg, #EBDDC5, #B9824B) 1;
+}
+
+/* The chosen language in the list: milk cream with espresso letters, like the other chosen chips */
+[data-theme="coffee"] .dropdown-menu li.selected {
+  background: #EBDDC5;
+  color: #1E140C;
+}
+
+/* The selected entry: a silver edge */
+[data-theme="coffee"] #entry-list li.selected {
+  border-color: rgba(230, 236, 238, 0.6);
+}
+
+/* Keyboard focus: a thin icy outline with a soft glow (lighter than the other themes' outline).
+   Only shown when moving around with the keyboard, not after a tap or click. */
+[data-theme="coffee"] :focus-visible {
+  outline: 1px solid rgba(242, 244, 242, 0.75);
+  outline-offset: 2px;
+  box-shadow: 0 0 10px rgba(242, 244, 242, 0.22);
+}
+
+/* Quick, crisp fades (nothing moves or changes size).
+   Main buttons keep their own slower swirl from above, since that rule is more specific. */
+[data-theme="coffee"] button,
+[data-theme="coffee"] #entry-list li,
+[data-theme="coffee"] .word-card,
+[data-theme="coffee"] .theme-card {
+  transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, color 0.15s ease;
+}
+
+/* Café-menu touches: tabs in small, widely spaced capitals (from --nav-… above),
+   a little smaller so the wider words still fit in the same space */
+[data-theme="coffee"] .tab,
+[data-theme="coffee"] .subtab {
+  font-size: 13px;
+}
+
+/* Small labels (form labels, the quiz's question kind, dates, "#2 · 0:05", the kind of word)
+   in widely spaced capitals, like a café menu */
+[data-theme="coffee"] .sentence-details label,
+[data-theme="coffee"] .openai-form label,
+[data-theme="coffee"] .audio-picker > label,
+[data-theme="coffee"] .audio-edit-form label,
+[data-theme="coffee"] .quiz-kind,
+[data-theme="coffee"] .entry-label,
+[data-theme="coffee"] .sentence-date,
+[data-theme="coffee"] .word-type,
+[data-theme="coffee"] .words-known-label {
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+/* Quiz answers are part of the reading, so they use the reading font (in this theme only) */
+[data-theme="coffee"] .quiz-option {
+  font-family: var(--font-reading);
+  font-weight: var(--reading-weight);
+}
+
+/* …but what you type in those boxes stays as it is, in the normal font */
+[data-theme="coffee"] label input,
+[data-theme="coffee"] label select,
+[data-theme="coffee"] label textarea {
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+/* Noun genders: muted see-through tints behind off-white text (iced blue, rosewood, sage) */
+[data-theme="coffee"] .noun.masculine { background: rgba(120, 150, 175, 0.32); color: #ECE6DC; }
+[data-theme="coffee"] .noun.feminine  { background: rgba(170, 92, 100, 0.34); color: #ECE6DC; }
+[data-theme="coffee"] .noun.neuter    { background: rgba(124, 142, 98, 0.34); color: #ECE6DC; }
+
+/* Quiz right / wrong: muted sage and terracotta with off-white text, instead of bright green and red */
+[data-theme="coffee"] .quiz-option.right { background: rgba(112, 150, 96, 0.5); color: #ECE6DC; }
+[data-theme="coffee"] .quiz-option.wrong { background: rgba(182, 72, 60, 0.55); color: #ECE6DC; }
+[data-theme="coffee"] .quiz-card.answered-right { border-left-color: #8FB07A; }
+[data-theme="coffee"] .quiz-card.answered-wrong { border-left-color: #C9705F; }
+[data-theme="coffee"] .quiz-built.right,
+[data-theme="coffee"] .quiz-result.right { border-color: #8FB07A; }
+[data-theme="coffee"] .quiz-built.wrong,
+[data-theme="coffee"] .quiz-result.wrong { border-color: #C9705F; }
 
 /* The theme's card in Settings shows the dark coffee look, even on a light page */
 .theme-card[data-theme="coffee"] {
-  background: linear-gradient(160deg, #3a2214, #140a06);
+  background: radial-gradient(ellipse at 75% 25%, #7A4A22, #3D2716 55%, #1E140C);
 }
 
 
@@ -486,6 +635,19 @@ button, input, select, textarea, option {
   color: inherit;
 }
 
+/* Ticked checkboxes in the theme's colour, instead of the browser's blue */
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--accent);
+}
+
+/* The outline around whatever you've moved to with the keyboard (or are typing in),
+   in the theme's colour instead of the browser's blue ring */
+:focus-visible {
+  outline: 2px solid var(--accent-ink);
+  outline-offset: 2px;
+}
+
 body {
   font-family: var(--font-ui);
   font-size: 16px;
@@ -647,7 +809,7 @@ textarea {
 .quiz-glossary,
 .backup-warning,
 .type-meta {
-  font-family: var(--font-ui);
+  font-family: var(--font-meta);
   font-weight: var(--meta-weight);
 }
 
