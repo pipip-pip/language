@@ -250,6 +250,24 @@ header .dropdown {
   text-align: left;
 }
 
+/* Phone: not enough room side by side, so the title goes on top (on one line)
+   and the language button sits centred underneath it */
+@media (max-width: 600px) {
+  header {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  header h1 {
+    order: -1; /* Title first */
+    white-space: nowrap;
+  }
+
+  header .dropdown {
+    justify-self: center;
+  }
+}
+
 h1 {
   margin: 0;
   color: var(--title);
@@ -676,10 +694,76 @@ button {
   background: var(--soft);
 }
 
-/* The selected entry */
+/* The selected entry (or the audio group it's in) */
 #entry-list li.selected {
   border-color: var(--accent-ink);
   background: var(--selected-bg);
+}
+
+/* An audio group: its name on the left, "3 entries ›" on the right */
+#entry-list li.entry-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.entry-group-name {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.entry-group-count {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* "← All audios" and the group's name, at the top of an opened group */
+#entry-list li.entry-back {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border: none;
+  padding: 4px 2px 8px;
+  color: var(--accent-ink);
+  font-size: 14px;
+}
+
+#entry-list li.entry-back:hover {
+  background: none;
+  text-decoration: underline;
+}
+
+.entry-group-title {
+  color: var(--text);
+  font-weight: 700;
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+
+/* "#2 · 0:05,250 – 0:12,000" above each entry, so entries are easy to tell apart */
+.entry-label {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  white-space: pre; /* Keeps the spaces around "·" */
+}
+
+/* A long entry shows its first two lines, ending in "…" */
+.entry-text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+
+/* The selected entry is shown in full, in bold */
+#entry-list li.selected .entry-text {
+  display: block;
   font-weight: bold;
 }
 
@@ -1036,6 +1120,12 @@ button:disabled {
   margin-bottom: 8px;
 }
 
+/* Now/Length, then Start/End, then ▶ Play this part, with a little space between the rows */
+.audio-part > .audio-times,
+.audio-part > .small-button {
+  margin-bottom: 10px;
+}
+
 /* Start [0]:[12],[250]   End [0]:[18],[500] */
 .audio-times {
   display: flex;
@@ -1073,6 +1163,13 @@ button:disabled {
 
 .audio-times .time-box-3 {
   width: 50px; /* Minutes and milliseconds: up to 3 digits */
+}
+
+/* Now and Length only show a time: soft background, no typing */
+.time-readout .time-box {
+  background: var(--soft);
+  color: var(--text);
+  cursor: default;
 }
 
 .time-separator {

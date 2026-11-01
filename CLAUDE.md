@@ -35,7 +35,7 @@ Scripts load in this order: `topics.js` → `ai-topics.js` → `app.js`. They sh
 
 - **Header:** a language dropdown (🌐, top left) sets `myLanguage`, and the centred title shows that language.
 - **Study tab**
-  - *Select entry:* the sentences in the current language. Clicking one sets `selectedEntry`.
+  - *Select entry:* the sentences in the current language, grouped by audio file (`showEntries`: a list of groups, newest audio first, plus "📝 Without audio"; `openEntryGroup` = opened group, saved in `view`). Inside a group, `showGroupEntries` lists entries numbered in audio order with their part ("#2 · 1:05,500 – 1:20,250", via `timeLabel`), two-line previews, and the selected one in full. With no audio at all, entries are listed directly. Clicking one sets `selectedEntry`.
   - *Practice* subtab:
     - CEFR level picker (A1–C2, coloured per theme);
     - Practice Target (noun/verb/adjective/mix; `targetWords` turns it into prompt wording);
@@ -85,7 +85,7 @@ Languages: `LANGUAGE_FLAGS` = English, French, German, Polish, Turkish. Adding a
 ## Audio and speech
 
 - **New uploads get the link:** a web link typed in Source becomes the new file's source (`fileBox` change in `makeAudioPicker`; a link auto-filled from another file is cleared instead), and `giveAudioTheLink` copies the sentence's link to a source-less file when the sentence is added or edited.
-- **MP3 parts:** `playRecording(entry)` plays from `audioStart` to `audioEnd`, checked by a 10 ms interval. start and end are typed in three number-only boxes, minutes : seconds , milliseconds (`makeTimeBoxes(title, seconds)` → `{ element, get(), set(), clear() }`); the end-time check runs every 10 ms.
+- **MP3 parts:** `playRecording(entry)` plays from `audioStart` to `audioEnd`, checked by a 10 ms interval. start and end are typed in three number-only boxes, minutes : seconds , milliseconds (`makeTimeBoxes(title, seconds, readOnly)` → `{ element, get(), set(), clear() }`). Above them, read-only **Now** (live player position) and **Length** boxes in the same format; below, **▶ Play this part** plays Start→End in the picker's player; the end-time check runs every 10 ms.
 - **Text-to-speech:** `speakOnce` uses `speechSynthesis`. `voiceFor` ranks the voices with `voiceQuality` (Siri, then Premium/Enhanced, and novelty voices are excluded). Setting `utterance.voice` sits in a try/catch so playback falls back to the device voice.
 - Loops: `playedOnce` repeats the playback, and `stopAudio` stops it. Changing the entry stops the audio (`stopAudioIfEntryChanged`).
 

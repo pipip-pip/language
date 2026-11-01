@@ -109,9 +109,17 @@ async function addToAudioLibrary(file, language, source) {
 // A time as three number boxes: minutes : seconds , milliseconds  →  [1] : [23] , [250]
 // Only numbers can be typed. Returns { element, get(), set(seconds), clear() }:
 // get() gives the time in seconds (83.25), or null if all three boxes are empty.
-function makeTimeBoxes(title, seconds) {
+// 65.25 seconds → "1:05,250" (the same m : s , ms as the boxes below, as plain text)
+function timeLabel(seconds) {
+  const total = Math.round(seconds * 1000);
+  return Math.floor(total / 60000) + ":" + String(Math.floor(total / 1000) % 60).padStart(2, "0") +
+    "," + String(total % 1000).padStart(3, "0");
+}
+
+// With readOnly = true the boxes only show a time (e.g. where the player is now).
+function makeTimeBoxes(title, seconds, readOnly) {
   const field = document.createElement("div");
-  field.className = "time-field";
+  field.className = "time-field" + (readOnly ? " time-readout" : "");
   const name = document.createElement("span");
   name.textContent = title;
   const row = document.createElement("div");
@@ -126,6 +134,8 @@ function makeTimeBoxes(title, seconds) {
     box.placeholder = placeholder;
     box.setAttribute("aria-label", title + " " + label);
     box.className = "time-box time-box-" + digits;
+    box.readOnly = Boolean(readOnly);
+    box.tabIndex = readOnly ? -1 : 0;
     // Anything that isn't a number is removed straight away
     box.addEventListener("input", function () {
       box.value = box.value.replace(/\D/g, "");
@@ -230,7 +240,55 @@ function makeAudioPicker(current, languageSelect, sourceBox) {
   const times = document.createElement("div");
   times.className = "audio-times";
   times.append(startTime.element, endTime.element);
-  part.append(player, times);
+
+  // Where the player is now, and how long the file is, in the same m : s , ms boxes,
+  // so a time can be read off exactly and typed into Start or End
+  const nowTime = makeTimeBoxes("Now", 0, true);
+  const lengthTime = makeTimeBoxes("Length", null, true);
+  const clock = document.createElement("div");
+  clock.className = "audio-times";
+  clock.append(nowTime.element, lengthTime.element);
+
+  function showClock() {
+    nowTime.set(player.currentTime || 0);
+    lengthTime.set(isFinite(player.duration) ? player.duration : null);
+  }
+  ["timeupdate", "seeked", "loadedmetadata", "emptied"].forEach(function (event) {
+    player.addEventListener(event, showClock);
+  });
+  // While playing, update many times a second so the milliseconds move smoothly
+  player.addEventListener("play", function tick() {
+    showClock();
+    if (!player.paused) requestAnimationFrame(tick);
+  });
+
+  // ▶ Play this part: plays from Start to End, to check the times are right
+  let partWatch = null;
+  function stopPart() {
+    clearInterval(partWatch);
+    partWatch = null;
+    playPart.textContent = "▶ Play this part";
+  }
+  const playPart = makeButton("▶ Play this part", "small-button", function () {
+    if (partWatch) {
+      player.pause();
+      stopPart();
+      return;
+    }
+    const start = startTime.get() || 0;
+    const end = endTime.get();
+    player.currentTime = start;
+    player.play().catch(stopPart); // If it can't play, the button goes back
+    playPart.textContent = "■ Stop";
+    partWatch = setInterval(function () {
+      if (player.paused || (end !== null && end > start && player.currentTime >= end)) {
+        player.pause();
+        stopPart();
+      }
+    }, 10);
+  });
+
+  part.append(player, clock, times, playPart);
 
   picker.append(label, fileBox, part);
 
@@ -245,6 +303,7 @@ function makeAudioPicker(current, languageSelect, sourceBox) {
       playerUrl = null;
     }
     player.removeAttribute("src");
+    if (partWatch) stopPart();
     part.hidden = !selected;
     if (!selected) return;
     try {
@@ -1217,6 +1276,8 @@ const noEntries = document.getElementById("no-entries");
 
 // The sentence selected right now (null = none)
 let selectedEntry = null;
+// The audio group opened in Select entry: an audio file's id, "none" (without audio) or null (the list of groups)
+let openEntryGroup = null;
 
 function showEntries() {
   showImmerse(); // Immerse shows the selected entry, so keep it up to date too
@@ -1233,16 +1294,105 @@ function showEntries() {
   });
 
   if (matching.length === 0) {
-    noEntries.textContent = "No entries in " + languageLabel(myLanguage) + " yet. Add some in 🌱 My sentences 🌱.";
+    noEntries.textContent = "No entries in " + languageLabel(myLanguage) + " yet. Add some in 💎 My Collection.";
     noEntries.hidden = false;
     return;
   }
   noEntries.hidden = true;
 
+  // Put the entries in groups: one per audio file, plus "Without audio"
+  const groups = {};
   matching.forEach(function (sentence) {
+    const groupId = sentence.audioId && audioFileName(sentence.audioId) ? sentence.audioId : "none";
+    if (!groups[groupId]) groups[groupId] = [];
+    groups[groupId].push(sentence);
+  });
+  const audioGroupIds = newestFirst(audioLibrary, audioLibrary)
+    .map(function (item) { return item.id; })
+    .filter(function (id) { return groups[id]; });
+
+  // No audio files used at all: just the list of entries, no groups needed
+  if (audioGroupIds.length === 0) {
+    showGroupEntries(groups.none, false);
+    return;
+  }
+  if (openEntryGroup && !groups[openEntryGroup]) openEntryGroup = null;
+
+  if (openEntryGroup) {
+    // Inside a group: a way back, then its entries
+    const back = document.createElement("li");
+    back.className = "entry-back";
+    back.textContent = "← All audios";
+    back.addEventListener("click", function () {
+      openEntryGroup = null;
+      showEntries();
+      saveView();
+    });
+    const title = document.createElement("span");
+    title.className = "entry-group-title";
+    title.textContent = openEntryGroup === "none" ? "📝 Without audio" : "🎵 " + audioFileName(openEntryGroup);
+    back.append(title);
+    entryList.append(back);
+    showGroupEntries(groups[openEntryGroup], openEntryGroup !== "none");
+    return;
+  }
+
+  // The groups: each audio file (newest first), then "Without audio"
+  const groupIds = groups.none ? audioGroupIds.concat("none") : audioGroupIds;
+  groupIds.forEach(function (groupId) {
     const item = document.createElement("li");
-    item.textContent = sentence.text;
+    item.className = "entry-group";
+    // The group with the selected entry is marked, so it's easy to find again
+    item.classList.toggle("selected", groups[groupId].includes(selectedEntry));
+    const name = document.createElement("span");
+    name.className = "entry-group-name";
+    name.textContent = groupId === "none" ? "📝 Without audio" : "🎵 " + audioFileName(groupId);
+    const count = document.createElement("span");
+    count.className = "entry-group-count";
+    count.textContent = groups[groupId].length === 1 ? "1 entry ›" : groups[groupId].length + " entries ›";
+    item.append(name, count);
+    item.addEventListener("click", function () {
+      openEntryGroup = groupId;
+      showEntries();
+      saveView();
+    });
+    entryList.append(item);
+  });
+}
+
+// The entries of one group, numbered. With audio: in the order they come in the audio,
+// each showing its part (start – end). Without audio: the newest first, with the date.
+// Long entries show two lines; the selected one is shown in full.
+function showGroupEntries(list, byTime) {
+  const ordered = byTime
+    ? list.slice().sort(function (a, b) {
+      return (a.audioStart ?? Infinity) - (b.audioStart ?? Infinity) || sentences.indexOf(a) - sentences.indexOf(b);
+    })
+    : newestFirst(list, sentences);
+
+  ordered.forEach(function (sentence, index) {
+    const item = document.createElement("li");
     item.classList.toggle("selected", sentence === selectedEntry);
+
+    const label = document.createElement("span");
+    label.className = "entry-label";
+    let detail = "";
+    if (byTime) {
+      const start = sentence.audioStart ?? null;
+      const end = sentence.audioEnd ?? null;
+      if (start !== null || end !== null) {
+        detail = "  ·  " + (start !== null ? timeLabel(start) : "start") + " – " + (end !== null ? timeLabel(end) : "end");
+      }
+    } else if (sentence.date) {
+      detail = "  ·  " + europeanDate(sentence.date);
+    }
+    label.textContent = "#" + (index + 1) + detail;
+
+    const text = document.createElement("span");
+    text.className = "entry-text";
+    text.textContent = sentence.text;
+
+    item.append(label, text);
     item.addEventListener("click", function () {
       // Clicking the selected entry again unselects it
       selectedEntry = selectedEntry === sentence ? null : sentence;
@@ -2581,6 +2731,7 @@ function saveView() {
     immerseView: openView.dataset.view,
     filterLanguage: filterLanguage,
     audioFilterLanguage: audioFilterLanguage,
+    openEntryGroup: openEntryGroup,
     // The selected entry is remembered by its text and language
     selectedEntry: selectedEntry ? { text: selectedEntry.text, language: selectedEntry.language } : null,
   }, true);
@@ -2595,6 +2746,7 @@ function restoreView() {
   if (document.getElementById(view.immerseView)) showImmerseView(view.immerseView);
   filterLanguage = view.filterLanguage ?? "all";
   audioFilterLanguage = view.audioFilterLanguage ?? "all";
+  openEntryGroup = view.openEntryGroup ?? null;
   if (view.selectedEntry) {
     selectedEntry = sentences.find(function (sentence) {
       return sentence.text === view.selectedEntry.text && sentence.language === view.selectedEntry.language;
