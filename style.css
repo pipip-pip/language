@@ -36,6 +36,8 @@
   --ui-spacing: normal;
   --ui-size: 15px;                          /* One size for every button, chip, level and the language list */
   --meta-weight: normal;                    /* Dates, file names, "#2 · 0:05", hints */
+  --meta-style: normal;                     /* Dates, hints…: e.g. italic */
+  --meta-size-adjust: none;                 /* Dates, hints…: make a small-lettered font look bigger (e.g. 0.52) */
 
   --bg: #f4f4f7;            /* Page background */
   --text: #222;             /* Normal text */
@@ -76,7 +78,7 @@
 
 /* Cold Brew Coffee: a close-up of iced coffee. Translucent caramel-amber coffee with darker
    angular ice cubes in it, and small white glints and bubbles where the light hits.
-   Golden-brown, never red or plum (so it stays different from Velvet Dusk). Roughly 60% warm
+   Golden-brown, never red or plum (so it stays different from Honey Coconut Hour). Roughly 60% warm
    caramel-brown, 30% dark espresso and ice, 10% icy white and cream. Icy silver only for glints,
    hairlines and the focus outline; milk cream for chosen chips and main buttons.
    Fonts (light and sharp, no bold; size and spacing make the hierarchy):
@@ -297,10 +299,14 @@
   text-transform: none;
 }
 
-/* Noun genders: muted see-through tints behind off-white text (iced blue, rosewood, sage) */
-[data-theme="coffee"] .noun.masculine { background: rgba(120, 150, 175, 0.32); color: #ECE6DC; }
-[data-theme="coffee"] .noun.feminine  { background: rgba(170, 92, 100, 0.34); color: #ECE6DC; }
-[data-theme="coffee"] .noun.neuter    { background: rgba(124, 142, 98, 0.34); color: #ECE6DC; }
+/* Noun genders (Grammar Lens and the gender quiz answers): solid fills, because the old
+   see-through tints nearly vanished on the dark espresso cards. Ice, Coffee Cherry and
+   Pistachio, each with off-white text at 4.5:1 or more, and a thin icy shine on the top edge
+   to match the theme's glassy details (an inset shadow takes no space, so nothing moves) */
+[data-theme="coffee"] .noun { box-shadow: inset 0 1px 0 rgba(235, 242, 245, 0.12); }
+[data-theme="coffee"] .noun.masculine { background: #4C6875; color: #ECE6DC; } /* Ice: 4.77:1 */
+[data-theme="coffee"] .noun.feminine  { background: #8A4A55; color: #ECE6DC; } /* Coffee Cherry: 5.30:1 */
+[data-theme="coffee"] .noun.neuter    { background: #5E6B3E; color: #ECE6DC; } /* Pistachio: 4.64:1 */
 
 /* Quiz right / wrong: muted sage and terracotta with off-white text, instead of bright green and red */
 [data-theme="coffee"] .quiz-option.right { background: rgba(112, 150, 96, 0.5); color: #ECE6DC; }
@@ -375,23 +381,34 @@
 }
 
 
-/* Velvet Dusk: golden-hour light across creamy drinks, warm wood and linen, styled like a fashion magazine.
-   A layered sunset (apricot top right → burnt orange → rosewood → deep cocoa bottom left),
-   smoked amber glass boxes with thin champagne-gold lines, cream text instead of white.
-   Playfair Display (headings) and Noto Serif Display (reading) cover Polish, Turkish and Russian;
-   Frank Ruhl Libre takes over for Hebrew, Hahmlet / Nanum Myeongjo for Korean.
-   Buttons use Jost, with Heebo (Hebrew) and IBM Plex Sans KR (Korean). Colours only: no pictures.
-   A piña colada cream accent (coconut milk #FFF3D6, pineapple cream #F5DE9E, custard gold #E9C46A)
-   is used sparingly: main buttons, chosen chips, the chosen tab's line and the title. */
+/* Honey Coconut Hour: piña coladas in golden-hour light, styled like a fashion magazine.
+   A dim, warm mid-tone: sunlit wood top right → honey amber → teak → coconut husk bottom left,
+   translucent toasted-coconut boxes, coconut-cream text instead of white. Colours only: no pictures.
+   Easy on the eyes: the big areas stay between about 25% and 45% lightness, only small things
+   (buttons, chosen chips) are bright, and all text has at least 4.5 : 1 contrast (WCAG AA).
+   Fonts (each followed by the one for Hebrew, then for Korean):
+     titles: Playfair Display / Frank Ruhl Libre / Hahmlet
+     reading: Noto Serif Display / Frank Ruhl Libre / Nanum Myeongjo
+     buttons, tabs, chips, boxes you type in: Sofia Sans / Assistant / IBM Plex Sans KR
+     hints, dates, file names, counts: Cormorant Garamond Italic / Frank Ruhl Libre / Nanum Myeongjo
+   All of them have Polish, Turkish and Russian letters.
+   Accents: butter cream #F4E2AE and coconut milk #F6ECE1 on buttons and chosen chips,
+   pink colada blush #EBC1B4 for the tab line, focus outline and ticked boxes.
+   Resort touches, all barely visible: a cane weave on the tab bar and along the box edges,
+   a double hairline inside each box with small arcs in its corners, a creamy froth along the top,
+   and soft palm-leaf shadows drifting slowly in the background. */
 [data-theme="riviera"] {
   color-scheme: dark;
   --heading-font: "Playfair Display", "Frank Ruhl Libre", "Hahmlet", Georgia, serif;
   --heading-spacing: 0.005em;
 
-  /* The typography roles: Playfair Display for titles, Noto Serif Display for reading, Jost for the rest.
-     After each comes the font for Hebrew, then for Korean. */
-  --font-ui: "Jost", "Heebo", "IBM Plex Sans KR", sans-serif;
+  --font-ui: "Sofia Sans", "Assistant", "IBM Plex Sans KR", sans-serif;
   --font-reading: "Noto Serif Display", "Frank Ruhl Libre", "Nanum Myeongjo", Georgia, serif;
+  --font-meta: "Cormorant Garamond", "Frank Ruhl Libre", "Nanum Myeongjo", Georgia, serif;
+  --meta-style: italic;
+  /* Cormorant's small letters are short, so they're drawn a little bigger than the button text.
+     This only changes how big the letters look; line heights stay the same, so nothing moves. */
+  --meta-size-adjust: 0.52;
   --display-weight: 600;
   --heading-weight: 600;
   --subheading-style: italic;
@@ -399,95 +416,140 @@
   --reading-weight: 400;
   --reading-strong-weight: 500;
   --nav-transform: uppercase;
-  --nav-spacing: 0.2em;
+  --nav-spacing: 0.18em;
   --nav-weight: 500;
-  --nav-active-weight: 500;
+  --nav-active-weight: 600;
   --ui-weight: 500;
-  --ui-strong-weight: 500;
-  --ui-spacing: 0.04em;
-  --meta-weight: 400;
+  --ui-strong-weight: 600;
+  --ui-spacing: 0.02em;
+  --meta-weight: 500;
 
-  /* The sunset: a muted apricot glow top right, fading through burnt orange and rosewood
-     into deep cocoa at the bottom left. Mid-tones only, so nothing glares. */
-  --bg:
-    radial-gradient(ellipse 70% 55% at 100% 0%, rgba(222, 150, 86, 0.5), transparent 70%),
-    linear-gradient(225deg, #9C5A34 0%, #7A3A26 26%, #5C2B30 52%, #2F1A16 78%, #1E110D 100%);
-  --text: #F3E7D0;          /* Cream, never pure white */
-  --muted: #D2BC9C;
-  --title: #F5DE9E;          /* Pineapple cream */
+  /* Golden hour: a sunlit-wood glow top right, through honey amber and warm teak
+     to coconut husk at the bottom left. Honey and wood, not wine. */
+  --bg: linear-gradient(225deg, #B0733F 0%, #8F5A33 34%, #6E4229 68%, #54321F 100%);
+  --text: #F5EADB;          /* Coconut cream, never pure white */
+  /* Soft honey-cream for hints and dates. A touch lighter than #E3CBA8, so it keeps
+     4.5 : 1 contrast even where a box sits over the brightest corner of the page. */
+  --muted: #E8D3B3;
+  --title: #F6ECE1;         /* Coconut milk */
 
-  --card: rgba(30, 17, 13, 0.64);  /* Smoked amber glass */
-  --card-border: 1px solid rgba(227, 184, 102, 0.24);  /* Champagne-gold hairline */
-  --shadow: inset 0 1px 0 rgba(243, 231, 208, 0.14), 0 14px 36px rgba(15, 6, 4, 0.4);
+  --card: rgba(96, 62, 40, 0.72);  /* Toasted coconut glass: the golden glow shows through */
+  --card-border: 1px solid rgba(246, 236, 225, 0.2);  /* Cream hairline */
+  /* The sun is top right: a faint warm rim of light along the top and right edges of the boxes
+     and the tab bar, and their soft shadows falling down and to the left */
+  --shadow: inset 0 1px 0 rgba(255, 228, 170, 0.18), inset -1px 0 0 rgba(255, 228, 170, 0.18),
+    -12px 14px 36px rgba(40, 22, 10, 0.35);
   --glass: blur(14px);
   --radius: 6px;            /* Crisp, editorial corners */
   --radius-small: 4px;
 
-  --accent: #F5DE9E;        /* Pineapple cream: chosen chips and quiz numbers (main buttons get a gradient below) */
-  --accent-text: #3A2216;   /* Deep cocoa on the cream */
-  --accent-ink: #E3B866;    /* Champagne gold */
+  --accent: #F4E2AE;        /* Butter cream: quiz numbers etc. (buttons and chosen chips get a gradient below) */
+  --accent-text: #3A2418;   /* Deep brown on the cream */
+  /* Links and other accent text: a light blush. Pink colada blush itself (#EBC1B4) is used for
+     lines, the focus outline and ticked boxes; as text it would be too faint on the lighter boxes. */
+  --accent-ink: #F3D5CB;
 
-  --nav-bg: rgba(30, 17, 13, 0.55);
-  --nav-text: #DCC6A4;
-  --nav-active-bg: rgba(227, 184, 102, 0.12);
-  --nav-active-text: #E3B866;
+  --nav-bg: rgba(96, 62, 40, 0.72);
+  --nav-text: #EFDCC2;
+  --nav-active-bg: #F6ECE1;
+  --nav-active-text: #3A2418;
 
-  --chip: rgba(243, 231, 208, 0.08);
-  --chip-text: #EAD9BC;
-  --soft: rgba(243, 231, 208, 0.07);
-  --line: rgba(227, 184, 102, 0.18);
-  --input-bg: rgba(20, 11, 8, 0.5);
-  --input-border: rgba(227, 184, 102, 0.26);
-  --selected-bg: rgba(227, 184, 102, 0.12);
-  --bubble: #2B1915;
-  --bubble-text: #F3E7D0;
-  /* The chosen level is pineapple cream with cocoa letters, like the other chosen chips */
-  --level-a: #F5DE9E;  --level-a-text: #3A2216;
-  --level-b: #F5DE9E;  --level-b-text: #3A2216;
-  --level-c: #F5DE9E;  --level-c-text: #3A2216;
+  --chip: rgba(246, 236, 225, 0.08);
+  --chip-text: #F5EADB;
+  --soft: rgba(246, 236, 225, 0.05);
+  --line: rgba(246, 236, 225, 0.16);
+  --input-bg: #6F4931;      /* Raised surfaces (boxes you type in, quiz and word cards): a little lighter */
+  --input-border: rgba(246, 236, 225, 0.22);
+  --selected-bg: rgba(235, 193, 180, 0.07);
+  --bubble: #5A3A25;
+  --bubble-text: #F5EADB;
+  /* The chosen level is butter cream with deep brown letters, like the other chosen chips */
+  --level-a: #F4E2AE;  --level-a-text: #3A2418;
+  --level-b: #F4E2AE;  --level-b-text: #3A2418;
+  --level-c: #F4E2AE;  --level-c-text: #3A2418;
 
-  scrollbar-color: rgba(227, 184, 102, 0.3) #1E110D;
+  /* Cane webbing (like a rattan chair): straight, crossed and diagonal strands in a small tile,
+     drawn at 5% so it's only just there. Used on the tab bar and along the box edges. */
+  --cane-weave: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14'%3E%3Cpath d='M0 5H14M0 9H14M5 0V14M9 0V14M0 0L14 14M14 0L0 14' stroke='rgb(246,236,225)' stroke-opacity='0.06' fill='none'/%3E%3C/svg%3E");
+
+  scrollbar-color: rgba(244, 226, 174, 0.4) #54321F;
 }
 
 [data-theme="riviera"] ::selection {
-  background: rgba(227, 184, 102, 0.35);
-  color: #F3E7D0;
+  background: rgba(235, 193, 180, 0.4);
+  color: #3A2418;
 }
 
 /* Lists that open over other things need a solid background, not glass */
 [data-theme="riviera"] .dropdown-menu {
-  background: #2B1915;
-  border: 1px solid rgba(227, 184, 102, 0.3);
+  background: #604028;
+  border: 1px solid rgba(246, 236, 225, 0.26);
 }
 
-/* Main buttons (Let’s go, Add, Save…: the ones without a class) look like the drink itself:
-   frothy coconut milk to pineapple cream, with a frosted highlight along the top.
-   The shadows are drawn inside, so no button changes size. */
+/* Ticked boxes in pink colada blush, and a thin blush outline when moving around with the keyboard */
+[data-theme="riviera"] input[type="checkbox"],
+[data-theme="riviera"] input[type="radio"] {
+  accent-color: #EBC1B4;
+}
+
+[data-theme="riviera"] :focus-visible {
+  outline: 1.5px solid #EBC1B4;
+  outline-offset: 2px;
+}
+
+/* Main buttons (Let’s go, Add, Save…: the ones without a class) and chosen chips and levels
+   look like the drink itself: frothy butter cream to coconut milk, with a soft highlight along the top
+   and deep brown letters. The shadows are drawn inside, so nothing changes size. */
+[data-theme="riviera"] button:not([class]):not(#language-button),
+[data-theme="riviera"] button[class=""],
+[data-theme="riviera"] .filter-button.selected,
+[data-theme="riviera"] .level.selected {
+  background: linear-gradient(180deg, #F4E2AE 0%, #F6ECE1 100%);
+  color: #3A2418;
+  box-shadow: inset 0 1px 0 rgba(255, 251, 240, 0.9), inset 0 6px 8px -4px rgba(255, 251, 240, 0.45),
+    inset 0 -1px 0 rgba(214, 180, 110, 0.45);
+}
+
+/* Main buttons also catch the sun: a gentle haze of warm light around them (outside, so no size change) */
 [data-theme="riviera"] button:not([class]):not(#language-button),
 [data-theme="riviera"] button[class=""] {
-  background: linear-gradient(180deg, #FFF3D6 0%, #F5DE9E 100%);
-  color: #3A2216;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), inset 0 -1px 0 rgba(233, 196, 106, 0.55);
+  box-shadow: inset 0 1px 0 rgba(255, 251, 240, 0.9), inset 0 6px 8px -4px rgba(255, 251, 240, 0.45),
+    inset 0 -1px 0 rgba(214, 180, 110, 0.45), 0 0 14px rgba(255, 228, 170, 0.12);
 }
 
 [data-theme="riviera"] button:not([class]):not(#language-button):hover,
 [data-theme="riviera"] button[class=""]:hover {
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), inset 0 -1px 0 rgba(233, 196, 106, 0.55),
-    0 0 18px rgba(245, 222, 158, 0.28);
+  box-shadow: inset 0 1px 0 rgba(255, 251, 240, 0.9), inset 0 6px 8px -4px rgba(255, 251, 240, 0.45),
+    inset 0 -1px 0 rgba(214, 180, 110, 0.45), 0 0 18px rgba(244, 226, 174, 0.3);
 }
 
-/* The chosen page: a soft fill with a pineapple-cream-to-custard-gold line under the name */
+/* The chosen page: the same butter-to-coconut cream with deep brown letters,
+   and a pink colada blush line under the name (a slightly deeper blush at one end, so it shows on the cream) */
 [data-theme="riviera"] .tab.active {
   background:
-    linear-gradient(90deg, #F5DE9E, #E9C46A) center bottom 5px / calc(100% - 32px) 2px no-repeat,
-    rgba(227, 184, 102, 0.12);
-  color: #F5DE9E;
+    linear-gradient(90deg, #EBC1B4, #D99F8E) center bottom 5px / calc(100% - 32px) 2px no-repeat,
+    linear-gradient(180deg, #F4E2AE 0%, #F6ECE1 100%);
+  color: #3A2418;
 }
 
-/* Practice / Immerse: the same gradient line */
+/* Practice / Immerse: coconut letters over a blush line */
 [data-theme="riviera"] .subtab.active {
-  color: #F5DE9E;
-  border-image: linear-gradient(90deg, #F5DE9E, #E9C46A) 1;
+  color: #F6ECE1;
+  border-image: linear-gradient(90deg, #EBC1B4, #EBC1B4) 1;
+}
+
+/* Entries and audio groups are raised surfaces, a little lighter than the box
+   (hovered and selected ones get their usual soft tint on top; "← All audios" stays plain) */
+[data-theme="riviera"] #entry-list li:not(.entry-back) {
+  background: var(--input-bg);
+}
+
+[data-theme="riviera"] #entry-list li:not(.entry-back):hover {
+  background: linear-gradient(var(--soft), var(--soft)), var(--input-bg);
+}
+
+[data-theme="riviera"] #entry-list li.selected {
+  background: linear-gradient(var(--selected-bg), var(--selected-bg)), var(--input-bg);
 }
 
 /* The selected entry: a gradient border, drawn on a layer on top (a normal border can't be a
@@ -503,7 +565,7 @@
   inset: -1px;
   padding: 1px;
   border-radius: inherit;
-  background: linear-gradient(135deg, #F5DE9E, #E9C46A);
+  background: linear-gradient(135deg, #F6ECE1, #F4E2AE 50%, #EBC1B4);
   /* Cut out the middle, leaving just the 1px edge */
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
@@ -511,9 +573,59 @@
   pointer-events: none;
 }
 
-/* The title glows very faintly, like warm light */
+/* The title sits right on the golden background, so a soft warm-brown shadow behind it
+   keeps it easy to read where the light is brightest */
 [data-theme="riviera"] h1 {
-  text-shadow: 0 0 18px rgba(245, 222, 158, 0.28);
+  text-shadow: 0 1px 3px rgba(58, 36, 24, 0.55), 0 0 18px rgba(58, 36, 24, 0.35);
+}
+
+/* The tab bar: the cane weave over the toasted-coconut glass */
+[data-theme="riviera"] #main-nav {
+  background: var(--cane-weave) 0 0 / 14px 14px, var(--nav-bg);
+}
+
+/* The boxes: a creamy froth along the top inside edge (gone before the first hint, so small text
+   keeps its contrast), over the toasted-coconut glass.
+   "isolation" keeps the two decoration layers below (::before and ::after) behind the box's text. */
+[data-theme="riviera"] .box {
+  position: relative;
+  isolation: isolate;
+  background:
+    linear-gradient(180deg, rgba(246, 236, 225, 0.06), rgba(244, 226, 174, 0.03) 18px, transparent 40px),
+    var(--card);
+}
+
+[data-theme="riviera"] .box::before,
+[data-theme="riviera"] .box::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* The cane weave, only in a 10px band along the edges (the middle is cut out, like the selected entry's border) */
+[data-theme="riviera"] .box::before {
+  inset: 0;
+  padding: 10px;
+  border-radius: inherit;
+  background: var(--cane-weave) 0 0 / 14px 14px;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+
+/* A thin coconut-cream double line 4px inside the edge, with a small quarter-circle arc
+   tucked into each of its corners (like bent rattan) */
+[data-theme="riviera"] .box::after {
+  inset: 4px;
+  border: 3px double rgba(246, 236, 225, 0.26);
+  border-radius: 2px;
+  --arc: transparent 9px, rgba(246, 236, 225, 0.32) 9.5px, rgba(246, 236, 225, 0.32) 10.5px, transparent 11px;
+  background:
+    radial-gradient(circle at 0 0, var(--arc)) top left / 12px 12px no-repeat,
+    radial-gradient(circle at 100% 0, var(--arc)) top right / 12px 12px no-repeat,
+    radial-gradient(circle at 0 100%, var(--arc)) bottom left / 12px 12px no-repeat,
+    radial-gradient(circle at 100% 100%, var(--arc)) bottom right / 12px 12px no-repeat;
 }
 
 /* A faint creamy glow behind the top of the page's boxes, as if light passes through a creamy drink */
@@ -530,11 +642,30 @@
   height: 420px;
   z-index: -1;
   pointer-events: none;
-  background: radial-gradient(ellipse at 50% 35%, rgba(255, 243, 214, 0.1), transparent 70%);
+  background: radial-gradient(ellipse at 50% 35%, rgba(246, 236, 225, 0.08), rgba(244, 226, 174, 0.04) 40%, transparent 70%);
 }
 
-/* Sun through blinds: a few wide, very blurred diagonal light shafts drifting almost imperceptibly.
-   Drawn with colour gradients only (no pictures), behind everything and never in the way. */
+/* Palm-leaf shadows in warm brown: two soft fronds reaching in from opposite corners, with a few round
+   dapples of shade, swaying very slowly. Drawn as shapes in the CSS itself (no pictures),
+   on the page itself so they sit behind everything, under the light shafts below. */
+html[data-theme="riviera"]::before {
+  content: "";
+  position: fixed;
+  inset: -6%;
+  z-index: -1;
+  pointer-events: none;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 1000' preserveAspectRatio='xMidYMid slice'%3E%3Cpath fill='rgb(62,36,18)' fill-opacity='0.2' d='M4 -23q26 -12 28 -40q-26 12 -28 40M4 -23q7 27 34 35q-7 -27 -34 -35M39 -25q36 -26 50 -69q-36 26 -50 69M39 -25q19 40 59 61q-19 -40 -59 -61M74 -26q42 -34 62 -84q-42 34 -62 84M74 -26q26 48 72 76q-26 -48 -72 -76M108 -27q44 -35 65 -86q-44 35 -65 86M108 -27q26 49 73 79q-26 -49 -73 -79M143 -27q41 -31 60 -78q-41 31 -60 78M143 -27q23 46 67 73q-23 -46 -67 -73M178 -26q38 -26 55 -70q-38 26 -55 70M178 -26q19 42 59 66q-19 -42 -59 -66M212 -25q35 -22 49 -61q-35 22 -49 61M212 -25q15 39 52 59q-15 -39 -52 -59M247 -23q32 -17 43 -53q-32 17 -43 53M247 -23q12 35 44 52q-12 -35 -44 -52M282 -20q29 -13 37 -44q-29 13 -37 44M282 -20q8 31 37 44q-8 -31 -37 -44M317 -17q26 -9 31 -36q-26 9 -31 36M317 -17q4 27 30 37q-4 -27 -30 -37M352 -13q23 -5 25 -28q-23 5 -25 28M352 -13q1 23 24 29q-1 -23 -24 -29M1 -3q26 5 42 -17q-26 -5 -42 17M1 -3q-9 25 9 44q9 -25 -9 -44M31 14q42 -1 75 -28q-42 1 -75 28M31 14q-6 42 15 78q6 -42 -15 -78M61 32q52 -4 95 -35q-52 4 -95 35M61 32q-5 52 18 100q5 -52 -18 -100M91 50q56 -5 102 -37q-56 5 -102 37M91 50q-5 56 18 107q5 -56 -18 -107M121 69q53 -4 97 -34q-53 4 -97 34M121 69q-6 53 16 102q6 -53 -16 -102M150 89q49 -2 89 -30q-49 2 -89 30M150 89q-7 48 14 93q7 -48 -14 -93M179 109q44 0 80 -26q-44 -0 -80 26M179 109q-8 44 12 84q8 -44 -12 -84M208 129q40 2 72 -23q-40 -2 -72 23M208 129q-9 39 10 74q9 -39 -10 -74M236 150q35 4 63 -19q-35 -4 -63 19M236 150q-10 34 8 65q10 -34 -8 -65M264 172q31 6 54 -16q-31 -6 -54 16M264 172q-11 30 6 56q11 -30 -6 -56M292 194q26 7 45 -13q-26 -7 -45 13M292 194q-12 25 5 47q12 -25 -5 -47M320 217q22 9 36 -10q-22 -9 -36 10M320 217q-12 20 3 37q12 -20 -3 -37M-12 11q24 19 52 10q-24 -19 -52 -10M-12 11q-22 20 -19 50q22 -20 19 -50M5 43q42 22 89 17q-42 -22 -89 -17M5 43q-29 37 -32 84q29 -37 32 -84M22 75q50 24 105 21q-50 -24 -105 -21M22 75q-33 45 -39 100q33 -45 39 -100M38 107q49 24 103 21q-49 -24 -103 -21M38 107q-32 44 -39 97q32 -44 39 -97M54 140q43 24 92 20q-43 -24 -92 -20M54 140q-31 38 -35 87q31 -38 35 -87M69 172q37 23 80 18q-37 -23 -80 -18M69 172q-29 33 -32 76q29 -33 32 -76M83 206q32 22 69 16q-32 -22 -69 -16M83 206q-27 27 -28 66q27 -27 28 -66M97 239q26 21 58 14q-26 -21 -58 -14M97 239q-25 22 -24 55q25 -22 24 -55M111 273q20 19 47 12q-20 -19 -47 -12M111 273q-23 17 -20 45q23 -17 20 -45M124 307q15 18 36 9q-15 -18 -36 -9M124 307q-21 11 -16 34q21 -11 16 -34M-3 -42q15 -32 2 -64q-15 32 -2 64M-3 -42q29 20 63 13q-29 -20 -63 -13M24 -65q15 -50 2 -101q-15 50 -2 101M24 -65q47 23 100 19q-47 -23 -100 -19M50 -88q14 -54 1 -107q-14 54 -1 107M50 -88q50 23 106 19q-50 -23 -106 -19M76 -112q14 -47 -0 -94q-14 47 0 94M76 -112q44 22 92 16q-44 -22 -92 -16M101 -137q13 -40 -1 -80q-13 40 1 80M101 -137q37 20 79 13q-37 -20 -79 -13M125 -163q13 -33 -2 -66q-13 33 2 66M125 -163q30 19 65 10q-30 -19 -65 -10M149 -189q13 -26 -2 -52q-13 26 2 52M149 -189q24 17 51 7q-24 -17 -51 -7M172 -216q13 -19 -2 -37q-13 19 2 37M172 -216q17 16 37 5q-17 -16 -37 -5M1004 1027q-27 8 -34 35q27 -8 34 -35M1004 1027q-3 -28 -28 -40q3 28 28 40M967 1025q-40 21 -59 61q40 -21 59 -61M967 1025q-14 -43 -50 -69q14 43 50 69M931 1023q-46 28 -72 76q46 -28 72 -76M931 1023q-20 -50 -62 -84q20 50 62 84M895 1023q-47 30 -73 79q47 -30 73 -79M895 1023q-21 -51 -65 -86q21 51 65 86M858 1022q-44 27 -67 73q44 -27 67 -73M858 1022q-19 -48 -60 -78q19 48 60 78M822 1023q-40 24 -59 66q40 -24 59 -66M822 1023q-16 -43 -55 -70q16 43 55 70M785 1024q-36 20 -52 59q36 -20 52 -59M785 1024q-14 -39 -49 -61q14 39 49 61M748 1026q-33 17 -44 52q33 -17 44 -52M748 1026q-11 -35 -43 -53q11 35 43 53M712 1028q-29 13 -37 44q29 -13 37 -44M712 1028q-8 -31 -37 -44q8 31 37 44M675 1031q-26 9 -30 37q26 -9 30 -37M675 1031q-5 -27 -31 -36q5 27 31 36M638 1035q-23 6 -24 29q23 -6 24 -29M638 1035q-2 -23 -25 -28q2 23 25 28M1009 1011q-26 -6 -43 14q26 6 43 -14M1009 1011q10 -24 -7 -45q-10 24 7 45M979 993q-42 -0 -75 26q42 0 75 -26M979 993q7 -42 -13 -79q-7 42 13 79M947 975q-52 4 -95 34q52 -4 95 -34M947 975q5 -52 -17 -100q-5 52 17 100M916 958q-56 6 -102 38q56 -6 102 -38M916 958q4 -56 -19 -107q-4 56 19 107M884 942q-53 5 -96 37q53 -5 96 -37M884 942q4 -53 -19 -101q-4 53 19 101M852 926q-49 4 -87 34q49 -4 87 -34M852 926q4 -49 -18 -92q-4 49 18 92M819 910q-44 3 -78 32q44 -3 78 -32M819 910q5 -44 -17 -83q-5 44 17 83M786 895q-40 1 -69 29q40 -1 69 -29M786 895q6 -40 -16 -73q-6 40 16 73M753 881q-36 -0 -60 26q36 0 60 -26M753 881q6 -35 -15 -64q-6 35 15 64M720 867q-31 -2 -52 23q31 2 52 -23M720 867q7 -31 -13 -55q-7 31 13 55M686 853q-27 -3 -43 19q27 3 43 -19M686 853q8 -26 -11 -45q-8 26 11 45M651 840q-23 -5 -34 16q23 5 34 -16M651 840q9 -22 -10 -36q-9 22 10 36M1025 998q-22 -20 -51 -13q22 20 51 13M1025 998q24 -18 22 -48q-24 18 -22 48M1009 967q-40 -25 -87 -22q40 25 87 22M1009 967q31 -35 37 -82q-31 35 -37 82M993 936q-49 -26 -104 -25q49 26 104 25M993 936q34 -44 43 -98q-34 44 -43 98M976 905q-48 -26 -102 -24q48 26 102 24M976 905q34 -43 41 -97q-34 43 -41 97M959 875q-43 -24 -91 -21q43 24 91 21M959 875q31 -38 36 -86q-31 38 -36 86M941 844q-37 -22 -81 -18q37 22 81 18M941 844q29 -33 31 -76q-29 33 -31 76M923 814q-32 -21 -70 -15q32 21 70 15M923 814q26 -28 27 -66q-26 28 -27 66M904 784q-27 -20 -59 -12q27 20 59 12M904 784q24 -23 22 -56q-24 23 -22 56M885 755q-21 -18 -48 -9q21 18 48 9M885 755q22 -18 17 -46q-22 18 -17 46M865 725q-16 -17 -37 -7q16 17 37 7M865 725q20 -13 13 -35q-20 13 -13 35M1007 1048q-20 29 -12 63q20 -29 12 -63M1007 1048q-25 -24 -60 -23q25 24 60 23M974 1066q-24 47 -20 99q24 -47 20 -99M974 1066q-42 -31 -95 -37q42 31 95 37M940 1083q-25 50 -22 105q25 -50 22 -105M940 1083q-45 -33 -100 -40q45 33 100 40M906 1099q-24 43 -20 92q24 -43 20 -92M906 1099q-38 -31 -87 -35q38 31 87 35M872 1114q-22 36 -18 78q22 -36 18 -78M872 1114q-31 -28 -73 -31q31 28 73 31M837 1128q-21 29 -15 64q21 -29 15 -64M837 1128q-25 -26 -60 -26q25 26 60 26M801 1141q-20 22 -12 50q20 -22 12 -50M801 1141q-18 -23 -47 -21q18 23 47 21M765 1154q-18 15 -9 36q18 -15 9 -36M765 1154q-11 -21 -34 -16q11 21 34 16'/%3E%3Cg fill='rgb(62,36,18)' fill-opacity='0.1'%3E%3Ccircle cx='430' cy='190' r='22'/%3E%3Ccircle cx='480' cy='250' r='13'/%3E%3Ccircle cx='640' cy='760' r='18'/%3E%3Ccircle cx='565' cy='815' r='11'/%3E%3C/g%3E%3C/svg%3E") center / cover no-repeat;
+  filter: blur(5px);
+  animation: palm-sway 70s ease-in-out infinite alternate;
+}
+
+@keyframes palm-sway {
+  from { transform: translate(0, 0) rotate(0deg); }
+  to   { transform: translate(-1.5%, 1%) rotate(1deg); }
+}
+
+/* Sun through blinds: a few diagonal strips of warm butter light, like sunlight lying on a table.
+   Each strip is evenly lit with only slightly soft edges (9–11%), drifting almost imperceptibly. */
 [data-theme="riviera"] body::before {
   content: "";
   position: fixed;
@@ -542,16 +673,79 @@
   z-index: -1;
   pointer-events: none;
   background: linear-gradient(115deg,
-    transparent 22%, rgba(255, 212, 150, 0.09) 27%, transparent 32%,
-    transparent 46%, rgba(255, 212, 150, 0.07) 52%, transparent 57%,
-    transparent 68%, rgba(255, 212, 150, 0.05) 72%, transparent 76%);
-  filter: blur(28px);
+    transparent 24%, rgba(255, 226, 160, 0.11) 25.5%, rgba(255, 226, 160, 0.11) 29.5%, transparent 31%,
+    transparent 48%, rgba(255, 226, 160, 0.10) 49.5%, rgba(255, 226, 160, 0.10) 53.5%, transparent 55%,
+    transparent 69%, rgba(255, 226, 160, 0.09) 70%, rgba(255, 226, 160, 0.09) 73%, transparent 74%);
+  filter: blur(8px);
   animation: light-shafts 90s ease-in-out infinite alternate;
 }
 
 @keyframes light-shafts {
   from { transform: translate(0, 0); }
   to   { transform: translate(-5%, 2%); }
+}
+
+/* Leaf shadows: three large, very blurred palm fronds from a tree just outside the top-right corner,
+   in dark warm brown at 7%, swaying gently (20 seconds there and back).
+   They're shade, not light, and sit behind the boxes. Drawn as shapes in the CSS (no pictures). */
+html[data-theme="riviera"]::after {
+  content: "";
+  position: fixed;
+  inset: -8%;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.07;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 1000' preserveAspectRatio='xMidYMid slice'%3E%3Cpath fill='rgb(50,28,14)' d='M1032 -19q-24 44 4 85q24 -44 -4 -85M1032 -19q-37 -34 -83 -16q37 34 83 16M984 23q-21 76 9 148q21 -76 -9 -148M984 23q-68 -39 -146 -27q68 39 146 27M937 66q-19 94 14 184q19 -94 -14 -184M937 66q-87 -41 -182 -31q87 41 182 31M890 110q-17 98 18 191q17 -98 -18 -191M890 110q-91 -40 -190 -29q91 40 190 29M844 154q-16 91 19 176q16 -91 -19 -176M844 154q-84 -38 -176 -24q84 38 176 24M799 199q-16 83 19 160q16 -83 -19 -160M799 199q-77 -36 -159 -20q77 36 159 20M754 245q-16 75 19 143q16 -75 -19 -143M754 245q-69 -34 -143 -16q69 34 143 16M710 292q-16 67 19 126q16 -67 -19 -126M710 292q-61 -32 -127 -12q61 32 127 12M667 339q-17 59 18 110q17 -59 -18 -110M667 339q-53 -30 -111 -9q53 30 111 9M624 387q-17 51 17 93q17 -51 -17 -93M624 387q-45 -29 -94 -6q45 29 94 6M582 436q-18 43 15 77q18 -43 -15 -77M582 436q-38 -28 -78 -4q38 28 78 4M1018 425q-50 28 -56 84q50 -28 56 -84M1018 425q-15 -55 -68 -75q15 55 68 75M956 428q-69 54 -96 138q69 -54 96 -138M956 428q-36 -80 -111 -126q36 80 111 126M894 431q-77 63 -112 157q77 -63 112 -157M894 431q-43 -90 -125 -146q43 90 125 146M831 432q-74 57 -106 144q74 -57 106 -144M831 432q-37 -86 -114 -138q37 86 114 138M769 432q-69 48 -96 127q69 -48 96 -127M769 432q-30 -78 -100 -124q30 78 100 124M706 430q-63 39 -85 109q63 -39 85 -109M706 430q-22 -71 -85 -109q22 71 85 109M643 428q-57 30 -74 92q57 -30 74 -92M643 428q-15 -63 -72 -94q15 63 72 94M581 424q-51 21 -63 76q51 -21 63 -76M581 424q-8 -55 -58 -79q8 55 58 79M518 419q-45 13 -51 59q45 -13 51 -59M518 419q-1 -47 -45 -64q1 47 45 64M-33 1040q24 -47 -4 -92q-24 47 4 92M-33 1040q40 35 91 18q-40 -35 -91 -18M14 999q21 -80 -10 -158q-21 80 10 158M14 999q73 40 155 29q-73 -40 -155 -29M60 957q19 -97 -14 -189q-19 97 14 189M60 957q89 42 187 32q-89 -42 -187 -32M105 914q18 -96 -16 -186q-18 96 16 186M105 914q88 40 185 29q-88 -40 -185 -29M149 871q17 -87 -17 -168q-17 87 17 168M149 871q80 38 167 24q-80 -38 -167 -24M193 827q17 -78 -17 -150q-17 78 17 150M193 827q71 36 150 20q-71 -36 -150 -20M237 782q17 -69 -17 -132q-17 69 17 132M237 782q63 34 132 16q-63 -34 -132 -16M279 737q18 -60 -16 -113q-18 60 16 113M279 737q54 32 114 12q-54 -32 -114 -12M321 690q18 -51 -15 -95q-18 51 15 95M321 690q46 30 96 9q-46 -30 -96 -9M363 643q19 -43 -13 -77q-19 43 13 77M363 643q37 29 78 6q-37 -29 -78 -6'/%3E%3C/svg%3E") center / cover no-repeat;
+  filter: blur(18px);
+  transform-origin: 100% 0;
+  animation: leaf-sway 10s ease-in-out infinite alternate;
+}
+
+@keyframes leaf-sway {
+  from { transform: rotate(-1.2deg) translate(0, 0); }
+  to   { transform: rotate(1.2deg) translate(-1%, 0.5%); }
+}
+
+/* The sun pool: a soft warm glow in the top-right corner, where the sun comes from.
+   "screen" only ever brightens, and gently (12% at the very corner, fading out well before
+   the title). Fixed to the screen, behind the boxes. */
+[data-theme="riviera"] main::after {
+  content: "";
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: min(45vw, 620px);
+  height: min(55vh, 520px);
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 100% 0, rgba(255, 214, 150, 0.12), rgba(255, 214, 150, 0.05) 40%, transparent 70%);
+  mix-blend-mode: screen;
+}
+
+/* Glass caustics: the wavy, shimmering light a glass throws on a table, very faint (4–6%),
+   only in the top-right corner of the first box on each page. It stays in the title row
+   and fades out before any sentence, so no moving light ever crosses the reading text.
+   (The pattern is drawn by the browser from a noise filter; no pictures.) */
+[data-theme="riviera"] main > section.box:first-of-type > h2::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: min(240px, 60%);
+  height: 64px;
+  z-index: -1;
+  pointer-events: none;
+  border-top-right-radius: var(--radius);
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='120'%3E%3Cfilter id='c'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.045 0.065' numOctaves='2' seed='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 0.9 0 0 0 0 0.66 1 0 0 0 0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='table' tableValues='0 0 0 0.25 1 0.25 0 0 0 0.25 1 0.25 0 0'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23c)'/%3E%3C/svg%3E") 0 0 / 240px 120px;
+  -webkit-mask: radial-gradient(ellipse at 100% 0, #000 20%, transparent 72%);
+  mask: radial-gradient(ellipse at 100% 0, #000 20%, transparent 72%);
+  opacity: 0.05;
+  animation: caustic-shimmer 9s ease-in-out infinite alternate;
+}
+
+@keyframes caustic-shimmer {
+  from { background-position: 0 0; opacity: 0.04; }
+  to   { background-position: 26px 14px; opacity: 0.06; }
 }
 
 /* Film grain: a fine noise over everything so the gradients feel analog (drawn by the browser) */
@@ -566,9 +760,13 @@
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
-/* People who've asked their device for less motion: the light stays still */
+/* People who've asked their device for less motion: the light, the palms, the leaf shadows and
+   the caustics stay still (they're all still there, just not moving) */
 @media (prefers-reduced-motion: reduce) {
-  [data-theme="riviera"] body::before {
+  [data-theme="riviera"] body::before,
+  html[data-theme="riviera"]::before,
+  html[data-theme="riviera"]::after,
+  [data-theme="riviera"] main > section.box:first-of-type > h2::after {
     animation: none;
   }
 }
@@ -581,14 +779,28 @@
   transition: background-color 0.6s ease, border-color 0.6s ease, box-shadow 0.6s ease, color 0.6s ease;
 }
 
-/* Magazine touches: navigation and small labels in capitals with wide spacing
-   (the tabs' capitals and spacing come from --nav-… above).
+/* Magazine touches: navigation in capitals with wide spacing (from --nav-… above).
    The tab letters are a little smaller so the wider words still fit in the same space. */
 [data-theme="riviera"] .tab,
 [data-theme="riviera"] .subtab {
   font-size: 13px;
 }
 
+/* Form labels, the quiz's question kind, topic chips and "← All audios" are part of the controls,
+   so here they use the button font (upright) instead of the italic one for hints and dates */
+[data-theme="riviera"] .sentence-details label,
+[data-theme="riviera"] .openai-form label,
+[data-theme="riviera"] .audio-picker > label,
+[data-theme="riviera"] .audio-edit-form label,
+[data-theme="riviera"] .quiz-kind,
+[data-theme="riviera"] .topic-tag,
+[data-theme="riviera"] #entry-list li.entry-back {
+  font-family: var(--font-ui);
+  font-style: normal;
+  font-size-adjust: none;
+}
+
+/* Form labels and the question kind in small spaced capitals */
 [data-theme="riviera"] .sentence-details label,
 [data-theme="riviera"] .openai-form label,
 [data-theme="riviera"] .audio-picker > label,
@@ -598,22 +810,57 @@
   text-transform: uppercase;
 }
 
-/* …but what you type in those boxes stays as it is */
-[data-theme="riviera"] label input,
-[data-theme="riviera"] label select,
-[data-theme="riviera"] label textarea {
+/* …but what you type in those boxes stays as it is, at normal weight */
+[data-theme="riviera"] input,
+[data-theme="riviera"] select,
+[data-theme="riviera"] textarea {
   letter-spacing: normal;
   text-transform: none;
+  font-weight: 400;
 }
 
-/* Noun genders: muted see-through tints behind cream text (dusky blue, rosewood, olive sage) */
-[data-theme="riviera"] .noun.masculine { background: rgba(104, 132, 170, 0.34); color: #F3E7D0; }
-[data-theme="riviera"] .noun.feminine  { background: rgba(170, 90, 102, 0.36); color: #F3E7D0; }
-[data-theme="riviera"] .noun.neuter    { background: rgba(128, 142, 92, 0.36); color: #F3E7D0; }
+/* Example text in empty boxes: dimmer than typed text, but still 4.5 : 1 on the raised boxes */
+[data-theme="riviera"] ::placeholder {
+  color: #DCC5A3;
+  opacity: 1;
+}
+
+/* Noun genders (Grammar Lens, its legend and the gender quiz answers): three calm, solid
+   colours that blend with the honey-brown background but are still easy to tell apart.
+   No outlines or underlines, so the sentence stays quiet and easy to read:
+     masculine "Lagoon": muted sea-glass teal
+     feminine "Hibiscus": soft rosewood pink
+     neuter "Palm": muted palm green (a hair darker than #64703F, so the cream text reaches 4.5 : 1)
+   Cream text on each one: Lagoon 4.6, Hibiscus 5.3, Palm 4.6 : 1.
+   The faint light line along the top is drawn inside (box-shadow), like light on glass,
+   so nothing changes size. */
+[data-theme="riviera"] .noun {
+  color: #F5EADB;
+  box-shadow: inset 0 1px 0 rgba(255, 240, 220, 0.08);
+}
+
+[data-theme="riviera"] .noun.masculine { background: #4F6E73; color: #F5EADB; }
+[data-theme="riviera"] .noun.feminine  { background: #8A4E58; color: #F5EADB; }
+[data-theme="riviera"] .noun.neuter    { background: #626E3D; color: #F5EADB; }
+
+/* The legend above the sentence: the three samples in a row, a little smaller than the sentence */
+[data-theme="riviera"] .gender-legend:not([hidden]) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin: 0 0 12px;
+  font-size: 14px;
+}
+
+/* The samples are small, so they get a little more room around the word
+   (same total size as before, just centred now that there's no underline below) */
+[data-theme="riviera"] .gender-legend .noun {
+  padding: 3px 8px;
+}
 
 /* Quiz right / wrong: muted sage and terracotta with cream text, instead of bright green and red */
-[data-theme="riviera"] .quiz-option.right { background: rgba(112, 150, 96, 0.5); color: #F3E7D0; }
-[data-theme="riviera"] .quiz-option.wrong { background: rgba(182, 72, 60, 0.55); color: #F3E7D0; }
+[data-theme="riviera"] .quiz-option.right { background: rgba(84, 122, 70, 0.62); color: #F5EADB; }
+[data-theme="riviera"] .quiz-option.wrong { background: rgba(182, 72, 60, 0.55); color: #F5EADB; }
 [data-theme="riviera"] .quiz-card.answered-right { border-left-color: #8FB07A; }
 [data-theme="riviera"] .quiz-card.answered-wrong { border-left-color: #C9705F; }
 [data-theme="riviera"] .quiz-built.right,
@@ -621,9 +868,9 @@
 [data-theme="riviera"] .quiz-built.wrong,
 [data-theme="riviera"] .quiz-result.wrong { border-color: #C9705F; }
 
-/* The theme's card in Settings shows a little sunset */
+/* The theme's card in Settings shows a little golden hour */
 .theme-card[data-theme="riviera"] {
-  background: linear-gradient(225deg, #9C5A34 0%, #6B3329 45%, #2F1A16 100%);
+  background: linear-gradient(225deg, #B0733F 0%, #8F5A33 45%, #6E4229 100%);
 }
 
 
@@ -811,6 +1058,18 @@ textarea {
 .type-meta {
   font-family: var(--font-meta);
   font-weight: var(--meta-weight);
+  font-style: var(--meta-style);
+  font-size-adjust: var(--meta-size-adjust);
+  font-synthesis-style: none; /* Hebrew and Korean have no italic: they stay upright instead of a fake slant */
+}
+
+/* Boxes and buttons inside a meta label (like the time boxes) stay upright and normal-sized */
+input,
+select,
+textarea,
+button {
+  font-style: normal;
+  font-size-adjust: none;
 }
 
 /* Three columns: language button on the left, title in the centre, empty space on the right
@@ -1397,7 +1656,7 @@ button {
   overflow-wrap: anywhere;
 }
 
-/* "#2 · 0:05,250 – 0:12,000" above each entry, so entries are easy to tell apart */
+/* "#2 · 0:05:250 – 0:12:000" above each entry, so entries are easy to tell apart */
 .entry-label {
   display: block;
   margin-bottom: 2px;
@@ -1714,6 +1973,11 @@ button:disabled {
 .noun.masculine { background: #bfdcff; color: #0d2f5c; } /* Blue */
 .noun.neuter    { background: #c4efcf; color: #10401f; } /* Green */
 
+/* The colour key above the sentence: only Honey Coconut Hour shows it (see its theme block) */
+.gender-legend {
+  display: none;
+}
+
 /* ===== Practice: target (Noun / Verb / Adjective) ===== */
 #practice-target {
   display: flex;
@@ -1855,12 +2119,19 @@ button:disabled {
   margin-bottom: 8px;
 }
 
-/* Now/Length, then Start/End, then Use the whole audio, then ▶ Play this part,
+/* Now/Length, then Start/End, then Use the whole audio, then the ▶ check buttons,
    with a little space between the rows */
 .audio-part > .audio-times,
 .audio-part > .audio-whole,
-.audio-part > .small-button {
+.audio-part > .audio-checks {
   margin-bottom: 10px;
+}
+
+/* [▶ Play this part] [▶ Check start] [▶ Check end] side by side (wrapping on narrow screens) */
+.audio-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 /* [Use the whole audio]  Sets Start to the beginning… (the line goes under the button on narrow screens) */
@@ -1876,7 +2147,7 @@ button:disabled {
   font-size: 14px;
 }
 
-/* Start [0]:[12],[250]   End [0]:[18],[500] */
+/* Start [0]:[12]:[250]   End [0]:[18]:[500] */
 .audio-times {
   display: flex;
   flex-wrap: wrap;
@@ -1892,7 +2163,7 @@ button:disabled {
   font-size: 14px;
 }
 
-/* The three boxes in a row, with ":" and "," between them */
+/* The three boxes in a row, with ":" between them */
 .time-boxes {
   display: flex;
   align-items: center;
@@ -2037,6 +2308,12 @@ button:disabled {
   list-style: none;
   margin: 12px 0 0;
   padding: 0;
+}
+
+/* "New set of questions" under the last question, centred */
+.quiz-more {
+  margin-top: 16px;
+  text-align: center;
 }
 
 /* Each question is a card */

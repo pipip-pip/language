@@ -7,15 +7,15 @@
   <title>Video Study</title>
 
   <!-- Fonts used by the themes, all in one link (if they can't load, similar built-in fonts are used).
-       Fonts for other alphabets (Hebrew: Frank Ruhl Libre, Heebo; Korean: Hahmlet, Nanum Myeongjo,
+       Fonts for other alphabets (Hebrew: Frank Ruhl Libre, Assistant; Korean: Hahmlet, Nanum Myeongjo,
        IBM Plex Sans KR) are only downloaded when such letters are on the page. -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600&family=Kaisei+Decol:wght@500;700&family=Oranienbaum&family=Bellefair&family=Song+Myung&family=Spectral:wght@300;400&family=Noto+Serif+KR:wght@300;400&family=Tenor+Sans&family=Miriam+Libre:wght@400&family=Gothic+A1:wght@300;400&family=Jost:wght@400;500;600&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Noto+Serif+Display:wght@400;500&family=Frank+Ruhl+Libre:wght@400;500;700&family=Hahmlet:wght@400;600&family=Nanum+Myeongjo:wght@400;700&family=Heebo:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600&family=Kaisei+Decol:wght@500;700&family=Oranienbaum&family=Bellefair&family=Song+Myung&family=Spectral:wght@300;400&family=Noto+Serif+KR:wght@300;400&family=Tenor+Sans&family=Miriam+Libre:wght@400&family=Gothic+A1:wght@300;400&family=Sofia+Sans:wght@400;500;600&family=Cormorant+Garamond:ital,wght@1,400;1,500&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Noto+Serif+Display:wght@400;500&family=Frank+Ruhl+Libre:wght@400;500;700&family=Hahmlet:wght@400;600&family=Nanum+Myeongjo:wght@400;700&family=Assistant:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
   <link rel="stylesheet" href="style.css">
 
   <!-- Put the saved theme on straight away, so the page doesn't flash in the wrong colours.
-       Velvet Dusk ("riviera") is used until another theme is chosen. -->
+       Honey Coconut Hour ("riviera") is used until another theme is chosen. -->
   <script>
     document.documentElement.dataset.theme = "riviera";
     try {
@@ -24,7 +24,7 @@
         document.documentElement.dataset.theme = savedTheme;
       }
     } catch (error) {
-      // No saved theme: Velvet Dusk stays on
+      // No saved theme: Honey Coconut Hour stays on
     }
   </script>
 </head>
@@ -130,6 +130,8 @@
 
       <!-- Grammar Lens: the selected entry with its nouns coloured by gender (found by GPT) -->
       <div id="grammar-lens" class="immerse-view" hidden>
+        <!-- What each colour means (filled in by app.js with the language's genders; shown in Honey Coconut Hour) -->
+        <p id="gender-legend" class="gender-legend" hidden></p>
         <p id="grammar-sentence" class="immerse-sentence"></p>
         <p id="grammar-status" class="hint status-line" hidden></p>
       </div>

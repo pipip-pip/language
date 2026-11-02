@@ -106,14 +106,14 @@ async function addToAudioLibrary(file, language, source) {
   return id;
 }
 
-// A time as three number boxes: minutes : seconds , milliseconds  →  [1] : [23] , [250]
+// A time as three number boxes: minutes : seconds : milliseconds  →  [1] : [23] : [250]
 // Only numbers can be typed. Returns { element, get(), set(seconds), clear() }:
 // get() gives the time in seconds (83.25), or null if all three boxes are empty.
-// 65.25 seconds → "1:05,250" (the same m : s , ms as the boxes below, as plain text)
+// 65.25 seconds → "1:05:250" (the same m : s : ms as the boxes below, as plain text)
 function timeLabel(seconds) {
   const total = Math.round(seconds * 1000);
   return Math.floor(total / 60000) + ":" + String(Math.floor(total / 1000) % 60).padStart(2, "0") +
-    "," + String(total % 1000).padStart(3, "0");
+    ":" + String(total % 1000).padStart(3, "0");
 }
 
 // With readOnly = true the boxes only show a time (e.g. where the player is now).
@@ -152,7 +152,7 @@ function makeTimeBoxes(title, seconds, readOnly) {
   const minutesBox = numberBox("m", 3, "minutes");
   const secondsBox = numberBox("s", 2, "seconds");
   const millisecondsBox = numberBox("ms", 3, "milliseconds");
-  row.append(minutesBox, separator(":"), secondsBox, separator(","), millisecondsBox);
+  row.append(minutesBox, separator(":"), secondsBox, separator(":"), millisecondsBox);
 
   function set(value) {
     if (value === null || value === undefined) {
@@ -241,7 +241,7 @@ function makeAudioPicker(current, languageSelect, sourceBox) {
   times.className = "audio-times";
   times.append(startTime.element, endTime.element);
 
-  // Where the player is now, and how long the file is, in the same m : s , ms boxes,
+  // Where the player is now, and how long the file is, in the same m : s : ms boxes,
   // so a time can be read off exactly and typed into Start or End
   const nowTime = makeTimeBoxes("Now", 0, true);
   const lengthTime = makeTimeBoxes("Length", null, true);
@@ -257,38 +257,75 @@ function makeAudioPicker(current, languageSelect, sourceBox) {
     player.addEventListener(event, showClock);
   });
   // While playing, update many times a second so the milliseconds move smoothly
+  // Listening here stops the Study tab's audio, so two sounds never play at once
+  player.addEventListener("play", function () { stopAudio(); });
   player.addEventListener("play", function tick() {
     showClock();
     if (!player.paused) requestAnimationFrame(tick);
   });
 
-  // ▶ Play this part: plays from Start to End, to check the times are right
+  // Three buttons to check the times by ear:
+  //   ▶ Play this part: from Start to End
+  //   ▶ Check start: the first 2 seconds after Start
+  //   ▶ Check end: the last 2 seconds before End, so you hear exactly where it stops
+  // Only one plays at a time; the playing one turns into "■ Stop".
+  const CHECK_SECONDS = 2;
   let partWatch = null;
+  let playingButton = null;
   function stopPart() {
     clearInterval(partWatch);
     partWatch = null;
-    playPart.textContent = "▶ Play this part";
+    if (playingButton) playingButton.textContent = playingButton.dataset.label;
+    playingButton = null;
   }
-  const playPart = makeButton("▶ Play this part", "small-button", function () {
+  // Plays the audio from "from" to "to" (seconds; to = null means to the end of the file)
+  function playRange(button, from, to) {
+    const wasThisOne = playingButton === button;
     if (partWatch) {
       player.pause();
       stopPart();
-      return;
+      if (wasThisOne) return; // Pressing "■ Stop" just stops
     }
-    const start = startTime.get() || 0;
-    const end = endTime.get();
-    player.currentTime = start;
+    player.currentTime = Math.max(0, from);
     player.play().catch(stopPart); // If it can't play, the button goes back
-    playPart.textContent = "■ Stop";
+    playingButton = button;
+    button.textContent = "■ Stop";
     partWatch = setInterval(function () {
-      if (player.paused || (end !== null && end > start && player.currentTime >= end)) {
+      if (player.paused || (to !== null && to > from && player.currentTime >= to)) {
         player.pause();
         stopPart();
       }
     }, 10);
+  }
+  // A small button that remembers its own label, so it can go back to it after "■ Stop"
+  function checkButton(label, onClick) {
+    const button = makeButton(label, "small-button", function () { onClick(button); });
+    button.dataset.label = label;
+    return button;
+  }
+  const playPart = checkButton("▶ Play this part", function (button) {
+    playRange(button, startTime.get() || 0, endTime.get());
   });
+  const checkStart = checkButton("▶ Check start", function (button) {
+    const start = startTime.get() || 0;
+    const end = endTime.get();
+    // Stop after 2 seconds, or at End if the part is shorter than that
+    const stop = end !== null && end > start ? Math.min(end, start + CHECK_SECONDS) : start + CHECK_SECONDS;
+    playRange(button, start, stop);
+  });
+  const checkEnd = checkButton("▶ Check end", function (button) {
+    const start = startTime.get() || 0;
+    // An empty End means the end of the file
+    const end = endTime.get() !== null ? endTime.get() : (isFinite(player.duration) ? player.duration : null);
+    if (end === null) return; // File still loading: nothing to check yet
+    // Start 2 seconds before End, but never before Start
+    playRange(button, Math.max(start, end - CHECK_SECONDS), end);
+  });
+  const checks = document.createElement("div");
+  checks.className = "audio-checks";
+  checks.append(playPart, checkStart, checkEnd);
 
-  // Use the whole audio: Start at 0:00,000 and End at the file's full length,
+  // Use the whole audio: Start at 0:00:000 and End at the file's full length,
   // so the times are the same as in the original recording.
   // A short line next to the button says what it does, and then what it just did.
   const WHOLE_HINT = "Sets Start to the beginning and End to the very end of the file.";
@@ -299,11 +336,11 @@ function makeAudioPicker(current, languageSelect, sourceBox) {
     startTime.set(0);
     if (isFinite(player.duration)) {
       endTime.set(player.duration);
-      wholeHint.textContent = "✓ Done: Start 0:00,000, End " + timeLabel(player.duration) + ".";
+      wholeHint.textContent = "✓ Done: Start 0:00:000, End " + timeLabel(player.duration) + ".";
     } else {
       // Length not known yet (file still loading): an empty End also means "to the end"
       endTime.set(null);
-      wholeHint.textContent = "✓ Done: Start 0:00,000, End left empty (= to the end).";
+      wholeHint.textContent = "✓ Done: Start 0:00:000, End left empty (= to the end).";
     }
   });
   // Typing a new time by hand: show the explanation again
@@ -314,7 +351,7 @@ function makeAudioPicker(current, languageSelect, sourceBox) {
   whole.className = "audio-whole";
   whole.append(wholeFile, wholeHint);
 
-  part.append(player, clock, times, whole, playPart);
+  part.append(player, clock, times, whole, checks);
 
   picker.append(label, fileBox, part);
 
@@ -431,6 +468,11 @@ function makeAudioPicker(current, languageSelect, sourceBox) {
       loadPlayer();
     },
     refresh: refresh,
+    // Stop the small player (a player taken off the page would otherwise keep playing)
+    stop: function () {
+      player.pause();
+      if (partWatch) stopPart();
+    },
   };
 }
 
@@ -438,6 +480,12 @@ function makeAudioPicker(current, languageSelect, sourceBox) {
 // so both can show a newly uploaded file
 let addAudioPicker = null;
 let editAudioPicker = null;
+
+// Closing the Edit form (Save, Cancel or redrawing the list): stop its player first
+function closeEditAudioPicker() {
+  if (editAudioPicker) editAudioPicker.stop();
+  editAudioPicker = null;
+}
 
 function refreshAudioPickers() {
   if (addAudioPicker) addAudioPicker.refresh();
@@ -1119,7 +1167,7 @@ function makeEditRow(sentence, index) {
 
   const cancelButton = makeButton("Cancel", "small-button", function () {
     editingIndex = null;
-    editAudioPicker = null;
+    closeEditAudioPicker();
     showSentences();
   });
 
@@ -1148,7 +1196,9 @@ function makeEditRow(sentence, index) {
     // Audio: the file and part chosen in the picker (the file itself stays in the library)
     applyAudio(edited, editAudioPicker.value());
     giveAudioTheLink(edited);
-    editAudioPicker = null;
+    closeEditAudioPicker();
+    // The Study tab may be playing this sentence's old audio part: stop it
+    stopAudio();
     // If this was the selected entry in Study, keep it selected
     if (selectedEntry === sentences[index]) {
       selectedEntry = edited;
@@ -1228,6 +1278,7 @@ function newestFirst(items, all) {
 
 // Rebuild the list on the page from the "sentences" array
 function showSentences() {
+  closeEditAudioPicker(); // The old Edit form is about to be removed (a new one is made if still editing)
   showFilter();
   sentenceList.innerHTML = "";
 
@@ -1843,7 +1894,7 @@ showAudioState();
 const THEMES = [
   {
     id: "riviera",
-    name: "Velvet Dusk",
+    name: "Honey Coconut Hour",
   },
   {
     id: "coffee",
@@ -2194,6 +2245,22 @@ const NOUN_GENDERS = {
 
 const grammarSentence = document.getElementById("grammar-sentence");
 const grammarStatus = document.getElementById("grammar-status");
+const genderLegend = document.getElementById("gender-legend");
+
+// The small key above the sentence: one sample per gender the language has,
+// in the same colours and underlines as the nouns ("masculine  feminine  neuter").
+// Hidden when nothing is selected or the language has no genders (English, Turkish).
+function showGenderLegend(language) {
+  genderLegend.textContent = "";
+  const genders = language ? (NOUN_GENDERS[language] || ["masculine", "feminine", "neuter"]) : [];
+  genders.forEach(function (gender) {
+    const sample = document.createElement("span");
+    sample.className = "noun " + gender;
+    sample.textContent = gender;
+    genderLegend.append(sample);
+  });
+  genderLegend.hidden = genders.length === 0;
+}
 
 let grammarBeingFound = null; // The sentence waiting for GPT's answer (so it's only asked once)
 
@@ -2303,6 +2370,7 @@ async function showGrammarLens() {
   const entry = selectedEntry;
   const visible = entry && sentences.includes(entry) && entry.language === myLanguage;
   grammarSentence.classList.remove("hint");
+  showGenderLegend(visible ? entry.language : null);
 
   if (!visible) {
     grammarSentence.textContent = "Select an entry above to see its nouns by gender.";
@@ -2884,6 +2952,21 @@ function showQuestions(questions) {
     }
     quizList.append(card);
   });
+
+  // Under the last question: a button for a fresh set, so there's no need to scroll back up.
+  // It does the same as "Let's go" (same entry, level and focus), then jumps up to the new questions.
+  const more = document.createElement("li");
+  more.className = "quiz-more";
+  // A plain button with no class, so it gets the same main-button look as "Let's go" in every theme
+  const moreButton = document.createElement("button");
+  moreButton.type = "button";
+  moreButton.textContent = "New set of questions";
+  moreButton.addEventListener("click", function () {
+    makeQuestionsButton.click();
+    quizStatus.scrollIntoView({ behavior: "smooth", block: "center" });
+  });
+  more.append(moreButton);
+  quizList.append(more);
 }
 
 makeQuestionsButton.addEventListener("click", async function () {
