@@ -219,13 +219,27 @@
     var(--card);
 }
 
-/* Main buttons (Let’s go, Add, Save…: the ones without a class): a soft swirl of milk cream,
-   with espresso letters. On hover: the "icy" shimmer (see "Main button hover" further down). */
+/* Cold foam: tiny, uneven micro-bubbles, a little lighter and darker than the milk (about 6%).
+   Matte on purpose: no shine, no sparkle. */
+[data-theme="coffee"] {
+  --cold-foam: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='23' height='19'%3E%3Cg fill='%23fff' fill-opacity='0.07'%3E%3Ccircle cx='3' cy='4' r='0.9'/%3E%3Ccircle cx='14' cy='2.5' r='0.6'/%3E%3Ccircle cx='19.5' cy='11' r='1'/%3E%3Ccircle cx='8' cy='14' r='0.7'/%3E%3Ccircle cx='12' cy='9' r='0.5'/%3E%3C/g%3E%3Cg fill='%232A1A10' fill-opacity='0.05'%3E%3Ccircle cx='7.5' cy='6.5' r='0.6'/%3E%3Ccircle cx='17' cy='6' r='0.8'/%3E%3Ccircle cx='2.5' cy='12' r='0.5'/%3E%3Ccircle cx='14.5' cy='15.5' r='0.9'/%3E%3Ccircle cx='21' cy='17' r='0.5'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* Main buttons (Let’s go, Add, Save…: the ones without a class): matte milk cream with a cold
+   foam texture, resting softly on the espresso like a layer of foam (not a polished plate).
+   On hover: the "icy" shimmer (see "Main button hover" further down), unchanged. */
 [data-theme="coffee"] button:not([class]):not(#language-button),
-[data-theme="coffee"] button[class=""] {
-  background: linear-gradient(105deg, #EBDDC5 0%, #E0CDAF 22%, #F2E7D6 38%, #DCC6A6 60%, #EBDDC5 74%, #D3BC9A 100%);
-  color: #1E140C;
-  box-shadow: inset 0 1px 0 rgba(238, 241, 242, 0.7);
+[data-theme="coffee"] button[class=""],
+[data-theme="coffee"] .filter-button.selected {
+  background: var(--cold-foam), linear-gradient(180deg, #EBDFCB 0%, #E2D3BC 100%);
+  color: #2A1A10;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+/* Chosen levels keep their milk / latte / caramel colour, with the same foam and soft shadow */
+[data-theme="coffee"] .level.selected[data-level] {  /* [data-level] so it beats the level colour rules further down */
+  background-image: var(--cold-foam);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
 }
 
 /* Main button hover, "icy": milk cream with one narrow, crisp, bright band of ice white and frost,
@@ -318,9 +332,12 @@
    Pistachio: dark and muted, so they sit quietly in the espresso, with off-white text.
    Plain fills, with no shine, border or underline. */
 [data-theme="coffee"] .noun { box-shadow: none; }
-[data-theme="coffee"] .noun.masculine { background: #33414A; color: #ECE6DC; } /* Ice: 8.5:1 */
-[data-theme="coffee"] .noun.feminine  { background: #5A3546; color: #ECE6DC; } /* Coffee Cherry, a cool dusty rose: 8.3:1 */
-[data-theme="coffee"] .noun.neuter    { background: #3E472E; color: #ECE6DC; } /* Pistachio: 7.9:1 */
+/* Clear blue / berry pink / green, matte (no glow or border), about 2.3:1 against the dark cards.
+   Checked with a red-green colour-blindness simulation: the cherry is a little redder than
+   #73405D, because that one looked almost like Ice to colour-blind eyes. Also used on gender quiz answers. */
+[data-theme="coffee"] .noun.masculine { background: #3A5670; color: #ECE6DC; } /* Ice: 6.2:1 */
+[data-theme="coffee"] .noun.feminine  { background: #7A4052; color: #ECE6DC; } /* Coffee Cherry: 6.3:1 */
+[data-theme="coffee"] .noun.neuter    { background: #4A5A34; color: #ECE6DC; } /* Pistachio: 6.0:1 */
 
 /* Quiz right / wrong: muted sage and terracotta with off-white text, instead of bright green and red */
 [data-theme="coffee"] .quiz-option.right { background: rgba(112, 150, 96, 0.5); color: #ECE6DC; }
@@ -806,18 +823,6 @@ html[data-theme="matcha"]::after {
   transition: background-color 0.6s ease-out, border-color 0.6s ease-out, color 0.6s ease-out;
 }
 
-/* An Immerse view or a new question card fades in softly when it appears (only opacity).
-   Never a whole page: fading a parent of the glass boxes switches their blur off until it ends. */
-@keyframes matcha-ink {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-
-[data-theme="matcha"] .immerse-view:not([hidden]),
-[data-theme="matcha"] .quiz-card {
-  animation: matcha-ink 0.7s ease-out backwards;
-}
-
 /* "Reduce motion" switched on: no fades at all */
 @media (prefers-reduced-motion: reduce) {
   [data-theme="matcha"] button,
@@ -825,11 +830,6 @@ html[data-theme="matcha"]::after {
   [data-theme="matcha"] .word-card,
   [data-theme="matcha"] .theme-card {
     transition: none;
-  }
-
-  [data-theme="matcha"] .immerse-view:not([hidden]),
-  [data-theme="matcha"] .quiz-card {
-    animation: none;
   }
 }
 
@@ -1339,21 +1339,6 @@ html[data-theme="riviera"]::after {
 [data-theme="riviera"] .noun.feminine  { background: #8A4E58; color: #F5EADB; }
 [data-theme="riviera"] .noun.neuter    { background: #626E3D; color: #F5EADB; }
 
-/* The legend above the sentence: the three samples in a row, a little smaller than the sentence */
-[data-theme="riviera"] .gender-legend:not([hidden]) {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 12px;
-  margin: 0 0 12px;
-  font-size: 14px;
-}
-
-/* The samples are small, so they get a little more room around the word
-   (same total size as before, just centred now that there's no underline below) */
-[data-theme="riviera"] .gender-legend .noun {
-  padding: 3px 8px;
-}
-
 /* Quiz right / wrong: muted sage and terracotta with cream text, instead of bright green and red */
 [data-theme="riviera"] .quiz-option.right { background: rgba(84, 122, 70, 0.62); color: #F5EADB; }
 [data-theme="riviera"] .quiz-option.wrong { background: rgba(182, 72, 60, 0.55); color: #F5EADB; }
@@ -1403,7 +1388,7 @@ html[data-theme="riviera"]::after {
   --font-display: "Cormorant Infant", "Bona Nova", "Diphylleia", Georgia, serif;  /* Only the app title */
   --font-heading: "Alegreya", "Bona Nova", "Diphylleia", Georgia, serif;     /* Box titles, in italic */
   --font-subheading: var(--font-heading);
-  --font-reading: "Alegreya", "Bona Nova", "Nanum Myeongjo", Georgia, serif;
+  --font-reading: "Cormorant Infant", "Bona Nova", "Nanum Myeongjo", Georgia, serif;  /* Upright */
   --font-ui: "Alegreya Sans", "Alef", "Gowun Dodum", sans-serif;
   --font-meta: var(--font-ui);
   --font-nav: "Alegreya Sans SC", "Alef", "Gowun Dodum", sans-serif;  /* Tabs and small labels */
@@ -1414,8 +1399,8 @@ html[data-theme="riviera"]::after {
   --heading-weight: 500;
   --subheading-style: italic;
   --subheading-weight: 500;
-  --reading-weight: 400;
-  --reading-strong-weight: 500;
+  --reading-weight: 500;     /* Cormorant is delicate, so a little heavier than usual */
+  --reading-strong-weight: 600;
   --nav-transform: none;     /* The small-capital font makes the capitals itself */
   --nav-spacing: 0.1em;
   --nav-weight: 500;
@@ -1507,6 +1492,33 @@ html[data-theme="riviera"]::after {
   font-weight: var(--reading-weight);
   font-style: normal;
 }
+
+/* Cormorant Infant has small letters, so reading text is about 8% bigger in this theme, with
+   slightly tighter lines (1.65). The big Immerse passage is a touch bolder (600). */
+[data-theme="rosewater"] .immerse-sentence:not(.hint),
+[data-theme="rosewater"] .sentence-text,
+[data-theme="rosewater"] .entry-text,
+[data-theme="rosewater"] .quiz-passage,
+[data-theme="rosewater"] .quiz-question,
+[data-theme="rosewater"] .quiz-result,
+[data-theme="rosewater"] .word-written,
+[data-theme="rosewater"] .word-base,
+[data-theme="rosewater"] .entry-group-title,
+[data-theme="rosewater"] .entry-group-name,
+[data-theme="rosewater"] .audio-file-name,
+[data-theme="rosewater"] .quiz-option {
+  line-height: 1.65;
+}
+[data-theme="rosewater"] .immerse-sentence:not(.hint) { font-size: 26px; font-weight: 600; }
+[data-theme="rosewater"] .quiz-passage { font-size: 20.5px; }
+[data-theme="rosewater"] .word-written { font-size: 18.5px; }
+[data-theme="rosewater"] .sentence-text,
+[data-theme="rosewater"] .entry-text,
+[data-theme="rosewater"] .quiz-question,
+[data-theme="rosewater"] .word-base { font-size: 17.25px; }
+[data-theme="rosewater"] .entry-group-title,
+[data-theme="rosewater"] .quiz-option { font-size: 16.25px; }
+[data-theme="rosewater"] .quiz-result { font-size: 15px; }
 
 /* Tabs and small labels in small capitals, spaced out a little (font only, the size stays) */
 [data-theme="rosewater"] .tab,
@@ -1939,14 +1951,27 @@ html[data-theme="rosewater"]::after {
   }
 }
 
-/* Noun genders (Grammar Lens, its legend and the gender quiz answers): solid fills, no borders or
-   underlines: misty blue-grey, a deep cool rose and soft sage leaf. All three have exactly the same
-   brightness, sit clearly darker than every box (the rose is cooler than the pink glass, so it
-   doesn't blend in), and give the rose-cream text 8.9 : 1. */
-[data-theme="rosewater"] .noun { box-shadow: none; }
-[data-theme="rosewater"] .noun.masculine { background: #3A444A; color: #FCEFF0; } /* Mist */
-[data-theme="rosewater"] .noun.feminine  { background: #60344E; color: #FCEFF0; } /* Rose */
-[data-theme="rosewater"] .noun.neuter    { background: #3C4636; color: #FCEFF0; } /* Leaf */
+/* Noun genders (Grammar Lens, its legend and the gender quiz answers): see-through garden
+   tones, like tinted chiffon, strong enough to tell apart at a glance: a clear blue, a clear rose
+   and a clear green. No borders or underlines; a soft feathered edge (a glow in the same colour)
+   and a faint light line on top. The rose-cream text keeps 4.6 : 1 or more on each blend.
+   Sage leaf is a touch warmer than asked (80,130,80), so with red-green colour blindness it
+   still looks different from Peony (olive instead of the same grey). */
+[data-theme="rosewater"] .noun.masculine {  /* Hydrangea */
+  background: rgba(70, 115, 170, 0.68);
+  box-shadow: 0 0 6px rgba(70, 115, 170, 0.3), inset 0 1px 0 rgba(255, 240, 245, 0.12);
+  color: #FCEFF0;
+}
+[data-theme="rosewater"] .noun.feminine {   /* Peony */
+  background: rgba(185, 80, 125, 0.62);
+  box-shadow: 0 0 6px rgba(185, 80, 125, 0.3), inset 0 1px 0 rgba(255, 240, 245, 0.12);
+  color: #FCEFF0;
+}
+[data-theme="rosewater"] .noun.neuter {     /* Sage leaf */
+  background: rgba(90, 130, 50, 0.65);
+  box-shadow: 0 0 6px rgba(90, 130, 50, 0.3), inset 0 1px 0 rgba(255, 240, 245, 0.12);
+  color: #FCEFF0;
+}
 
 /* Quiz right / wrong: leaf sage and a warm terracotta, with a thin ring in the same colour
    (drawn inside, so no size change) so they can't be mistaken for the Leaf and Rose genders */
@@ -3213,7 +3238,7 @@ button:disabled {
 .noun.masculine { background: #bfdcff; color: #0d2f5c; } /* Blue */
 .noun.neuter    { background: #c4efcf; color: #10401f; } /* Green */
 
-/* The colour key above the sentence: only Honey Coconut Hour shows it (see its theme block) */
+/* The colour key above the sentence: hidden in every theme (no space is left behind) */
 .gender-legend {
   display: none;
 }
@@ -3597,8 +3622,10 @@ button:disabled {
   text-align: center;
 }
 
+/* Sits beside the numbered circle, where the type name used to be (no gap above) */
 .quiz-instruction {
-  margin: 2px 0 0;
+  margin: 0;
+  padding-top: 5px; /* Centres the first line on the 28px circle */
   color: var(--muted);
   font-size: 13px;
 }

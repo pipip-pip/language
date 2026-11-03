@@ -2644,8 +2644,9 @@ async function showWordFocus() {
 
 // ===== Practice: questions made by GPT =====
 // Short questions from the selected entry, at the chosen level (How Deep Today?)
-// and practice target (noun, verb, adjective or mix): one of each type, in this order.
-// The gender question is added for A1-B2, in languages whose nouns have a gender.
+// and practice target (noun, verb, adjective or mix). Each set has 5 questions of random
+// types in a random order (pickQuestionTypes). Gender questions exist for A1-B2, in
+// languages whose nouns have a gender.
 const QUESTION_TYPES = {
   reading: "Mini reading",
   form: "Correct form",
@@ -2664,6 +2665,61 @@ const WORD_HELP_LEVELS = ["A1", "A2", "B1"];
 function genderChoices(entry, level) {
   if (!GENDER_QUESTION_LEVELS.includes(level)) return [];
   return NOUN_GENDERS[entry.language] || [];
+}
+
+const QUESTIONS_PER_SET = 5;
+const MAX_SAME_TYPE = 2; // No type more than twice in one set
+const ONE_GENDER_LEVELS = ["A1", "A2"]; // Every set has exactly one gender question
+const NO_READING_LEVELS = ["A1"]; // Mini reading is too hard here
+
+// The types of the previous set, in order, so the next set never repeats it exactly
+let lastQuestionPlan = "";
+
+// The types that can be made for this entry and level (the gender question is
+// left out here, it's added by pickQuestionTypes)
+function questionTypesThatWork(entry, level) {
+  const wordCount = entry.text.trim().split(/\s+/).length;
+  return Object.keys(QUESTION_TYPES).filter(function (type) {
+    if (type === "gender") return false;
+    if (type === "reading" && NO_READING_LEVELS.includes(level)) return false;
+    if (type === "order" && wordCount < 3) return false; // Too few words to put in order
+    if (type === "odd" && wordCount < 2) return false; // Too little to build a word group from
+    return true;
+  });
+}
+
+// Pick random types for a set. "avoid" lists types that just failed, so they're not picked again.
+// count: how many to pick (5 for a new set, fewer when replacing failed questions).
+// usedTypes: types already in the set (when replacing), so the "max twice" rule still holds.
+function pickQuestionTypes(entry, level, count, avoid, usedTypes) {
+  const genders = genderChoices(entry, level);
+  let pool = questionTypesThatWork(entry, level).filter(function (type) { return !avoid.includes(type); });
+  if (pool.length === 0) pool = questionTypesThatWork(entry, level); // Nothing left: allow them again
+  // B1-B2 may get gender questions at random, like any other type
+  const randomGender = genders.length > 0 && !ONE_GENDER_LEVELS.includes(level) && !avoid.includes("gender");
+  if (randomGender) pool.push("gender");
+  // A1-A2: exactly one gender question (if the language has genders)
+  const needsGender = genders.length > 0 && ONE_GENDER_LEVELS.includes(level)
+    && !usedTypes.includes("gender") && !avoid.includes("gender");
+
+  let plan = [];
+  for (let attempt = 0; attempt < 30; attempt++) {
+    plan = needsGender ? ["gender"] : [];
+    const counts = {};
+    usedTypes.concat(plan).forEach(function (type) { counts[type] = (counts[type] || 0) + 1; });
+    while (plan.length < count) {
+      // Prefer types used less than twice; if none are left (a tiny pool), allow more
+      let choices = pool.filter(function (type) { return (counts[type] || 0) < MAX_SAME_TYPE; });
+      if (choices.length === 0) choices = pool;
+      const type = choices[Math.floor(Math.random() * choices.length)];
+      counts[type] = (counts[type] || 0) + 1;
+      plan.push(type);
+    }
+    plan = shuffled(plan, true);
+    // A new set mustn't be the same types in the same order as the last one
+    if (usedTypes.length > 0 || plan.join() !== lastQuestionPlan) break;
+  }
+  return plan;
 }
 
 const makeQuestionsButton = document.getElementById("make-questions");
@@ -2687,8 +2743,63 @@ function targetWords(target) {
   return { focus: target + "s", one: target, kind: target, status: target + "s" };
 }
 
-// Ask GPT for the questions. The answer must follow a fixed shape (checked by OpenAI).
-async function askForQuestions(entry, level, target) {
+// Make one set: pick the types, ask GPT, and if some questions can't be used,
+// ask once more for replacements of other random types (still following the level rules)
+async function makeQuestionSet(entry, level, target) {
+  const plan = pickQuestionTypes(entry, level, QUESTIONS_PER_SET, [], []);
+  lastQuestionPlan = plan.join();
+  const questions = await askForQuestions(entry, level, target, plan);
+  const missing = plan.length - questions.length;
+  if (missing > 0 && questions.length > 0) {
+    const usedTypes = questions.map(function (question) { return question.type; });
+    // The types that came back fewer times than planned
+    const failed = plan.filter(function (type) {
+      const planned = plan.filter(function (other) { return other === type; }).length;
+      return usedTypes.filter(function (other) { return other === type; }).length < planned;
+    });
+    const morePlan = pickQuestionTypes(entry, level, missing, failed, usedTypes);
+    try {
+      const more = await askForQuestions(entry, level, target, morePlan);
+      // Put the replacements at random places in the set
+      more.forEach(function (question) {
+        questions.splice(Math.floor(Math.random() * (questions.length + 1)), 0, question);
+      });
+    } catch (error) {
+      // Keep the questions we have
+    }
+  }
+  return questions;
+}
+
+// One question type, as described to GPT
+function questionRule(type, words, genders, target) {
+  if (type === "reading") {
+    return "type \"reading\": a NEW passage of 1-2 short sentences on the same topic, using some of the sentence's " +
+      "words; a short question about it; 3 options (4 for B1 and above); answer_index is the correct option.";
+  }
+  if (type === "form") {
+    return "type \"form\": a short sentence with one " + words.one + " replaced by ___ and its base form in brackets " +
+      "after the gap, e.g. \"Idę do ___ (bankomat).\"; 3 options (4 for B1 and above) that are different forms of " +
+      "that word; answer_index is the correct one. Put the sentence with the gap in question and leave passage \"\"; " +
+      "never write the completed sentence anywhere.";
+  }
+  if (type === "order") {
+    return "type \"order\": answer_sentence is one short correct sentence (4-8 words) using words from the sentence. " +
+      "Leave options empty and answer_index -1. Leave passage and question \"\": never write the sentence anywhere " +
+      "except answer_sentence.";
+  }
+  if (type === "odd") {
+    return "type \"odd\": 4 single words as options; 3 belong together (same topic, or the same kind of " +
+      target + "), 1 does not; answer_index is the odd one.";
+  }
+  return "type \"gender\": passage is one noun from the sentence in its dictionary form (e.g. \"poczta\"); " +
+    "question is \"\"; options are exactly " + JSON.stringify(genders) + " in that order; answer_index is " +
+    "the noun's grammatical gender.";
+}
+
+// Ask GPT for the questions in the plan (a list of types, in order).
+// The answer must follow a fixed shape (checked by OpenAI).
+async function askForQuestions(entry, level, target, plan) {
   const words = targetWords(target);
   const genders = genderChoices(entry, level);
   // A1-B1: explain the new words in each question
@@ -2708,10 +2819,10 @@ async function askForQuestions(entry, level, target) {
     "\nWords the learner already knows (dictionary forms): " + known.join(", ") +
     "\nPrefer the other words of the sentence for the questions (above all the form, odd and gender questions), " +
     "and never list a known word in a glossary.";
-  const genderPart = genders.length === 0 ? "" :
-    "5. type \"gender\": passage is one noun from the sentence in its dictionary form (e.g. \"poczta\"); " +
-    "question is \"\"; options are exactly " + JSON.stringify(genders) + " in that order; answer_index is " +
-    "the noun's grammatical gender.\n";
+  // The plan as a numbered list, e.g. "1. type "odd": …". A type used twice should ask about different words.
+  const planPart = plan.map(function (type, index) {
+    return (index + 1) + ". " + questionRule(type, words, genders, target);
+  }).join("\n") + "\nIf a type appears twice, use different words in each.\n";
 
   const answer = await askOpenai({
     model: openaiModel,
@@ -2724,17 +2835,8 @@ async function askForQuestions(entry, level, target) {
           "in simple English. Match CEFR level " + level + ": simple words and grammar for A1-A2, richer for B1-B2, " +
           "natural and advanced for C1-C2. Keep everything short. Focus on " + words.focus + ". Reuse words from the " +
           "learner's sentence and stay on its topic. Every question has exactly one correct answer.\n\n" +
-          "Write exactly " + (genders.length > 0 ? 5 : 4) + " questions, in this order:\n" +
-          "1. type \"reading\": a NEW passage of 1-2 short sentences on the same topic, using some of the sentence's " +
-          "words; a short question about it; 3 options (4 for B1 and above); answer_index is the correct option.\n" +
-          "2. type \"form\": a short sentence with one " + words.one + " replaced by ___ and its base form in brackets " +
-          "after the gap, e.g. \"Idę do ___ (bankomat).\"; 3 options (4 for B1 and above) that are different forms of " +
-          "that word; answer_index is the correct one.\n" +
-          "3. type \"order\": answer_sentence is one short correct sentence (4-8 words) using words from the sentence. " +
-          "Leave options empty and answer_index -1.\n" +
-          "4. type \"odd\": 4 single words as options; 3 belong together (same topic, or the same kind of " +
-          target + "), 1 does not; answer_index is the odd one.\n" +
-          genderPart + "\n" +
+          "Write exactly " + plan.length + " questions, in this order:\n" +
+          planPart + "\n" +
           "Use \"\" for passage when there is none, [] for options when there are none, -1 for answer_index when " +
           "there is none, and \"\" for answer_sentence except in the order question. explanation: one short English " +
           "sentence explaining the answer.\n" + wordHelpPart,
@@ -2791,8 +2893,16 @@ async function askForQuestions(entry, level, target) {
     },
   });
 
+  // Put GPT's questions in the planned order (and drop any type that wasn't asked for)
+  const returned = JSON.parse(answer).questions;
+  const ordered = [];
+  plan.forEach(function (type) {
+    const index = returned.findIndex(function (question) { return question.type === type; });
+    if (index >= 0) ordered.push(returned.splice(index, 1)[0]);
+  });
+
   // Keep only questions that can really be answered
-  return JSON.parse(answer).questions.filter(function (question) {
+  return ordered.filter(function (question) {
     if (!WORD_HELP_LEVELS.includes(level)) {
       question.glossary = []; // Word help is only for A1-B1
     }
@@ -2811,15 +2921,16 @@ async function askForQuestions(entry, level, target) {
   });
 }
 
-// Mix up a list (for the word order question)
-function shuffled(list) {
+// Mix up a list (for the word order question, and the order of question types).
+// allowSame: it's fine if the mixed list happens to come out in the same order.
+function shuffled(list, allowSame) {
   const copy = list.slice();
   for (let i = copy.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [copy[i], copy[j]] = [copy[j], copy[i]];
   }
   // Never show the words already in the right order
-  if (copy.join(" ") === list.join(" ") && list.length > 1) {
+  if (!allowSame && copy.join(" ") === list.join(" ") && list.length > 1) {
     copy.push(copy.shift());
   }
   return copy;
@@ -2896,6 +3007,31 @@ function makeOrderQuestion(card, question) {
   card.append(built, pool, check);
 }
 
+// GPT sometimes writes the answer into the question text. Before showing a card,
+// blank out any passage or question that would give the answer away:
+// - word order: only the word tiles are shown, never the sentence they came from
+// - correct form: only the sentence with the gap ___ is shown, never the filled-in one
+// - and no glossary meaning for the correct form itself
+function hideAnswers(question) {
+  if (question.type === "order") {
+    question.passage = "";
+    question.question = "";
+  }
+  if (question.type === "form") {
+    const right = (question.options[question.answer_index] || "").toLowerCase();
+    const hasGap = question.passage.includes("___") || question.question.includes("___");
+    // Keep only the text with the gap in it. If neither has one, keep any text that doesn't hold the answer.
+    [ "passage", "question" ].forEach(function (field) {
+      const text = question[field];
+      const leaks = hasGap ? !text.includes("___") : right !== "" && text.toLowerCase().includes(right);
+      if (leaks) question[field] = "";
+    });
+    if (question.glossary) {
+      question.glossary = question.glossary.filter(function (item) { return item.word.toLowerCase() !== right; });
+    }
+  }
+}
+
 // Show the questions
 function showQuestions(questions) {
   quizList.innerHTML = "";
@@ -2905,7 +3041,7 @@ function showQuestions(questions) {
     const card = document.createElement("li");
     card.className = "quiz-card";
 
-    // Card header: a numbered circle, the type, and the instruction underneath
+    // Card header: a numbered circle and the instruction beside it
     const header = document.createElement("div");
     header.className = "quiz-header";
 
@@ -2913,11 +3049,8 @@ function showQuestions(questions) {
     number.className = "quiz-number";
     number.textContent = index + 1;
 
+    // No type name ("Word order" …) on the card: the instruction says what to do
     const titles = document.createElement("div");
-    const kind = document.createElement("p");
-    kind.className = "quiz-kind";
-    kind.textContent = QUESTION_TYPES[question.type];
-    titles.append(kind);
     if (question.instruction) {
       const instruction = document.createElement("p");
       instruction.className = "quiz-instruction";
@@ -2927,6 +3060,9 @@ function showQuestions(questions) {
 
     header.append(number, titles);
     card.append(header);
+
+    // Never show the answer before the learner answers (see hideAnswers)
+    hideAnswers(question);
 
     if (question.passage) {
       const passage = document.createElement("p");
@@ -2996,11 +3132,11 @@ makeQuestionsButton.addEventListener("click", async function () {
   showQuizStatus("Making " + level + " questions about " + practiceTarget + "s…");
 
   try {
-    const questions = await askForQuestions(entry, level, practiceTarget);
+    const questions = await makeQuestionSet(entry, level, practiceTarget);
     if (questions.length === 0) {
       showQuizStatus("GPT's questions couldn't be used. Please try again.");
     } else {
-      showQuizStatus(level + " · " + practiceTarget + "s · from: " + entry.text.slice(0, 40) + (entry.text.length > 40 ? "…" : ""));
+      showQuizStatus(level + " · " + practiceTarget + "s"); // No sentence preview: it could give answers away
       showQuestions(questions);
     }
   } catch (error) {
