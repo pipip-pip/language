@@ -11,7 +11,7 @@
        Nanum Myeongjo, IBM Plex Sans KR, Gowun Batang, Nanum Gothic) are only downloaded when such letters are on the page. -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@400;500&family=Noto+Sans:wght@300;400&family=Noto+Serif+Hebrew:wght@400;500&family=Noto+Sans+Hebrew:wght@400;500&family=Gowun+Batang&family=Nanum+Gothic&family=Oranienbaum&family=Bellefair&family=Song+Myung&family=Spectral:wght@300;400&family=Noto+Serif+KR:wght@300;400&family=Tenor+Sans&family=Miriam+Libre:wght@400&family=Gothic+A1:wght@300;400&family=Sofia+Sans:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,400;1,500&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Noto+Serif+Display:wght@400;500&family=Frank+Ruhl+Libre:wght@400;500;700&family=Hahmlet:wght@400;600&family=Nanum+Myeongjo:wght@400;700&family=Assistant:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600&family=Cormorant+Infant:ital,wght@0,500;0,600;1,600;1,700&family=Bona+Nova:ital,wght@0,400;1,400&family=Diphylleia&family=Alegreya:ital,wght@0,400;0,500;1,500&family=Alegreya+Sans:wght@400;500&family=Alegreya+Sans+SC:wght@400;500&family=Alef:wght@400;700&family=Gowun+Dodum&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@400;500&family=Noto+Sans:wght@300;400&family=Noto+Serif+Hebrew:wght@400;500&family=Noto+Sans+Hebrew:wght@400;500&family=Gowun+Batang&family=Nanum+Gothic&family=Oranienbaum&family=Bellefair&family=Song+Myung&family=Spectral:wght@300;400&family=Noto+Serif+KR:wght@300;400&family=Tenor+Sans&family=Miriam+Libre:wght@400&family=Gothic+A1:wght@300;400&family=Sofia+Sans:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,400;1,500&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Noto+Serif+Display:wght@400;500&family=Frank+Ruhl+Libre:wght@400;500;700&family=Hahmlet:wght@400;600&family=Nanum+Myeongjo:wght@400;700&family=Assistant:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600&family=Cormorant+Infant:ital,wght@0,500;0,600;1,500;1,600;1,700&family=Bona+Nova:ital,wght@0,400;1,400&family=Diphylleia&family=Alegreya:ital,wght@0,400;0,500;1,500&family=Alegreya+Sans:wght@400;500&family=Alegreya+Sans+SC:wght@400;500&family=Alef:wght@400;700&family=Gowun+Dodum&display=swap">
   <link rel="stylesheet" href="style.css">
 
   <!-- Put the saved theme on straight away, so the page doesn't flash in the wrong colours.
@@ -118,7 +118,9 @@
       <!-- Listen: reads the selected entry aloud, 5 times, 10 times or until stopped -->
       <div id="audio-controls">
         <button type="button" id="audio-play" aria-label="Play" data-tip="Play"></button>
-        <span class="audio-row-label" aria-hidden="true">Repeat</span>
+        <!-- Two rows, lined up in columns: REPEAT + its buttons, then SPEED + its buttons -->
+        <span class="audio-row-label audio-repeat-label" aria-hidden="true">Repeat</span>
+        <span class="audio-buttons audio-repeat-buttons">
         <!-- Repeat icon (two arrows going round) with the number of times -->
         <button type="button" class="filter-button loop-button" data-loops="5" data-tip="Repeat 5 times" aria-label="Repeat 5 times">
           <svg class="loop-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>
@@ -132,8 +134,10 @@
         <button type="button" class="filter-button loop-button" data-loops="infinite" data-tip="Loop continuously" aria-label="Loop continuously">
           <svg class="loop-icon infinity-icon" viewBox="0 0 32 18" aria-hidden="true"><path d="M16 9C18.5 5.5 22 4 25 5.2C28.5 6.6 28.5 11.4 25 12.8C22 14 18.5 12.5 16 9C13.5 5.5 10 4 7 5.2C3.5 6.6 3.5 11.4 7 12.8C9.6 13.8 12.3 13 14.2 11.3"/><path d="M11 11.65 14.2 11.3 13.45 14.4"/></svg>
         </button>
+        </span>
         <!-- Playback speed: one small button per speed (filled in by app.js) -->
-        <span id="audio-speed" role="group" aria-label="Playback speed"></span>
+        <span class="audio-row-label audio-speed-label" aria-hidden="true">Speed</span>
+        <span id="audio-speed" class="audio-buttons" role="group" aria-label="Playback speed"></span>
         <span id="audio-count" class="hint"></span>
       </div>
 

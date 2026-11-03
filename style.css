@@ -89,7 +89,7 @@
   --heading-gap: 20px;           /* Space under a box title */
   --button-padding: 10px 16px;   /* Main buttons and tabs */
   --chip-padding: 6px 12px;      /* Chips (filters, Pure Text…) and levels */
-  --theme-button-padding: 0 12px;     /* The theme buttons in Settings (their height is fixed) */
+  --theme-button-padding: 0 6px;      /* The theme buttons in Settings (their height is fixed) */
   --theme-card-height: 50px;          /* Every theme button is exactly this tall */
 }
 
@@ -1538,11 +1538,10 @@ html[data-theme="riviera"]::after {
 }
 
 
-/* This theme's own card in Settings uses the title's font, a touch lighter */
+/* This theme's own card in Settings uses the title's font (its weight is set with the other cards) */
 .theme-card[data-theme="rosewater"] {
   --font-heading: var(--font-display);
   --heading-style: italic;
-  --heading-weight: 600;
 }
 
 /* Headings glow very faintly, like warm light blooming on old film (a shadow never moves anything) */
@@ -2997,7 +2996,8 @@ button[class=""]:focus-visible::after {
   margin: 8px 0 0;
 }
 
-button:disabled {
+button:disabled,
+button[aria-disabled="true"] {
   opacity: 0.5;
   cursor: default;
 }
@@ -3133,7 +3133,8 @@ button:disabled {
   gap: 10px;
 }
 
-@media (max-width: 760px) {
+/* Below 840px four columns would be too narrow for "Honey Coconut Hour" at the matched size */
+@media (max-width: 840px) {
   #theme-options {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -3164,20 +3165,20 @@ button:disabled {
 
 /* Each card's name is in its own theme's font, and the fonts are very different in size
    (Cormorant Infant has small letters, Playfair Display big and wide). So each card gets its own
-   size, measured so the four names look equally big and are about equally wide.
-   font-size-adjust tells the browser how tall each font's small letters are, so the name keeps
-   that look even while the font is still loading (browsers that don't know it simply skip it). */
+   size, measured so the capital letters (H, C, K, P) are exactly as tall on all four cards.
+   All four use a regular weight, so none looks heavier than the others. */
 .theme-name {
   font-size: calc(var(--theme-name-size, 17px) * var(--theme-name-scale, 1));
-  font-size-adjust: var(--theme-name-adjust, none);
+  font-weight: var(--theme-name-weight, 400);
+  letter-spacing: var(--theme-name-spacing, normal);
   line-height: 22px;
   white-space: nowrap; /* Always one line */
 }
 
-.theme-card[data-theme="riviera"]   { --theme-name-size: 14px;   --theme-name-adjust: 0.52; } /* Playfair Display */
-.theme-card[data-theme="coffee"]    { --theme-name-size: 19px;   --theme-name-adjust: 0.46; } /* Oranienbaum */
-.theme-card[data-theme="matcha"]    { --theme-name-size: 16.5px; --theme-name-adjust: 0.44; } /* Zen Old Mincho */
-.theme-card[data-theme="rosewater"] { --theme-name-size: 18.5px; --theme-name-adjust: 0.395; } /* Cormorant Infant Italic */
+.theme-card[data-theme="riviera"]   { --theme-name-size: 17px;   --theme-name-weight: 500; --theme-name-spacing: -0.01em; } /* Playfair Display */
+.theme-card[data-theme="coffee"]    { --theme-name-size: 17.2px; --theme-name-weight: 400; } /* Oranienbaum */
+.theme-card[data-theme="matcha"]    { --theme-name-size: 16.6px; --theme-name-weight: 500; } /* Zen Old Mincho */
+.theme-card[data-theme="rosewater"] { --theme-name-size: 19.3px; --theme-name-weight: 500; } /* Cormorant Infant Italic */
 
 /* On a phone the two columns are narrower, so all four names shrink by the same amount */
 @media (max-width: 600px) {
@@ -3258,11 +3259,38 @@ button:disabled {
 
 /* ===== Immerse: listen (speaker button + 5× / 10× / ∞) ===== */
 #audio-controls {
-  display: flex;
-  flex-wrap: wrap;
+  /* A grid of columns: play button | label | buttons. REPEAT and SPEED share the label column,
+     which is exactly as wide as the longer word in each theme's font, so both rows of buttons
+     start at the same place. */
+  display: grid;
+  grid-template-columns: 40px max-content 1fr;
   align-items: center;
   gap: 6px;
   margin-bottom: 12px;
+}
+
+#audio-play { grid-row: 1; grid-column: 1; }
+.audio-repeat-label { grid-row: 1; grid-column: 2; }
+.audio-repeat-buttons { grid-row: 1; grid-column: 3; }
+.audio-speed-label { grid-row: 2; grid-column: 2; }
+#audio-speed { grid-row: 2; grid-column: 3; }
+#audio-count { grid-row: 3; grid-column: 2 / -1; }
+#audio-count:empty { display: none; } /* No empty row when nothing is playing */
+
+/* 18px more room before the label column, plus the grid's 6px gap = 24px after the play button,
+   so the play button stands apart and each label clearly belongs to its own row */
+.audio-row-label { padding-left: 18px; }
+
+/* Phone: the play button gets its own row, and the REPEAT and SPEED rows go under it */
+@media (max-width: 600px) {
+  #audio-controls { grid-template-columns: max-content 1fr; }
+  #audio-play { grid-column: 1; }
+  .audio-row-label { padding-left: 0; } /* No play button beside the labels here */
+  .audio-repeat-label { grid-row: 2; grid-column: 1; }
+  .audio-repeat-buttons { grid-row: 2; grid-column: 2; }
+  .audio-speed-label { grid-row: 3; grid-column: 1; }
+  #audio-speed { grid-row: 3; grid-column: 2; }
+  #audio-count { grid-row: 4; grid-column: 1 / -1; }
 }
 
 /* A square button with just the speaker icon (same size in every theme) */
@@ -3275,16 +3303,18 @@ button:disabled {
   justify-content: center;
 }
 
-/* The speed buttons stay together, so on a phone the whole group moves to its own line */
-#audio-speed {
-  display: inline-flex;
+/* The buttons of one row stay together beside their label */
+.audio-buttons {
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 6px;
 }
 
 /* The small "Repeat" and "Speed" words before each group of buttons */
 .audio-row-label {
-  margin-left: 6px;
+  justify-self: end;  /* Right next to its buttons */
+  margin-right: 6px;  /* Plus the grid's 6px gap = 12px before the first button */
   color: var(--muted);
   font-size: 12px;
   text-transform: uppercase;
@@ -3319,7 +3349,7 @@ button:disabled {
 }
 
 #audio-count {
-  margin: 0 0 0 6px;
+  margin: 0;
   font-size: 14px;
 }
 
@@ -3475,6 +3505,21 @@ button:disabled {
   gap: 4px;
   color: var(--muted);
   font-size: 14px;
+}
+
+/* Now: a small clock icon and the word, in line with the time boxes */
+.now-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.now-message:empty { display: none; }
+
+/* The Start or End field that Now just filled gets an outline for a moment (nothing moves) */
+.time-flash .time-box {
+  outline: 2px solid var(--accent-ink);
+  outline-offset: 1px;
 }
 
 /* The three boxes in a row, with ":" between them */

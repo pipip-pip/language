@@ -244,6 +244,50 @@ function makeAudioPicker(current, languageSelect, sourceBox) {
   times.className = "audio-times";
   times.append(startTime.element, endTime.element);
 
+  // 🕒 Now: copies the player's current time (playing or paused) into Start, or into End
+  // once Start has a time. Greyed out until an audio file is loaded.
+  // aria-disabled instead of disabled, so its tooltip still shows when it can't be used.
+  const nowButton = makeButton("Now", "small-button now-button", function () {
+    if (nowButton.getAttribute("aria-disabled") === "true") return;
+    const now = player.currentTime || 0;
+    const start = startTime.get();
+    if (start === null) {
+      startTime.set(now);
+      flashField(startTime.element);
+    } else if (now <= start) {
+      nowMessage.textContent = "End must be after start";
+    } else {
+      endTime.set(now);
+      flashField(endTime.element);
+    }
+  });
+  // A small clock drawn in the text colour, before the word
+  nowButton.insertAdjacentHTML("afterbegin",
+    '<svg class="now-icon" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">' +
+    '<circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1.5"/>' +
+    '<path d="M8 4.5V8l2.5 1.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>');
+  const nowMessage = document.createElement("span");
+  nowMessage.className = "hint now-message";
+  nowMessage.setAttribute("role", "status"); // Read out by screen readers
+  // The field that just changed lights up briefly, so it's clear which one it was
+  function flashField(field) {
+    nowMessage.textContent = "";
+    field.classList.add("time-flash");
+    setTimeout(function () { field.classList.remove("time-flash"); }, 900);
+  }
+  function updateNowButton() {
+    const ready = player.readyState > 0; // The file is loaded and knows its length
+    nowButton.setAttribute("aria-disabled", String(!ready));
+    nowButton.dataset.tip = ready ? "Use the current audio time" : "Select an audio first";
+    nowButton.setAttribute("aria-label", nowButton.dataset.tip);
+  }
+  ["loadedmetadata", "emptied"].forEach(function (event) {
+    player.addEventListener(event, updateNowButton);
+  });
+  updateNowButton();
+  addTooltip(nowButton);
+  times.append(nowButton, nowMessage);
+
   // Where the player is now, and how long the file is, in the same m : s : ms boxes,
   // so a time can be read off exactly and typed into Start or End
   const nowTime = makeTimeBoxes("Now", 0, true);
@@ -363,6 +407,7 @@ function makeAudioPicker(current, languageSelect, sourceBox) {
   // Typing a new time by hand: show the explanation again
   times.addEventListener("input", function () {
     wholeHint.textContent = WHOLE_HINT;
+    nowMessage.textContent = "";
   });
   const whole = document.createElement("div");
   whole.className = "audio-whole";
@@ -570,7 +615,7 @@ function showTab(tabId) {
 tabButtons.forEach(function (button) {
   button.addEventListener("click", function () {
     // Leaving a tab closes any open Edit form (unsaved changes are dropped)
-    if (editingIndex !== null) { editingIndex = null; showSentences(); }
+    if (editingIndex !== null) { editingIndex = null; stopAudio(); showSentences(); }
     if (editingAudioId !== null) { editingAudioId = null; showAudioLibrary(); }
     showTab(button.dataset.tab);
     saveView();
@@ -1194,6 +1239,7 @@ function makeEditRow(sentence, index) {
   const cancelButton = makeButton("Cancel", "small-button", function () {
     editingIndex = null;
     closeEditAudioPicker();
+    stopAudio(); // Closing the form stops any audio too
     showSentences();
   });
 
@@ -1375,6 +1421,9 @@ sentenceForm.addEventListener("submit", async function (event) {
   // The sound file and part chosen in the Audio picker go with the new sentence(s)
   const audio = addAudioPicker.value();
   added.forEach(function (sentence) { applyAudio(sentence, audio); });
+  // Saving stops any audio: the form's small player and the Study tab's repeats (the speed stays)
+  addAudioPicker.stop();
+  stopAudio();
   if (added.length > 0) giveAudioTheLink(added[0]);
 
   saveSentences();
@@ -1707,12 +1756,6 @@ function showSpeeds() {
   });
 }
 
-const speedLabel = document.createElement("span");
-speedLabel.className = "audio-row-label";
-speedLabel.setAttribute("aria-hidden", "true"); // The group is already called "Playback speed"
-speedLabel.textContent = "Speed";
-speedGroup.append(speedLabel);
-
 SPEEDS.forEach(function (speed) {
   const button = makeButton(speed + "×", "filter-button speed-button", function () {
     audioSpeed = speed;
@@ -1753,7 +1796,10 @@ function hideTooltip() {
   tooltip.hidden = true;
 }
 
-document.querySelectorAll("#audio-controls [data-tip]").forEach(function (button) {
+document.querySelectorAll("#audio-controls [data-tip]").forEach(addTooltip);
+window.addEventListener("scroll", hideTooltip, { passive: true });
+
+function addTooltip(button) {
   button.addEventListener("mouseenter", function () { if (canHover) showTooltip(button); });
   button.addEventListener("mouseleave", hideTooltip);
   button.addEventListener("focus", function () { if (button.matches(":focus-visible")) showTooltip(button); });
@@ -1783,8 +1829,7 @@ document.querySelectorAll("#audio-controls [data-tip]").forEach(function (button
   button.addEventListener("click", function () {
     if (!tooltip.hidden) showTooltip(button);
   });
-});
-window.addEventListener("scroll", hideTooltip, { passive: true });
+}
 
 // Show the speaker or stop icon, and "3 / 10" while playing
 function showAudioState() {
