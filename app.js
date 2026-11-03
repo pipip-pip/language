@@ -644,15 +644,16 @@ ALL_LANGUAGES.forEach(function (language) {
 });
 
 
-// --- The 🌐 language button ---
+// --- The language button (at the top of Study) ---
 const languageDropdown = document.getElementById("language-dropdown");
 const languageButton = document.getElementById("language-button");
 const languageName = document.getElementById("language-name");
 const languageMenu = document.getElementById("language-menu");
 
 const pageTitle = document.getElementById("page-title");
+const addLanguageNote = document.getElementById("add-language-note");
 
-// Fill the 🌐 list with the languages ticked in Settings
+// Fill the language list with the languages ticked in Settings
 function fillLanguageMenu() {
   languageMenu.innerHTML = "";
   languageName.textContent = myLanguage ? languageLabel(myLanguage) : "Choose language";
@@ -660,6 +661,11 @@ function fillLanguageMenu() {
   // The big title (and the browser tab's name) show the chosen language
   pageTitle.textContent = myLanguage ? languageLabel(myLanguage) : "Language Study";
   document.title = myLanguage ? languageLabel(myLanguage) : "Video Study";
+
+  // My Collection → Add sentences has no language box: it says which language is used instead
+  addLanguageNote.textContent = myLanguage
+    ? "They're saved in " + languageLabel(myLanguage) + ". To add another language, change it at the top of Study."
+    : "No language chosen yet. Choose one at the top of Study first.";
 
   if (myLanguages.length === 0) {
     // Nothing ticked yet: offer a shortcut to Settings
@@ -683,7 +689,7 @@ function fillLanguageMenu() {
       saveMyLanguage();
       languageDropdown.classList.remove("open");
       fillLanguageMenu();
-      sentenceLanguage.value = language; // New sentences use this language too
+      fillLanguageSelect(sentenceLanguage, language); // New sentences use this language too
       refreshAudioPickers(); // So the Audio list shows this language's files
       showEntries(); // Study only shows entries in this language
     });
@@ -729,7 +735,7 @@ function fillLanguageSelect(select, selected, extra) {
 // Refresh everything that lists your languages (after a change in Settings)
 function updateLanguageLists() {
   fillLanguageMenu();
-  fillLanguageSelect(sentenceLanguage, sentenceLanguage.value || myLanguage);
+  fillLanguageSelect(sentenceLanguage, myLanguage);
   refreshAudioPickers();
   showSentences();
 }

@@ -7,11 +7,11 @@
   <title>Video Study</title>
 
   <!-- Fonts used by the themes, all in one link (if they can't load, similar built-in fonts are used).
-       Fonts for other alphabets (Hebrew: Frank Ruhl Libre, Assistant; Korean: Hahmlet, Nanum Myeongjo,
-       IBM Plex Sans KR) are only downloaded when such letters are on the page. -->
+       Fonts for other alphabets (Hebrew: Frank Ruhl Libre, Assistant, Noto Serif Hebrew, Noto Sans Hebrew; Korean: Hahmlet,
+       Nanum Myeongjo, IBM Plex Sans KR, Gowun Batang, Nanum Gothic) are only downloaded when such letters are on the page. -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600&family=Kaisei+Decol:wght@500;700&family=Oranienbaum&family=Bellefair&family=Song+Myung&family=Spectral:wght@300;400&family=Noto+Serif+KR:wght@300;400&family=Tenor+Sans&family=Miriam+Libre:wght@400&family=Gothic+A1:wght@300;400&family=Sofia+Sans:wght@400;500;600&family=Cormorant+Garamond:ital,wght@1,400;1,500&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Noto+Serif+Display:wght@400;500&family=Frank+Ruhl+Libre:wght@400;500;700&family=Hahmlet:wght@400;600&family=Nanum+Myeongjo:wght@400;700&family=Assistant:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@400;500&family=Noto+Sans:wght@300;400&family=Noto+Serif+Hebrew:wght@400;500&family=Noto+Sans+Hebrew:wght@400;500&family=Gowun+Batang&family=Nanum+Gothic&family=Oranienbaum&family=Bellefair&family=Song+Myung&family=Spectral:wght@300;400&family=Noto+Serif+KR:wght@300;400&family=Tenor+Sans&family=Miriam+Libre:wght@400&family=Gothic+A1:wght@300;400&family=Sofia+Sans:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,400;1,500&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Noto+Serif+Display:wght@400;500&family=Frank+Ruhl+Libre:wght@400;500;700&family=Hahmlet:wght@400;600&family=Nanum+Myeongjo:wght@400;700&family=Assistant:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
   <link rel="stylesheet" href="style.css">
 
   <!-- Put the saved theme on straight away, so the page doesn't flash in the wrong colours.
@@ -29,14 +29,12 @@
   </script>
 </head>
 <body>
-  <!-- Top row: language button on the left, title next to it -->
-  <header>
-    <!-- Language selection: the list opens when the cursor is over it (or on tap, on iPhone) -->
-    <div class="dropdown" id="language-dropdown">
-      <button type="button" id="language-button"><span id="language-name">Choose language</span> ▾</button>
-      <ul class="dropdown-menu" id="language-menu"></ul>
-    </div>
+  <!-- The theme's background colours, on their own layer fixed behind everything
+       (screen readers skip it: it's only decoration) -->
+  <div class="page-background" aria-hidden="true"></div>
 
+  <!-- Top row: the title (the language button is in Study → Select entry) -->
+  <header>
     <!-- Shows the chosen language (or "Language Study" when none is chosen) -->
     <h1 id="page-title">Language Study</h1>
   </header>
@@ -44,14 +42,21 @@
   <!-- ===== Navigation bar: always visible, switches between the pages ===== -->
   <nav id="main-nav">
     <button type="button" class="tab active" data-tab="study-tab">Study</button>
-    <button type="button" class="tab" data-tab="sentences-tab">My Collection</button>
-    <button type="button" class="tab" data-tab="audios-tab">My Playlist</button>
+    <button type="button" class="tab" data-tab="sentences-tab">My collection</button>
+    <button type="button" class="tab" data-tab="audios-tab">My playlist</button>
     <button type="button" class="tab" data-tab="settings-tab">Settings</button>
   </nav>
 
   <!-- ===== Study tab ===== -->
   <main id="study-tab">
-    <!-- Your sentences in the language chosen with 🌐. Click one to select it. -->
+    <!-- Language selection, at the very top of Study: the list opens when the cursor
+         is over it (or on tap, on iPhone). It sets the language for the whole app. -->
+    <div class="dropdown" id="language-dropdown">
+      <button type="button" id="language-button"><span id="language-name">Choose language</span> ▾</button>
+      <ul class="dropdown-menu" id="language-menu"></ul>
+    </div>
+
+    <!-- Your sentences in the chosen language. Click one to select it. -->
     <section class="box">
       <h2>Select entry</h2>
       <p id="no-entries" class="hint"></p>
@@ -151,16 +156,16 @@
     <section class="box">
       <h2>Add sentences</h2>
       <p class="hint">Type or paste sentences. Put each one on its own line.</p>
+      <!-- Which language new sentences are saved in (the one chosen at the top of Study) -->
+      <p id="add-language-note" class="hint"></p>
       <form id="sentence-form">
         <textarea id="sentence-input" rows="4" placeholder="Write a sentence here"></textarea>
 
         <!-- Extra details, saved with every sentence added -->
         <div class="sentence-details">
-          <label>
-            Language
-            <!-- Filled with the languages chosen in Settings -->
-            <select id="sentence-language"></select>
-          </label>
+          <!-- Hidden: always the language chosen at the top of Study (the audio list and
+               the Source suggestions read it from here) -->
+          <select id="sentence-language" hidden></select>
           <label>
             Source
             <input id="source-input" type="text" placeholder="e.g. YouTube video, book, friend">
@@ -201,7 +206,7 @@
 
     <section class="box">
       <h2>My languages</h2>
-      <p class="hint">Tick the languages you're learning. Only these appear in the language button and when adding sentences.</p>
+      <p class="hint">Tick the languages you're learning. Only these appear in the language button at the top of Study.</p>
       <!-- Filled with one checkbox per language -->
       <div id="language-options"></div>
     </section>

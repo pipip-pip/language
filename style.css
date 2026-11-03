@@ -45,10 +45,8 @@
   --title: #222;            /* The big title */
 
   --card: white;            /* The boxes */
-  --card-border: 1px solid transparent; /* Every theme has a 1px border (invisible here), so sizes never change */
+  --card-border-color: transparent; /* The box border's colour (its width is a layout size, below) */
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  --radius: 12px;           /* Corners of boxes */
-  --radius-small: 8px;      /* Corners of buttons and text boxes */
 
   --accent: #e62117;        /* Main buttons and the chosen tab */
   --accent-text: white;     /* Text on main buttons */
@@ -74,6 +72,23 @@
   --level-a: #2e9e4f;  --level-a-text: white;
   --level-b: #e08a00;  --level-b-text: white;
   --level-c: #7b3fbf;  --level-c-text: white;
+}
+
+/* ===== Layout sizes: the same in every theme =====
+   Every size, gap and corner that shapes the page lives here, once. Themes change only colours,
+   fonts, textures and decorations, and never set any of these, so every box has exactly the
+   same size and place in every theme. (The values are Cold Brew Coffee's.) */
+:root {
+  --card-padding: 16px;          /* Space inside each box */
+  --card-gap: 16px;              /* Space between boxes (and below the tab bar and the language button) */
+  --radius: 6px;                 /* Corners of boxes, the tab bar and the theme buttons */
+  --radius-small: 4px;           /* Corners of buttons, chips and text boxes */
+  --border-width: 1px;           /* The box and tab bar border (its colour comes from the theme) */
+  --tab-height: 40px;            /* Each page tab in the tab bar */
+  --heading-gap: 20px;           /* Space under a box title */
+  --button-padding: 10px 16px;   /* Main buttons and tabs */
+  --chip-padding: 6px 12px;      /* Chips (filters, Pure Text…) and levels */
+  --theme-button-padding: 12px 20px;  /* The theme buttons in Settings */
 }
 
 /* Cold Brew Coffee: a close-up of iced coffee. Translucent caramel-amber coffee with darker
@@ -119,12 +134,10 @@
   --title: #ECE6DC;
 
   --card: rgba(24, 15, 8, 0.65);  /* Dark espresso glass: the caramel glow shows through */
-  --card-border: 1px solid rgba(230, 236, 238, 0.14);  /* Icy silver hairline */
+  --card-border-color: rgba(230, 236, 238, 0.14);  /* Icy silver hairline */
   /* A crisp line along the top edge with a faint blue-grey tint, like ice, and a soft shadow underneath */
   --shadow: inset 0 1px 0 rgba(190, 206, 213, 0.3), 0 10px 30px rgba(12, 7, 3, 0.4);
   --glass: blur(12px);
-  --radius: 6px;            /* Sharp, like ice */
-  --radius-small: 4px;
 
   --accent: #EBDDC5;        /* Milk cream: chosen chips, ticked boxes and quiz numbers (main buttons get a marbled swirl below) */
   --accent-text: #1E140C;   /* Espresso on the cream */
@@ -164,7 +177,8 @@
 }
 
 /* Ice cubes in the drink: a few big, soft-edged, angular shapes in near-black espresso,
-   tilted a little and slightly blurred. Drawn as shapes in the CSS itself (no pictures), behind everything. */
+   tilted a little and slightly blurred. Drawn as shapes in the CSS itself (no pictures), behind everything.
+   The softness is part of the drawing (not a CSS blur), so it's drawn once and never again. */
 [data-theme="coffee"] body::before,
 [data-theme="coffee"] body::after {
   content: "";
@@ -176,8 +190,7 @@
 }
 
 [data-theme="coffee"] body::before {
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 1000' preserveAspectRatio='xMidYMid slice'%3E%3Cg fill='rgb(12,7,4)'%3E%3Cpolygon points='60,90 300,40 370,270 120,330' fill-opacity='0.42'/%3E%3Cpolygon points='690,520 900,560 860,780 650,740' fill-opacity='0.36'/%3E%3Cpolygon points='160,640 400,600 440,840 200,900' fill-opacity='0.4'/%3E%3Cpolygon points='780,60 960,110 930,300 750,260' fill-opacity='0.3'/%3E%3C/g%3E%3C/svg%3E") center / cover no-repeat;
-  filter: blur(6px);
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 1000' preserveAspectRatio='xMidYMid slice'%3E%3Cfilter id='b'%3E%3CfeGaussianBlur stdDeviation='4'/%3E%3C/filter%3E%3Cg fill='rgb(12,7,4)' filter='url(%23b)'%3E%3Cpolygon points='60,90 300,40 370,270 120,330' fill-opacity='0.42'/%3E%3Cpolygon points='690,520 900,560 860,780 650,740' fill-opacity='0.36'/%3E%3Cpolygon points='160,640 400,600 440,840 200,900' fill-opacity='0.4'/%3E%3Cpolygon points='780,60 960,110 930,300 750,260' fill-opacity='0.3'/%3E%3C/g%3E%3C/svg%3E") center / cover no-repeat;
 }
 
 /* On top of them, not blurred: thin icy glints along an edge of each ice cube (same places,
@@ -205,21 +218,40 @@
 }
 
 /* Main buttons (Let’s go, Add, Save…: the ones without a class): a soft swirl of milk cream,
-   with espresso letters. A thin glint waits off to the left.
-   On hover the swirl drifts slowly and the glint sweeps across. */
+   with espresso letters. A thin glint waits off to the left, and sweeps across on hover.
+   The glint is its own layer that only slides (transform), so nothing else has to be redrawn. */
 [data-theme="coffee"] button:not([class]):not(#language-button),
 [data-theme="coffee"] button[class=""] {
-  background:
-    linear-gradient(110deg, transparent 42%, rgba(238, 241, 242, 0.6) 50%, transparent 58%) 160% 0 / 250% 100% no-repeat,
-    linear-gradient(105deg, #EBDDC5 0%, #E0CDAF 22%, #F2E7D6 38%, #DCC6A6 60%, #EBDDC5 74%, #D3BC9A 100%) 0 0 / 220% 100%;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background: linear-gradient(105deg, #EBDDC5 0%, #E0CDAF 22%, #F2E7D6 38%, #DCC6A6 60%, #EBDDC5 74%, #D3BC9A 100%);
   color: #1E140C;
   box-shadow: inset 0 1px 0 rgba(238, 241, 242, 0.7);
-  transition: background-position 1.2s ease, box-shadow 0.15s ease; /* The swirl drifts slowly */
 }
 
-[data-theme="coffee"] button:not([class]):not(#language-button):hover,
-[data-theme="coffee"] button[class=""]:hover {
-  background-position: -60% 0, 100% 0;
+[data-theme="coffee"] button:not([class]):not(#language-button)::after,
+[data-theme="coffee"] button[class=""]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;  /* Above the button's colour, below its letters */
+  pointer-events: none;
+  background: linear-gradient(110deg, transparent 30%, rgba(238, 241, 242, 0.6) 50%, transparent 70%);
+  transform: translateX(-110%);
+  transition: transform 1.2s ease;
+}
+
+[data-theme="coffee"] button:not([class]):not(#language-button):hover::after,
+[data-theme="coffee"] button[class=""]:hover::after {
+  transform: translateX(110%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-theme="coffee"] button:not([class]):not(#language-button)::after,
+  [data-theme="coffee"] button[class=""]::after {
+    transition: none;
+  }
 }
 
 /* The chosen page: a soft creamy fill, with a cream-to-caramel line under the name */
@@ -260,7 +292,7 @@
 [data-theme="coffee"] #entry-list li,
 [data-theme="coffee"] .word-card,
 [data-theme="coffee"] .theme-card {
-  transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, color 0.15s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 /* Café-menu touches: tabs in small, widely spaced capitals (from --nav-… above),
@@ -301,12 +333,12 @@
 
 /* Noun genders (Grammar Lens and the gender quiz answers): solid fills, because the old
    see-through tints nearly vanished on the dark espresso cards. Ice, Coffee Cherry and
-   Pistachio, each with off-white text at 4.5:1 or more, and a thin icy shine on the top edge
-   to match the theme's glassy details (an inset shadow takes no space, so nothing moves) */
-[data-theme="coffee"] .noun { box-shadow: inset 0 1px 0 rgba(235, 242, 245, 0.12); }
-[data-theme="coffee"] .noun.masculine { background: #4C6875; color: #ECE6DC; } /* Ice: 4.77:1 */
-[data-theme="coffee"] .noun.feminine  { background: #8A4A55; color: #ECE6DC; } /* Coffee Cherry: 5.30:1 */
-[data-theme="coffee"] .noun.neuter    { background: #5E6B3E; color: #ECE6DC; } /* Pistachio: 4.64:1 */
+   Pistachio: dark and muted, so they sit quietly in the espresso, with off-white text.
+   Plain fills, with no shine, border or underline. */
+[data-theme="coffee"] .noun { box-shadow: none; }
+[data-theme="coffee"] .noun.masculine { background: #33414A; color: #ECE6DC; } /* Ice: 8.5:1 */
+[data-theme="coffee"] .noun.feminine  { background: #5A3546; color: #ECE6DC; } /* Coffee Cherry, a cool dusty rose: 8.3:1 */
+[data-theme="coffee"] .noun.neuter    { background: #3E472E; color: #ECE6DC; } /* Pistachio: 7.9:1 */
 
 /* Quiz right / wrong: muted sage and terracotta with off-white text, instead of bright green and red */
 [data-theme="coffee"] .quiz-option.right { background: rgba(112, 150, 96, 0.5); color: #ECE6DC; }
@@ -325,59 +357,535 @@
 
 
 
-/* Kyoto Iced Matcha: frothy iced matcha with ice cubes (image 8).
-   Colours only, calm and easy on the eyes: milk-foam boxes, soft matcha green and deep tea green.
-   Kaisei Decol (headings) and Noto Sans (text) include every letter for English, French,
-   German, Polish and Turkish. */
+/* Kyoto Iced Matcha: a quiet tea ceremony at night, in the spirit of Japanese minimalism and
+   wabi-sabi: modest, quiet and chic, never decorative. A dark granite counter (warm charcoal,
+   never pure black), dark ceramic boxes on barely visible washi paper, ceramic off-white text,
+   unglazed clay for hints and dates, iced matcha #8FA35A on main buttons and chosen chips.
+   The small details, all just at the edge of seeing:
+     a soft matcha light from the top left; behind the boxes, large see-through shoji panels with
+     crisp hairline edges, speckled stone, an asanoha lattice (like a kumiko screen) in the
+     bottom-right corner, and long straight bamboo lines near the page edges
+     (only straight lines and rectangles, never pictures);
+     boxes like dark lacquer (urushi): washi paper fibres, a soft sheen across the top, a deeper shadow,
+     and one faint vertical brush line along the left inside edge;
+     tiny iron specks, like glazed stoneware, on main buttons and chosen chips; bamboo tines (very fine
+     vertical hairlines, like a tea whisk) along the bottom of the tab bar and beside the brush stroke
+     under box titles; a tatami weave on the tab bar, with thin noren-curtain splits between the tabs;
+     and one thin gold kintsugi seam across the bottom-right corner of the Immerse box (only there).
+   No Japanese letters anywhere: this is a language app, so Japanese text would only confuse.
+   Sharp 4px corners, hairline borders, more space between the boxes (ma), and slow ink-like fades.
+   Every decoration is drawn behind the text or in empty space, and ignores taps and clicks.
+   All text has at least 4.5 : 1 contrast (WCAG AA).
+   Fonts (each followed by the one for Hebrew, then for Korean):
+     app title: Cormorant Garamond / Frank Ruhl Libre / Nanum Myeongjo (unchanged)
+     box titles and small headings (all fixed English words in the code): Zen Old Mincho / Noto Serif Hebrew / Gowun Batang
+     reading and everything you typed or added (sentences, passages, highlights, file names, sources,
+       quiz questions and answers, text boxes): Spectral / Noto Serif Hebrew / Gowun Batang
+     buttons, tabs, chips, hints, labels: Noto Sans / Noto Sans Hebrew / Nanum Gothic
+   Zen Old Mincho has no Polish or Turkish letters (ą ę ł ś ż ğ ş…), so it is only used where the words
+   are always English. Spectral, Noto Sans and Cormorant have every Polish, Turkish and Russian letter.
+   Hierarchy comes from size and space, not bold. */
 [data-theme="matcha"] {
-  --font: "Noto Sans", -apple-system, BlinkMacSystemFont, sans-serif;
-  --heading-font: "Kaisei Decol", "Noto Serif Display", Georgia, serif; /* Exotic, decorative strokes */
+  color-scheme: dark; /* Dark text boxes, lists and scrollbars too */
+  --font-display: "Cormorant Garamond", "Frank Ruhl Libre", "Nanum Myeongjo", Georgia, serif;
+  --font-heading: "Zen Old Mincho", "Noto Serif Hebrew", "Gowun Batang", Georgia, serif;  /* Fixed English titles only */
+  --font-subheading: var(--font-heading);
+  --font-reading: "Spectral", "Noto Serif Hebrew", "Gowun Batang", Georgia, serif;
+  --font-ui: "Noto Sans", "Noto Sans Hebrew", "Nanum Gothic", sans-serif;
+  --font-meta: var(--font-ui);
+  --heading-spacing: 0.01em;
+  --display-weight: 600;    /* The app title, as before */
+  --heading-weight: 500;
+  --subheading-style: normal;
+  --subheading-weight: 400;
+  --reading-weight: 300;    /* Spectral Light */
+  --reading-strong-weight: 400;
+  --nav-spacing: 0.08em;    /* Tabs in sentence case, a little spaced */
+  --nav-weight: 300;
+  --nav-active-weight: 400;
+  --ui-weight: 400;
+  --ui-strong-weight: 400;
+  --ui-spacing: 0.04em;
+  --meta-weight: 400;
 
-  /* A deeper matcha: from whisked tea at the top to a richer green below */
-  --bg: linear-gradient(180deg, #bccb8e 0%, #a6b874 100%);
-  --text: #26331a;
-  --muted: #56643f;
-  --title: #2c4117;
+  /* Matcha light from the top left (a large soft green glow over #2F3828), through charcoal in the
+     middle, to deep ink in the bottom right, with a faint warm bamboo glow from the bottom left.
+     Clearly lighter in one corner than the other, but always dark and calm. */
+  --bg:
+    radial-gradient(ellipse 90% 80% at 0% 0%, rgba(150, 180, 95, 0.18), transparent 70%),
+    radial-gradient(ellipse 55% 50% at 0% 100%, rgba(200, 180, 130, 0.06), transparent 70%),
+    linear-gradient(135deg, #2F3828 0%, #1D201A 50%, #111310 100%);
+  --text: #E6E1D3;          /* Ceramic off-white: 11:1 on the boxes */
+  --muted: #A9A392;         /* Unglazed clay for hints, dates and labels: 5.3:1 or more */
+  --title: #EDE8DA;
 
-  --card: #dbea9dde;          /* Milk foam */
-  --card-border: 1px solid #d6e0bd;
-  --shadow: 0 2px 10px rgba(52, 70, 28, 0.08);
-  --radius: 14px;
-  --radius-small: 10px;
+  --card: rgba(38, 37, 33, 0.9);  /* Dark ceramic */
+  --card-border-color: rgba(232, 226, 210, 0.08);  /* A hairline, like the rim of a bowl */
+  /* Lacquer: a faint lighter hairline along the top edge (inside), and a deep soft shadow below,
+     so the boxes float above the layered background */
+  --shadow: inset 0 1px 0 rgba(240, 234, 218, 0.08), 0 16px 40px rgba(0, 0, 0, 0.4);
+  --glass: blur(8px);
 
-  --accent: #55731f;        /* Matcha */
-  --accent-text: #f7f9ef;
-  --accent-ink: #4a6a17;
+  --accent: #8FA35A;        /* Iced matcha: chosen chips, ticked boxes and quiz numbers */
+  --accent-text: #1A1C14;   /* Deep tea on the matcha: 6.2:1 */
+  --accent-ink: #A7B873;    /* Links and lines: 6.2:1 or more */
 
-  --nav-bg: #33461d;        /* Deep tea green */
-  --nav-text: #e6efcf;
-  --nav-active-bg: #bfd46a; /* Fresh matcha foam */
-  --nav-active-text: #1f2b10;
+  --nav-bg: rgba(38, 37, 33, 0.9);
+  --nav-text: #CFC9B9;
+  --nav-active-bg: rgba(232, 226, 210, 0.06);  /* A faint lighter stone, with a matcha brush stroke underneath (below) */
+  --nav-active-text: #EDE8DA;
 
-  --chip: #e4ecce;
-  --chip-text: #2f3d1c;
-  --soft: #edf2dc;
-  --line: #dde6c6;
-  --input-bg: #fdfef8;
-  --input-border: #c7d4a6;
-  --selected-bg: #e8f0cf;
-  --bubble: #33461d;
-  --bubble-text: #eef4dc;
-  --level-a: #c9dc7a;  --level-a-text: #1f2b10;   /* Light foam */
-  --level-b: #55731f;  --level-b-text: #f7f9ef;   /* Matcha */
-  --level-c: #33461d;  --level-c-text: #eef4dc;   /* Deep tea */
+  --chip: rgba(232, 226, 210, 0.05);  /* Plain stone until chosen */
+  --chip-text: #E6E1D3;
+  --soft: rgba(232, 226, 210, 0.05);
+  --line: rgba(232, 226, 210, 0.1);
+  --input-bg: #2E2D28;      /* Raised surfaces (boxes you type in, quiz and word cards): a little lighter */
+  --input-border: rgba(232, 226, 210, 0.16);
+  --selected-bg: rgba(143, 163, 90, 0.08);
+  --bubble: #262521;
+  --bubble-text: #E6E1D3;
+  /* Chosen levels: foam, matcha and deep tea */
+  --level-a: #C9D19E;  --level-a-text: #1A1C14;   /* Foam: 10.7:1 */
+  --level-b: #8FA35A;  --level-b-text: #1A1C14;   /* Matcha: 6.2:1 */
+  --level-c: #4F6130;  --level-c-text: #EEEADF;   /* Deep tea: 5.7:1 */
 
-  scrollbar-color: #55731f #bccb8e;
+  /* The textures, drawn by the CSS itself (no picture files):
+     washi: fine paper fibres, mostly about 1% light, now and then a slightly brighter fibre;
+     iron specks: a few tiny dark dots, like iron in a stoneware glaze;
+     tines: very fine vertical hairlines in pale bamboo gold, like the tines of a tea whisk;
+     brush: a short stroke that tapers at both ends, like one stroke of a brush (bamboo gold, and a
+       matcha one for the chosen tab);
+     tatami: rows of woven rush, at about 3%. */
+  --washi: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='w'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.09 0.6' numOctaves='2' seed='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.93 0 0 0 0 0.91 0 0 0 0 0.85 0.06 0 0 0 -0.022'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23w)'/%3E%3C/svg%3E");
+  --iron-specks: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='46' height='38'%3E%3Cg fill='%233B2A1C'%3E%3Ccircle cx='5' cy='7' r='0.6' fill-opacity='0.35'/%3E%3Ccircle cx='19' cy='26' r='0.8' fill-opacity='0.3'/%3E%3Ccircle cx='31' cy='11' r='0.5' fill-opacity='0.4'/%3E%3Ccircle cx='40' cy='30' r='0.7' fill-opacity='0.28'/%3E%3Ccircle cx='12' cy='33' r='0.45' fill-opacity='0.35'/%3E%3Ccircle cx='27' cy='3' r='0.4' fill-opacity='0.3'/%3E%3C/g%3E%3C/svg%3E");
+  --tines: repeating-linear-gradient(90deg, rgba(201, 185, 138, 0.26) 0 1px, transparent 1px 3px);
+  --brush: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='4' viewBox='0 0 36 4'%3E%3Cpath d='M0 2.4C8 1.2 22 0.8 36 1.9C24 2.7 10 3.2 0 2.4Z' fill='%23C9B48A'/%3E%3C/svg%3E");
+  --brush-matcha: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='4' viewBox='0 0 36 4'%3E%3Cpath d='M0 2.4C8 1.2 22 0.8 36 1.9C24 2.7 10 3.2 0 2.4Z' fill='%23A7B873'/%3E%3C/svg%3E");
+  --tatami: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='6'%3E%3Cg fill='rgb(232,226,210)'%3E%3Crect width='11' height='1.4' fill-opacity='0.035'/%3E%3Crect x='12' width='12' height='1.4' fill-opacity='0.02'/%3E%3Crect y='3' width='5' height='1.4' fill-opacity='0.02'/%3E%3Crect x='6' y='3' width='12' height='1.4' fill-opacity='0.035'/%3E%3Crect x='19' y='3' width='5' height='1.4' fill-opacity='0.02'/%3E%3C/g%3E%3C/svg%3E");
+
+  /* Details on every box and the tab bar, as one stack of background layers (the first is on top):
+     corner brackets: small L-shaped bamboo hairlines, 6px in from each corner, 14px arms (35%);
+     tatami edge: a 4px woven strip along the top inside edge, a little darker than the box,
+       with a bamboo hairline under it (15%);
+     ice glint (--ice-glint, below): one short, sharp diagonal highlight near the top-right corner;
+     kikkō: a hexagonal tortoiseshell lattice of 1px hairlines, fading out from the bottom-right
+       corner (about 4%, 160px across).
+     The brackets, band and glint sit in the box's empty 16px margin; the lattice is the only
+     thing that can reach behind text, and it's under 5%. */
+  --card-details:
+    linear-gradient(rgba(201, 185, 138, 0.35), rgba(201, 185, 138, 0.35)) left 6px top 6px / 14px 1px no-repeat,
+    linear-gradient(rgba(201, 185, 138, 0.35), rgba(201, 185, 138, 0.35)) left 6px top 6px / 1px 14px no-repeat,
+    linear-gradient(rgba(201, 185, 138, 0.35), rgba(201, 185, 138, 0.35)) right 6px top 6px / 14px 1px no-repeat,
+    linear-gradient(rgba(201, 185, 138, 0.35), rgba(201, 185, 138, 0.35)) right 6px top 6px / 1px 14px no-repeat,
+    linear-gradient(rgba(201, 185, 138, 0.35), rgba(201, 185, 138, 0.35)) left 6px bottom 6px / 14px 1px no-repeat,
+    linear-gradient(rgba(201, 185, 138, 0.35), rgba(201, 185, 138, 0.35)) left 6px bottom 6px / 1px 14px no-repeat,
+    linear-gradient(rgba(201, 185, 138, 0.35), rgba(201, 185, 138, 0.35)) right 6px bottom 6px / 14px 1px no-repeat,
+    linear-gradient(rgba(201, 185, 138, 0.35), rgba(201, 185, 138, 0.35)) right 6px bottom 6px / 1px 14px no-repeat,
+    linear-gradient(rgba(201, 185, 138, 0.15), rgba(201, 185, 138, 0.15)) left 0 top 4px / 100% 1px no-repeat,
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='4'%3E%3Crect width='12' height='4' fill='rgb(10,10,8)' fill-opacity='0.22'/%3E%3Cg fill='rgb(232,226,210)'%3E%3Crect width='5' height='1.5' fill-opacity='0.06'/%3E%3Crect x='6' width='5' height='1.5' fill-opacity='0.03'/%3E%3Crect x='3' y='2' width='5' height='1.5' fill-opacity='0.03'/%3E%3Crect x='9' y='2' width='3' height='1.5' fill-opacity='0.06'/%3E%3Crect y='2' width='2' height='1.5' fill-opacity='0.06'/%3E%3C/g%3E%3C/svg%3E") left 0 top 0 / 12px 4px repeat-x,
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3CradialGradient id='f' cx='160' cy='160' r='160' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0' stop-color='%23fff'/%3E%3Cstop offset='1' stop-color='%23fff' stop-opacity='0'/%3E%3C/radialGradient%3E%3Cmask id='m'%3E%3Crect width='160' height='160' fill='url(%23f)'/%3E%3C/mask%3E%3Cpattern id='k' width='27' height='15.588' patternUnits='userSpaceOnUse' patternTransform='translate(0.5 0.5)'%3E%3Cpath d='M0 7.79L4.50 0H13.50L18.00 7.79L13.50 15.59H4.50ZM18.00 7.79H27.00' fill='none' stroke='rgb(232,226,210)' stroke-opacity='0.04' stroke-width='1'/%3E%3C/pattern%3E%3Crect width='160' height='160' fill='url(%23k)' mask='url(%23m)'/%3E%3C/svg%3E") right 0 bottom 0 / 160px 160px no-repeat;
+  /* The ice glint, kept apart so it can be left off the tab bar on a phone (where it would cross a tab name) */
+  --ice-glint: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3ClinearGradient id='g' x1='0' y1='1' x2='1' y2='0'%3E%3Cstop offset='0' stop-color='rgb(235,245,230)' stop-opacity='0'/%3E%3Cstop offset='0.5' stop-color='rgb(235,245,230)' stop-opacity='0.25'/%3E%3Cstop offset='1' stop-color='rgb(235,245,230)' stop-opacity='0'/%3E%3C/linearGradient%3E%3Cpath d='M0.5 27.5L27.5 0.5' stroke='url(%23g)' stroke-width='1'/%3E%3C/svg%3E") right 24px top 9px / 28px 28px no-repeat;
+  /* The kintsugi seam (35% built in), added to the Immerse box's details */
+  --kintsugi: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 36'%3E%3Cg fill='none' stroke='%23C9A85C' stroke-opacity='0.35' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 36C4 33.5 6.5 33.2 9 31S13 27.6 16.2 26.4C19.5 25.2 20.6 22.3 23.4 20.6C26.4 18.8 29.2 18.6 31.2 15.8C33 13.2 35.1 11.4 38.6 10.3C41.6 9.4 43.2 6.4 45.4 4.3C46.4 3.4 47.2 2.8 48 2.4' stroke-width='1.1'/%3E%3Cpath d='M23.4 20.6C25 23 27.5 23.6 29 26.5' stroke-width='0.7'/%3E%3C/g%3E%3C/svg%3E");
+
+  scrollbar-color: rgba(169, 163, 146, 0.35) #1B1B18;
 }
 
 [data-theme="matcha"] ::selection {
-  background: #bfd46a;
-  color: #1f2b10;
+  background: rgba(143, 163, 90, 0.35);
+  color: #EDE8DA;
 }
 
-/* The theme's card in Settings shows its foam and matcha colours */
+/* Everything you typed or added that isn't already reading text (an audio group's name,
+   file names, sources, quiz answers, known-word chips and the text boxes) uses the reading font,
+   because it can be in any language */
+[data-theme="matcha"] .entry-group-title,
+[data-theme="matcha"] .entry-group-name,
+[data-theme="matcha"] .audio-file-name,
+[data-theme="matcha"] .source-link,
+[data-theme="matcha"] .quiz-option,
+[data-theme="matcha"] .word-known-chip,
+[data-theme="matcha"] input,
+[data-theme="matcha"] textarea,
+[data-theme="matcha"] select {
+  font-family: var(--font-reading);
+  font-weight: 400;
+}
+
+/* The background is built from a few layers, each very faint, all behind the boxes and ignoring
+   taps and clicks. Only straight lines and rectangles (no pictures, no Japanese letters):
+     1. shoji panels: large see-through rectangles, overlapping at different depths;
+     2. speckled stone over the whole page;
+     3. a kumiko lattice in the bottom-right corner;
+     4. bamboo grove lines near the left and right edges.
+   The boxes are 90% solid, so behind any reading text these layers show at well under 5%. */
+
+/* 1. Shoji panels: translucent paper screens in the empty space beside the content column, three on
+   each side, overlapping at different depths. Each has a warm washi fill, a faint inner grid of 1px
+   kumiko bars (about 8%), crisp pale-bamboo edges (about 22%) and a brighter top edge; the front one
+   on each side has a soft glow behind it, as if light comes through it. The back ones are a little
+   fainter. Straight, never rotated, drawn once (the glow is part of the drawing).
+   Each side's drawing fills the margin and reaches 60px under the boxes (the column is 800px wide
+   and centred), so most of each panel is in view, and the part under a box shows at only about 2%.
+   On very wide screens each side is at most 560px wide and stays next to the column.
+   On narrower screens there's no margin, so they're hidden. */
+html[data-theme="matcha"]::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25'%3E%3Cfilter id='glow' x='-40%25' y='-40%25' width='180%25' height='180%25'%3E%3CfeGaussianBlur stdDeviation='36'/%3E%3C/filter%3E%3Cpattern id='l0' width='0.3333' height='0.1667' patternUnits='objectBoundingBox'%3E%3Cpath d='M0.5 0V4000M0 0.5H4000' stroke='rgb(232,226,210)' stroke-opacity='0.06' stroke-width='1'/%3E%3C/pattern%3E%3Cpattern id='l1' width='0.3333' height='0.3333' patternUnits='objectBoundingBox'%3E%3Cpath d='M0.5 0V4000M0 0.5H4000' stroke='rgb(232,226,210)' stroke-opacity='0.06' stroke-width='1'/%3E%3C/pattern%3E%3Cpattern id='l2' width='0.3333' height='0.2000' patternUnits='objectBoundingBox'%3E%3Cpath d='M0.5 0V4000M0 0.5H4000' stroke='rgb(232,226,210)' stroke-opacity='0.08' stroke-width='1'/%3E%3C/pattern%3E%3Crect x='14%25' y='9%25' width='60%25' height='50%25' fill='rgb(220,210,180)' fill-opacity='0.04'/%3E%3Crect x='14%25' y='9%25' width='60%25' height='50%25' fill='url(%23l0)'/%3E%3Crect x='14%25' y='9%25' width='60%25' height='50%25' fill='none' stroke='%23C9B98A' stroke-opacity='0.16' shape-rendering='crispEdges'/%3E%3Crect x='14%25' y='9%25' width='60%25' height='1' fill='rgb(240,232,205)' fill-opacity='0.22' shape-rendering='crispEdges'/%3E%3Crect x='6%25' y='64%25' width='50%25' height='27%25' fill='rgb(220,210,180)' fill-opacity='0.04'/%3E%3Crect x='6%25' y='64%25' width='50%25' height='27%25' fill='url(%23l1)'/%3E%3Crect x='6%25' y='64%25' width='50%25' height='27%25' fill='none' stroke='%23C9B98A' stroke-opacity='0.16' shape-rendering='crispEdges'/%3E%3Crect x='6%25' y='64%25' width='50%25' height='1' fill='rgb(240,232,205)' fill-opacity='0.22' shape-rendering='crispEdges'/%3E%3Crect x='30%25' y='27%25' width='58%25' height='50%25' fill='rgb(200,190,150)' fill-opacity='0.06' filter='url(%23glow)'/%3E%3Crect x='30%25' y='27%25' width='58%25' height='50%25' fill='rgb(220,210,180)' fill-opacity='0.04'/%3E%3Crect x='30%25' y='27%25' width='58%25' height='50%25' fill='url(%23l2)'/%3E%3Crect x='30%25' y='27%25' width='58%25' height='50%25' fill='none' stroke='%23C9B98A' stroke-opacity='0.22' shape-rendering='crispEdges'/%3E%3Crect x='30%25' y='27%25' width='58%25' height='1' fill='rgb(240,232,205)' fill-opacity='0.32' shape-rendering='crispEdges'/%3E%3C/svg%3E") left max(0px, calc(50vw - 900px)) top 0 / min(calc(50% - 340px), 560px) 100% no-repeat,
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25'%3E%3Cfilter id='glow' x='-40%25' y='-40%25' width='180%25' height='180%25'%3E%3CfeGaussianBlur stdDeviation='36'/%3E%3C/filter%3E%3Cpattern id='r0' width='0.3333' height='0.1667' patternUnits='objectBoundingBox'%3E%3Cpath d='M0.5 0V4000M0 0.5H4000' stroke='rgb(232,226,210)' stroke-opacity='0.06' stroke-width='1'/%3E%3C/pattern%3E%3Cpattern id='r1' width='0.3333' height='0.3333' patternUnits='objectBoundingBox'%3E%3Cpath d='M0.5 0V4000M0 0.5H4000' stroke='rgb(232,226,210)' stroke-opacity='0.06' stroke-width='1'/%3E%3C/pattern%3E%3Cpattern id='r2' width='0.3333' height='0.2000' patternUnits='objectBoundingBox'%3E%3Cpath d='M0.5 0V4000M0 0.5H4000' stroke='rgb(232,226,210)' stroke-opacity='0.08' stroke-width='1'/%3E%3C/pattern%3E%3Crect x='26%25' y='20%25' width='62%25' height='54%25' fill='rgb(220,210,180)' fill-opacity='0.04'/%3E%3Crect x='26%25' y='20%25' width='62%25' height='54%25' fill='url(%23r0)'/%3E%3Crect x='26%25' y='20%25' width='62%25' height='54%25' fill='none' stroke='%23C9B98A' stroke-opacity='0.16' shape-rendering='crispEdges'/%3E%3Crect x='26%25' y='20%25' width='62%25' height='1' fill='rgb(240,232,205)' fill-opacity='0.22' shape-rendering='crispEdges'/%3E%3Crect x='44%25' y='70%25' width='50%25' height='22%25' fill='rgb(220,210,180)' fill-opacity='0.04'/%3E%3Crect x='44%25' y='70%25' width='50%25' height='22%25' fill='url(%23r1)'/%3E%3Crect x='44%25' y='70%25' width='50%25' height='22%25' fill='none' stroke='%23C9B98A' stroke-opacity='0.16' shape-rendering='crispEdges'/%3E%3Crect x='44%25' y='70%25' width='50%25' height='1' fill='rgb(240,232,205)' fill-opacity='0.22' shape-rendering='crispEdges'/%3E%3Crect x='12%25' y='7%25' width='58%25' height='46%25' fill='rgb(200,190,150)' fill-opacity='0.06' filter='url(%23glow)'/%3E%3Crect x='12%25' y='7%25' width='58%25' height='46%25' fill='rgb(220,210,180)' fill-opacity='0.04'/%3E%3Crect x='12%25' y='7%25' width='58%25' height='46%25' fill='url(%23r2)'/%3E%3Crect x='12%25' y='7%25' width='58%25' height='46%25' fill='none' stroke='%23C9B98A' stroke-opacity='0.22' shape-rendering='crispEdges'/%3E%3Crect x='12%25' y='7%25' width='58%25' height='1' fill='rgb(240,232,205)' fill-opacity='0.32' shape-rendering='crispEdges'/%3E%3C/svg%3E") right max(0px, calc(50vw - 900px)) top 0 / min(calc(50% - 340px), 560px) 100% no-repeat;
+}
+
+@media (max-width: 1040px) {
+  html[data-theme="matcha"]::before {
+    display: none;
+  }
+}
+
+/* 2. Speckled stone: fine, irregular light specks, like a dark granite counter, at about 5.5%.
+   It sits behind the boxes, so it shows a little more on the page than on the boxes,
+   and the boxes seem lifted above it. */
+[data-theme="matcha"] body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.055;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='s'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='1' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.92 0 0 0 0 0.9 0 0 0 0 0.84 0 0 0 9 -6.3'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23s)'/%3E%3C/svg%3E") 0 0 / 200px 200px;
+}
+
+/* 3. Kumiko: a crisp asanoha (hemp leaf) lattice of 1px hairlines, like a wooden shoji screen, in the
+   bottom-right corner, fading out towards the middle. About 5%. Drawn at its real size (not
+   stretched), so the lines stay exactly 1px. */
+[data-theme="matcha"] body::after {
+  content: "";
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  width: min(600px, 100vw);
+  height: min(600px, 100vh);
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.05;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='600'%3E%3Cpattern id='k' width='40' height='69.282' patternUnits='userSpaceOnUse' patternTransform='translate(0.5 0.5)'%3E%3Cpath d='M20 57.74L40 69.28M20 34.64L60 34.64M20 34.64L40 0M20 11.55L20 34.64M0 0L20 11.55M0 46.19L20 34.64M20 34.64L40 46.19M0 0L20 34.64M0 23.09L20 34.64M20 11.55L40 0M-20 34.64L20 34.64M0 69.28L40 69.28M20 34.64L40 69.28M20 34.64L40 23.09M0 69.28L20 57.74M20 34.64L20 57.74M0 0L40 0M0 69.28L20 34.64' fill='none' stroke='rgb(232,226,210)' stroke-width='1'/%3E%3C/pattern%3E%3Crect width='600' height='600' fill='url(%23k)'/%3E%3C/svg%3E") right bottom no-repeat;
+  -webkit-mask-image: radial-gradient(circle at 100% 100%, #000 20%, transparent 70%);
+  mask-image: radial-gradient(circle at 100% 100%, #000 20%, transparent 70%);
+}
+
+/* 4. Bamboo grove: eight long, perfectly straight 1px lines near the left and right edges, in pale
+   bamboo and soft matcha, each a different height and strength (4–12%), and each a little brighter
+   at one point, like light catching a stalk. On a computer they stand in the empty space beside
+   the boxes; on a phone they squeeze into the 16px margin, so they never pass behind text. */
+html[data-theme="matcha"]::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    linear-gradient(transparent 4%, rgba(201, 185, 138, 0.07) 10%, rgba(201, 185, 138, 0.07) 25%, rgba(201, 185, 138, 0.11) 30%, rgba(201, 185, 138, 0.07) 35%, rgba(201, 185, 138, 0.07) 72%, transparent 78%),
+    linear-gradient(transparent 22%, rgba(143, 163, 90, 0.05) 28%, rgba(143, 163, 90, 0.05) 59%, rgba(143, 163, 90, 0.09) 64%, rgba(143, 163, 90, 0.05) 69%, rgba(143, 163, 90, 0.05) 94%, transparent 100%),
+    linear-gradient(transparent 0%, rgba(201, 185, 138, 0.04) 6%, rgba(201, 185, 138, 0.04) 13%, rgba(201, 185, 138, 0.08) 18%, rgba(201, 185, 138, 0.04) 23%, rgba(201, 185, 138, 0.04) 46%, transparent 52%),
+    linear-gradient(transparent 38%, rgba(143, 163, 90, 0.08) 44%, rgba(143, 163, 90, 0.08) 67%, rgba(143, 163, 90, 0.12) 72%, rgba(143, 163, 90, 0.08) 77%, rgba(143, 163, 90, 0.08) 90%, transparent 96%),
+    linear-gradient(transparent 8%, rgba(143, 163, 90, 0.07) 14%, rgba(143, 163, 90, 0.07) 35%, rgba(143, 163, 90, 0.11) 40%, rgba(143, 163, 90, 0.07) 45%, rgba(143, 163, 90, 0.07) 64%, transparent 70%),
+    linear-gradient(transparent 28%, rgba(201, 185, 138, 0.08) 34%, rgba(201, 185, 138, 0.08) 53%, rgba(201, 185, 138, 0.12) 58%, rgba(201, 185, 138, 0.08) 63%, rgba(201, 185, 138, 0.08) 94%, transparent 100%),
+    linear-gradient(transparent 0%, rgba(201, 185, 138, 0.04) 6%, rgba(201, 185, 138, 0.04) 17%, rgba(201, 185, 138, 0.08) 22%, rgba(201, 185, 138, 0.04) 27%, rgba(201, 185, 138, 0.04) 40%, transparent 46%),
+    linear-gradient(transparent 52%, rgba(143, 163, 90, 0.05) 58%, rgba(143, 163, 90, 0.05) 75%, rgba(143, 163, 90, 0.09) 80%, rgba(143, 163, 90, 0.05) 85%, rgba(143, 163, 90, 0.05) 94%, transparent 100%);
+  background-size: 1px 100%;
+  background-repeat: no-repeat;
+  background-position: left 24px top 0, left 40px top 0, left 66px top 0, left 96px top 0, right 28px top 0, right 46px top 0, right 74px top 0, right 108px top 0;
+}
+
+@media (max-width: 600px) {
+  html[data-theme="matcha"]::after {
+    background-position: left 3px top 0, left 7px top 0, left 11px top 0, left 14px top 0, right 4px top 0, right 8px top 0, right 12px top 0, right 14px top 0;
+  }
+}
+
+/* Boxes: dark lacquer on barely visible washi paper, with a very soft diagonal sheen across the top
+   third (the deeper shadow and the light top hairline are in --shadow above).
+   The decorations below are placed on top of the box, so they never change its size. */
+[data-theme="matcha"] .box {
+  background:
+    linear-gradient(160deg, rgba(240, 234, 218, 0.035) 0%, rgba(240, 234, 218, 0.015) 22%, transparent 34%),
+    var(--washi) 0 0 / 240px 240px,
+    var(--card);
+}
+
+/* One faint vertical brush line along the left inside edge of each box, tapering at both ends,
+   in the empty margin beside the text */
+[data-theme="matcha"] .box::before {
+  content: "";
+  position: absolute;
+  left: 9px;
+  top: 22px;
+  bottom: 22px;
+  width: 3px;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.06;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='200' viewBox='0 0 4 200' preserveAspectRatio='none'%3E%3Cpath d='M2.1 0C3.3 30 3.6 90 3.1 140C2.8 170 2.4 190 1.9 200C1.4 185 0.7 160 0.6 120C0.5 70 1 25 2.1 0Z' fill='rgb(240,234,218)'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+}
+
+/* Phone: no brush line (there's little room beside the text) */
+@media (max-width: 600px) {
+  [data-theme="matcha"] .box::before {
+    display: none;
+  }
+}
+
+/* The tab bar: the same paper with a barely visible tatami weave, and a band of bamboo tines along
+   its bottom edge (in the bar's own padding, so it never touches the tab names) */
+[data-theme="matcha"] #main-nav {
+  background:
+    var(--tines) center bottom 1px / calc(100% - 24px) 4px no-repeat,
+    var(--tatami) 0 0 / 24px 6px,
+    var(--washi) 0 0 / 240px 240px,
+    var(--nav-bg);
+}
+
+/* Noren: thin vertical hairlines between the tabs, like the splits of a noren curtain.
+   Each sits in the middle of the 6px gap left of a tab, fading out at both ends. */
+[data-theme="matcha"] .tab {
+  position: relative;
+}
+
+[data-theme="matcha"] .tab + .tab::before {
+  content: "";
+  position: absolute;
+  left: -3.5px;
+  top: 4px;
+  bottom: 4px;
+  width: 1px;
+  pointer-events: none;
+  background: linear-gradient(transparent, rgba(232, 226, 210, 0.14) 25%, rgba(232, 226, 210, 0.14) 75%, transparent);
+}
+
+/* Phone: the tabs are in two rows of two, so the first tab of the second row has nothing on its left */
+@media (max-width: 760px) {
+  [data-theme="matcha"] .tab:nth-child(3)::before {
+    display: none;
+  }
+}
+
+/* The details on every box and the tab bar (corner brackets, tatami edge, ice glint, kikkō: see
+   --card-details above), on one layer placed over the box's background and under its text.
+   It covers the box exactly, so it never changes its size. */
+[data-theme="matcha"] #main-nav {
+  position: relative;
+}
+
+[data-theme="matcha"] .box::after,
+[data-theme="matcha"] #main-nav::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: inherit;
+  background: var(--ice-glint), var(--card-details);
+}
+
+/* Phone: the tab names reach the right edge of the tab bar, so no glint there */
+@media (max-width: 760px) {
+  [data-theme="matcha"] #main-nav::after {
+    background: var(--card-details);
+  }
+}
+
+/* Kintsugi: one thin, slightly uneven gold seam across the bottom-right corner of the Immerse box,
+   like a mended crack in a tea bowl. It's used only here in the whole app, and stays in the box's
+   empty 16px corner margin, so it never runs under text. */
+[data-theme="matcha"] #immerse-panel::after {
+  background:
+    var(--kintsugi) right 0 bottom 0 / 34px 26px no-repeat,
+    var(--ice-glint),
+    var(--card-details);
+}
+
+/* Lists that open over other things need a solid background, not see-through */
+[data-theme="matcha"] .dropdown-menu {
+  background: #262521;
+  border: 1px solid rgba(232, 226, 210, 0.12);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+/* The chosen language in the list: iced matcha with deep tea letters and iron specks, like the other chosen chips */
+[data-theme="matcha"] .dropdown-menu li.selected {
+  background: var(--iron-specks) 0 0 / 46px 38px, #8FA35A;
+  color: #1A1C14;
+}
+
+/* Keyboard focus: a thin bamboo-gold outline.
+   Only shown when moving around with the keyboard, not after a tap or click. */
+[data-theme="matcha"] :focus-visible {
+  outline: 1.5px solid #C9B48A;
+  outline-offset: 2px;
+}
+
+/* Main buttons (Let’s go, Add, Save…: the ones without a class): a matcha latte, from iced matcha
+   into milky foam, with a faint speckle of iron, like a stoneware glaze. Deep tea letters
+   (6.2:1 at the darkest end). The light line along the top is drawn inside, so no size change. */
+[data-theme="matcha"] button:not([class]):not(#language-button),
+[data-theme="matcha"] button[class=""] {
+  background:
+    var(--iron-specks) 0 0 / 46px 38px,
+    linear-gradient(115deg, #8FA35A 0%, #A9B97A 55%, #C9D19E 100%);
+  color: #1A1C14;
+  box-shadow: inset 0 1px 0 rgba(238, 234, 223, 0.25);
+}
+
+/* On hover: a soft matcha glow around them (outside, so nothing changes size) */
+[data-theme="matcha"] button:not([class]):not(#language-button):hover,
+[data-theme="matcha"] button[class=""]:hover {
+  box-shadow: inset 0 1px 0 rgba(238, 234, 223, 0.25), 0 0 12px rgba(143, 163, 90, 0.25);
+}
+
+/* Chosen chips and levels: the same iron specks over their colour
+   (the level picker's id makes this stronger than the level colour rules further down) */
+[data-theme="matcha"] .filter-button.selected,
+[data-theme="matcha"] #level-picker .level.selected {
+  background-image: var(--iron-specks);
+  background-size: 46px 38px;
+}
+
+/* Chips and levels not yet chosen: a fine bamboo hairline on hover (drawn inside, so no size change) */
+[data-theme="matcha"] .filter-button:not(.selected):hover,
+[data-theme="matcha"] .level:not(.selected):hover {
+  box-shadow: inset 0 0 0 1px rgba(201, 180, 138, 0.55);
+}
+
+/* The chosen page: a faint lighter stone, with a short matcha brush stroke under the name
+   (the same tapered stroke as under the box titles) */
+[data-theme="matcha"] .tab.active {
+  background:
+    var(--brush-matcha) center bottom 4px / 30px 4px no-repeat,
+    rgba(232, 226, 210, 0.06);
+}
+
+/* Practice / Immerse: foam letters over a matcha line */
+[data-theme="matcha"] .subtab.active {
+  color: #C9D19E;
+  border-bottom-color: #8FA35A;
+}
+
+/* Box titles: one short brush stroke underneath (tapering at both ends), followed by a little band
+   of bamboo tines that fades away. It sits in the space below the title (placed on top,
+   not in the flow), so nothing moves. */
+/* Box titles like a quiet magazine: a little smaller and lighter (the line height and the space
+   around them stay the same as in every theme) */
+[data-theme="matcha"] .box > h2 {
+  position: relative;
+  font-size: 21px;
+  font-weight: 400;
+  letter-spacing: 0.03em;
+}
+
+[data-theme="matcha"] .box > h2::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -7px;
+  width: 104px;
+  height: 4px;
+  background:
+    var(--brush) 0 0 / 36px 4px no-repeat,
+    var(--tines) 42px 0 / 62px 4px no-repeat;
+  -webkit-mask-image: linear-gradient(90deg, #000 45%, transparent);
+  mask-image: linear-gradient(90deg, #000 45%, transparent);
+}
+
+/* The selected entry: a matcha edge, and a 2px matcha line on the left (drawn inside, so no size change) */
+[data-theme="matcha"] #entry-list li.selected {
+  border-color: #8FA35A;
+  box-shadow: inset 2px 0 0 #8FA35A;
+}
+
+/* Example text in empty boxes: clay, dimmer than typed text but still 5.3:1 */
+[data-theme="matcha"] ::placeholder {
+  color: #A9A392;
+  opacity: 1;
+}
+
+/* Slow, gentle fades, like ink settling (nothing moves or changes size) */
+[data-theme="matcha"] button,
+[data-theme="matcha"] #entry-list li,
+[data-theme="matcha"] .word-card,
+[data-theme="matcha"] .theme-card {
+  transition: background-color 0.6s ease-out, border-color 0.6s ease-out, color 0.6s ease-out;
+}
+
+/* An Immerse view or a new question card fades in softly when it appears (only opacity).
+   Never a whole page: fading a parent of the glass boxes switches their blur off until it ends. */
+@keyframes matcha-ink {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+[data-theme="matcha"] .immerse-view:not([hidden]),
+[data-theme="matcha"] .quiz-card {
+  animation: matcha-ink 0.7s ease-out backwards;
+}
+
+/* "Reduce motion" switched on: no fades at all */
+@media (prefers-reduced-motion: reduce) {
+  [data-theme="matcha"] button,
+  [data-theme="matcha"] #entry-list li,
+  [data-theme="matcha"] .word-card,
+  [data-theme="matcha"] .theme-card {
+    transition: none;
+  }
+
+  [data-theme="matcha"] .immerse-view:not([hidden]),
+  [data-theme="matcha"] .quiz-card {
+    animation: none;
+  }
+}
+
+/* Noun genders (Grammar Lens, its legend and the gender quiz answers): muted Japanese
+   nezumi ("mouse grey") tones, solid, with no borders or underlines. None of them is matcha green.
+   The text is the lighter ceramic cream, so even the moss one reaches 4.5:1:
+     masculine Ai-nezumi (indigo grey): 7.2:1
+     feminine Ume-nezumi (plum grey): 6.5:1
+     neuter Koke-nezumi (moss grey, darker and greyer than the matcha on buttons): 6.3:1
+   Darker and softer than before, with the same hues. */
+[data-theme="matcha"] .noun {
+  box-shadow: none;
+}
+
+[data-theme="matcha"] .noun.masculine { background: #3F4C57; color: #EDE8DA; }
+[data-theme="matcha"] .noun.feminine  { background: #634A50; color: #EDE8DA; }
+[data-theme="matcha"] .noun.neuter    { background: #4C5738; color: #EDE8DA; }
+
+/* Quiz right / wrong: soft matcha and a muted persimmon red with ceramic text (5.5 and 6.8:1).
+   A thin ring in the same colour (drawn inside, so no size change) keeps the right answer from
+   looking like the moss Koke-nezumi gender next to it. */
+[data-theme="matcha"] .quiz-option.right { background: rgba(143, 163, 90, 0.38); color: #E6E1D3; box-shadow: inset 0 0 0 1px #A7B873; }
+[data-theme="matcha"] .quiz-option.wrong { background: rgba(170, 84, 70, 0.45); color: #E6E1D3; box-shadow: inset 0 0 0 1px #C27A68; }
+[data-theme="matcha"] .quiz-card.answered-right { border-left-color: #A7B873; }
+[data-theme="matcha"] .quiz-card.answered-wrong { border-left-color: #C27A68; }
+[data-theme="matcha"] .quiz-built.right,
+[data-theme="matcha"] .quiz-result.right { border-color: #A7B873; }
+[data-theme="matcha"] .quiz-built.wrong,
+[data-theme="matcha"] .quiz-result.wrong { border-color: #C27A68; }
+
+/* The theme's button in Settings shows the dark stone in its matcha light, even on a light page */
 .theme-card[data-theme="matcha"] {
-  background: linear-gradient(180deg, #f7f9ef 0%, #e3ebcc 100%);
+  background:
+    radial-gradient(ellipse at 0% 0%, rgba(150, 180, 95, 0.3), transparent 65%),
+    linear-gradient(135deg, #2F3828, #1D201A 50%, #111310);
+}
+
+/* When chosen: a matcha edge with a soft glow (colour only; same size as the others) */
+.theme-card[data-theme="matcha"].selected {
+  border-color: #8FA35A;
+  box-shadow: 0 0 14px rgba(143, 163, 90, 0.3);
 }
 
 
@@ -434,14 +942,12 @@
   --title: #F6ECE1;         /* Coconut milk */
 
   --card: rgba(96, 62, 40, 0.72);  /* Toasted coconut glass: the golden glow shows through */
-  --card-border: 1px solid rgba(246, 236, 225, 0.2);  /* Cream hairline */
+  --card-border-color: rgba(246, 236, 225, 0.2);  /* Cream hairline */
   /* The sun is top right: a faint warm rim of light along the top and right edges of the boxes
      and the tab bar, and their soft shadows falling down and to the left */
   --shadow: inset 0 1px 0 rgba(255, 228, 170, 0.18), inset -1px 0 0 rgba(255, 228, 170, 0.18),
     -12px 14px 36px rgba(40, 22, 10, 0.35);
   --glass: blur(14px);
-  --radius: 6px;            /* Crisp, editorial corners */
-  --radius-small: 4px;
 
   --accent: #F4E2AE;        /* Butter cream: quiz numbers etc. (buttons and chosen chips get a gradient below) */
   --accent-text: #3A2418;   /* Deep brown on the cream */
@@ -740,12 +1246,14 @@ html[data-theme="riviera"]::after {
   -webkit-mask: radial-gradient(ellipse at 100% 0, #000 20%, transparent 72%);
   mask: radial-gradient(ellipse at 100% 0, #000 20%, transparent 72%);
   opacity: 0.05;
+  will-change: transform, opacity;
   animation: caustic-shimmer 9s ease-in-out infinite alternate;
 }
 
+/* Only opacity and a tiny slide (transform), so the box underneath is never redrawn */
 @keyframes caustic-shimmer {
-  from { background-position: 0 0; opacity: 0.04; }
-  to   { background-position: 26px 14px; opacity: 0.06; }
+  from { transform: translate(0, 0); opacity: 0.04; }
+  to   { transform: translate(-6px, 3px); opacity: 0.06; }
 }
 
 /* Film grain: a fine noise over everything so the gradients feel analog (drawn by the browser) */
@@ -776,7 +1284,7 @@ html[data-theme="riviera"]::after {
 [data-theme="riviera"] #entry-list li,
 [data-theme="riviera"] .word-card,
 [data-theme="riviera"] .theme-card {
-  transition: background-color 0.6s ease, border-color 0.6s ease, box-shadow 0.6s ease, color 0.6s ease;
+  transition: background-color 0.6s ease, border-color 0.6s ease, color 0.6s ease;
 }
 
 /* Magazine touches: navigation in capitals with wide spacing (from --nav-… above).
@@ -899,8 +1407,6 @@ body {
   font-family: var(--font-ui);
   font-size: 16px;
   line-height: 1.4;
-  background: var(--bg);
-  background-attachment: fixed; /* Gradient backgrounds stay put while scrolling */
   min-height: 100vh;
   color: var(--text);
   margin: 0;
@@ -1072,43 +1578,52 @@ button {
   font-size-adjust: none;
 }
 
-/* Three columns: language button on the left, title in the centre, empty space on the right
-   (the empty right column is as wide as the left one, which keeps the title truly centred) */
+/* The top row: just the title, centred */
 header {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 16px; /* Full page width, so the language button sits further left than the tabs */
+  margin-bottom: 16px;
   text-align: center;
 }
 
-header .dropdown {
-  justify-self: start;
-  text-align: left;
-}
-
-/* Phone: not enough room side by side, so the title goes on top (on one line)
-   and the language button sits centred underneath it */
+/* Phone: the title stays on one line */
 @media (max-width: 600px) {
-  header {
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
-
   header h1 {
-    order: -1; /* Title first */
     white-space: nowrap;
-  }
-
-  header .dropdown {
-    justify-self: center;
   }
 }
 
 h1 {
   margin: 0;
   color: var(--title);
+}
+
+/* The page background: the theme's colours on their own layer, fixed to the screen, behind
+   everything (even the theme's decorations). It's drawn once and then only moved by the graphics
+   chip, so scrolling never repaints the screen or makes the glass boxes flicker.
+   (A "background-attachment: fixed" on the page itself repainted the whole screen on every scroll.)
+   The page itself gets the same colours too, so pulling past the top on an iPhone shows them,
+   not white. */
+html {
+  background: var(--bg);
+}
+
+.page-background {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background: var(--bg);
+  will-change: transform;
+}
+
+/* Background layers (each theme draws its decorations in these, fixed behind the page):
+   each gets its own compositing layer, so scrolling or a slow animation just moves a finished
+   picture, and the glass boxes on top never flicker. If a theme doesn't use one, it isn't drawn. */
+html::before,
+html::after,
+body::before,
+body::after,
+main::after {
+  will-change: transform;
 }
 
 /* Keep content from getting too wide on a computer screen */
@@ -1122,19 +1637,24 @@ main {
   background: var(--card);
   backdrop-filter: var(--glass);
   -webkit-backdrop-filter: var(--glass); /* Safari on iPhone */
-  border: var(--card-border);
+  border: var(--border-width) solid var(--card-border-color);
   border-radius: var(--radius);
-  padding: 16px;
-  margin-bottom: 16px;
+  padding: var(--card-padding);
+  margin-bottom: var(--card-gap);
   box-shadow: var(--shadow);
+  /* Decorations inside a box are placed on top of it (position: absolute), so they never change its
+     size or push the text. "isolation" keeps them, and the box's repainting, inside the box. */
+  position: relative;
+  isolation: isolate;
 }
 
 .box h2 {
   margin-top: 0;
+  margin-bottom: var(--heading-gap);
 }
 
 button {
-  padding: 10px 16px;
+  padding: var(--button-padding);
   border: none;
   border-radius: var(--radius-small);
   background: var(--accent);
@@ -1150,13 +1670,14 @@ button {
   grid-template-columns: repeat(4, 1fr);
   gap: 6px;
   max-width: 800px;
-  margin: 0 auto 16px;
+  margin: 0 auto var(--card-gap);
   padding: 6px;
   box-sizing: border-box;
   background: var(--nav-bg);
   backdrop-filter: var(--glass);
   -webkit-backdrop-filter: var(--glass);
-  border: var(--card-border);
+  isolation: isolate;
+  border: var(--border-width) solid var(--card-border-color);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
 }
@@ -1170,6 +1691,7 @@ button {
 
 /* The pages in the bar */
 .tab {
+  height: var(--tab-height);
   flex: 1;
   background: none;
   color: var(--nav-text);
@@ -1508,6 +2030,20 @@ button {
   display: inline-block;
 }
 
+/* At the very top of Study, on its own row, in the middle: only as wide as the button,
+   so the list only opens when the cursor is over the button itself */
+#study-tab > .dropdown {
+  display: block;
+  width: fit-content;
+  margin: 0 auto var(--card-gap);
+}
+
+/* Its list opens centred under the button */
+#study-tab > .dropdown .dropdown-menu {
+  left: 50%;
+  transform: translateX(-50%);
+}
+
 #language-button {
   width: auto; /* Just as wide as the language name, flag and ▾ */
   max-width: 220px;
@@ -1578,7 +2114,7 @@ button {
 .level {
   background: var(--chip);
   color: var(--chip-text);
-  padding: 6px 12px;
+  padding: var(--chip-padding);
   width: 52px; /* Same width in every theme, whatever the font */
 }
 
@@ -1693,7 +2229,7 @@ button {
 .filter-button {
   background: var(--chip);
   color: var(--chip-text);
-  padding: 6px 12px;
+  padding: var(--chip-padding);
 }
 
 .filter-button.selected {
@@ -1712,6 +2248,7 @@ button {
   background: var(--study-nav-bg, var(--card));
   backdrop-filter: var(--glass);
   -webkit-backdrop-filter: var(--glass);
+  isolation: isolate;
   border-radius: var(--radius) var(--radius) 0 0;
 }
 
@@ -1769,8 +2306,13 @@ button:disabled {
 /* ===== Immerse: Pure Text / Grammar Lens ===== */
 #immerse-options {
   display: flex;
+  flex-wrap: wrap;  /* If the three don't fit (narrow phone, wide font), the last moves down whole */
   gap: 6px;
   margin-bottom: 12px;
+}
+
+#immerse-options .filter-button {
+  white-space: nowrap;
 }
 
 /* The selected entry, big and easy to read */
@@ -1884,20 +2426,22 @@ button:disabled {
 }
 
 /* ===== Settings: theme picker ===== */
+/* The theme buttons sit in a row, each as wide as its name, and move to the next row
+   when they don't fit (a name never breaks) */
 #theme-options {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 10px;
 }
 
-/* Each theme is a little card with its name and colours.
-   Each card carries its own data-theme, so it always shows in its own look. */
+/* Each theme is a button with its name, in its own colours.
+   Each one carries its own data-theme, so it always shows in its own look, but its size,
+   padding, border and corners are the shared layout sizes, so all three match. */
 .theme-card {
   display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 8px;
-  padding: 12px;
+  align-items: center;
+  width: auto;
+  padding: var(--theme-button-padding);
   text-align: left;
   background: var(--card);
   color: var(--text);
@@ -1913,6 +2457,7 @@ button:disabled {
 .theme-name {
   font-size: 17px;
   line-height: 22px;
+  white-space: nowrap; /* Always one line */
 }
 
 /* ===== "Saved ✓" message ===== */
