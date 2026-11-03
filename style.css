@@ -3164,21 +3164,28 @@ button[aria-disabled="true"] {
 }
 
 /* Each card's name is in its own theme's font, and the fonts are very different in size
-   (Cormorant Infant has small letters, Playfair Display big and wide). So each card gets its own
-   size, measured so the capital letters (H, C, K, P) are exactly as tall on all four cards.
-   All four use a regular weight, so none looks heavier than the others. */
+   (Cormorant Infant has small letters, Playfair Display big and wide). The names are mostly
+   small letters, so the eye compares those, not the capitals. font-size-adjust tells the
+   browser to size each font so its small letters (the x-height) are the same height,
+   which makes the four names look equally big. Each card sets only its weight. */
 .theme-name {
-  font-size: calc(var(--theme-name-size, 17px) * var(--theme-name-scale, 1));
+  /* --theme-name-tweak: a small per-font correction, separate from the phone scale */
+  font-size: calc(17px * var(--theme-name-scale, 1) * var(--theme-name-tweak, 1));
+  font-size-adjust: 0.48;
   font-weight: var(--theme-name-weight, 400);
   letter-spacing: var(--theme-name-spacing, normal);
   line-height: 22px;
   white-space: nowrap; /* Always one line */
 }
 
-.theme-card[data-theme="riviera"]   { --theme-name-size: 17px;   --theme-name-weight: 500; --theme-name-spacing: -0.01em; } /* Playfair Display */
-.theme-card[data-theme="coffee"]    { --theme-name-size: 17.2px; --theme-name-weight: 400; } /* Oranienbaum */
-.theme-card[data-theme="matcha"]    { --theme-name-size: 16.6px; --theme-name-weight: 500; } /* Zen Old Mincho */
-.theme-card[data-theme="rosewater"] { --theme-name-size: 19.3px; --theme-name-weight: 500; } /* Cormorant Infant Italic */
+.theme-card[data-theme="riviera"]   { --theme-name-weight: 400; --theme-name-spacing: -0.01em; } /* Playfair Display */
+.theme-card[data-theme="coffee"]    { --theme-name-weight: 400; } /* Oranienbaum */
+/* Zen Old Mincho: its Latin small letters are short, so font-size-adjust scales it up too much */
+.theme-card[data-theme="matcha"]    { --theme-name-weight: 400; --theme-name-tweak: 0.92; }
+.theme-card[data-theme="rosewater"] { --theme-name-weight: 500; } /* Cormorant Infant Italic: a thin font */
+
+/* Oranienbaum sits a little high in its line: 1px lower (moves only the text, not the button) */
+.theme-card[data-theme="coffee"] .theme-name { position: relative; top: 1px; }
 
 /* On a phone the two columns are narrower, so all four names shrink by the same amount */
 @media (max-width: 600px) {
