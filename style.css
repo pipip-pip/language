@@ -104,6 +104,9 @@
    (Song Myung, Noto Serif KR, Gothic A1). Prata was asked for reading, but it has no
    Polish or Turkish letters (ą ę ł ğ ş…), so Spectral, which has them all, is used instead. */
 [data-theme="coffee"] {
+  /* Oranienbaum's capital letters are tall for its small letters, so its titles are scaled a bit
+     smaller to look as big as the other themes' titles (only the letters, nothing moves) */
+  --title-adjust: 0.46;
   color-scheme: dark; /* Dark text boxes, lists and scrollbars too */
   --font-display: "Oranienbaum", "Bellefair", "Song Myung", Georgia, serif;
   --font-heading: var(--font-display);
@@ -308,7 +311,8 @@
 [data-theme="coffee"] .entry-label,
 [data-theme="coffee"] .sentence-date,
 [data-theme="coffee"] .word-type,
-[data-theme="coffee"] .words-known-label {
+[data-theme="coffee"] .words-known-label,
+[data-theme="coffee"] .audio-row-label {
   letter-spacing: 0.22em;
   text-transform: uppercase;
 }
@@ -780,11 +784,10 @@ html[data-theme="matcha"]::after {
 /* Box titles: one short brush stroke underneath (tapering at both ends), followed by a little band
    of bamboo tines that fades away. It sits in the space below the title (placed on top,
    not in the flow), so nothing moves. */
-/* Box titles like a quiet magazine: a little smaller and lighter (the line height and the space
+/* Box titles like a quiet magazine: lighter letters (the size, line height and the space
    around them stay the same as in every theme) */
 [data-theme="matcha"] .box > h2 {
   position: relative;
-  font-size: 21px;
   font-weight: 400;
   letter-spacing: 0.03em;
 }
@@ -1528,15 +1531,12 @@ html[data-theme="riviera"]::after {
 [data-theme="rosewater"] .audio-picker > label,
 [data-theme="rosewater"] .audio-edit-form label,
 [data-theme="rosewater"] .quiz-kind,
-[data-theme="rosewater"] .words-known-label {
+[data-theme="rosewater"] .words-known-label,
+[data-theme="rosewater"] .audio-row-label {
   font-family: var(--font-nav);
   letter-spacing: var(--nav-spacing);
 }
 
-/* The app title: Cormorant has small lower-case letters, so it's drawn a little bigger to stay easy
-   to read. Only the letters grow: the line height stays the same as in every theme, so nothing
-   else moves. (Box titles are calm Alegreya Italic at the normal sizes.) */
-[data-theme="rosewater"] h1 { font-size: 38px; }
 
 /* This theme's own card in Settings uses the title's font, a touch lighter */
 .theme-card[data-theme="rosewater"] {
@@ -2035,6 +2035,10 @@ h1 { font-size: 32px; line-height: 40px; }
 h2 { font-size: 24px; line-height: 32px; }
 h3 { font-size: 18px; line-height: 24px; margin: 18px 0; }  /* The gap in px, not the browser's "1em",
                                                              so a theme's bigger letters can't move anything */
+/* Every font draws its letters a bit bigger or smaller at the same size. This tells the browser
+   to scale each font so its small letters are always half the size, so titles look equally big
+   in every theme. */
+h1, h2, h3 { font-size-adjust: var(--title-adjust, 0.5); }
 
 button, input, select, textarea {
   line-height: 20px;
@@ -2173,6 +2177,8 @@ textarea {
 .word-meaning,
 .word-form,
 .words-known-label,
+.audio-row-label,
+.tooltip,
 .quiz-kind,
 .quiz-instruction,
 .quiz-glossary,
@@ -3267,6 +3273,49 @@ button:disabled {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+
+/* The speed buttons stay together, so on a phone the whole group moves to its own line */
+#audio-speed {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* The small "Repeat" and "Speed" words before each group of buttons */
+.audio-row-label {
+  margin-left: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+/* Holding a finger on these buttons shows their tooltip, not the iPhone's copy menu */
+#audio-controls button {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* The bubble that says what a button does (colours from the theme, so it suits every theme) */
+.tooltip {
+  position: fixed;
+  z-index: 1000;
+  padding: 4px 8px;
+  background: var(--input-bg);
+  color: var(--text);
+  border: var(--border-width) solid var(--line);
+  border-radius: var(--radius-small);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  font-size: 13px;
+  line-height: 18px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.speed-button {
+  height: 32px;
 }
 
 #audio-count {

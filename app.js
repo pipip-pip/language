@@ -155,14 +155,17 @@ function makeTimeBoxes(title, seconds, readOnly) {
   row.append(minutesBox, separator(":"), secondsBox, separator(":"), millisecondsBox);
 
   function set(value) {
+    // Each change tells the page the time changed (like typing does), so buttons that need a time can update
     if (value === null || value === undefined) {
       minutesBox.value = secondsBox.value = millisecondsBox.value = "";
+      field.dispatchEvent(new Event("input", { bubbles: true }));
       return;
     }
     const total = Math.round(value * 1000); // In milliseconds
     minutesBox.value = String(Math.floor(total / 60000));
     secondsBox.value = String(Math.floor(total / 1000) % 60).padStart(2, "0");
     millisecondsBox.value = String(total % 1000).padStart(3, "0");
+    field.dispatchEvent(new Event("input", { bubbles: true }));
   }
   set(seconds);
 
@@ -286,7 +289,13 @@ function makeAudioPicker(current, languageSelect, sourceBox) {
       stopPart();
       if (wasThisOne) return; // Pressing "■ Stop" just stops
     }
-    player.currentTime = Math.max(0, from);
+    // Jump to the chosen time first. If the file hasn't loaded yet, a jump is ignored,
+    // so we wait until it knows its length and jump then (otherwise it plays from "Now").
+    if (player.readyState === 0) {
+      player.addEventListener("loadedmetadata", function () { player.currentTime = Math.max(0, from); }, { once: true });
+    } else {
+      player.currentTime = Math.max(0, from);
+    }
     player.play().catch(stopPart); // If it can't play, the button goes back
     playingButton = button;
     button.textContent = "■ Stop";
@@ -324,6 +333,14 @@ function makeAudioPicker(current, languageSelect, sourceBox) {
   const checks = document.createElement("div");
   checks.className = "audio-checks";
   checks.append(playPart, checkStart, checkEnd);
+  // Check start / Check end only work once that time has been typed in (greyed out until then)
+  function updateChecks() {
+    checkStart.disabled = startTime.get() === null;
+    checkEnd.disabled = endTime.get() === null;
+  }
+  startTime.element.addEventListener("input", updateChecks);
+  endTime.element.addEventListener("input", updateChecks);
+  updateChecks();
 
   // Use the whole audio: Start at 0:00:000 and End at the file's full length,
   // so the times are the same as in the original recording.
@@ -552,6 +569,9 @@ function showTab(tabId) {
 
 tabButtons.forEach(function (button) {
   button.addEventListener("click", function () {
+    // Leaving a tab closes any open Edit form (unsaved changes are dropped)
+    if (editingIndex !== null) { editingIndex = null; showSentences(); }
+    if (editingAudioId !== null) { editingAudioId = null; showAudioLibrary(); }
     showTab(button.dataset.tab);
     saveView();
   });
@@ -1642,7 +1662,7 @@ const SPEAKER_ICON = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none
 const STOP_ICON = '<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/></svg>';
 
 const audioPlay = document.getElementById("audio-play");
-const loopButtons = document.querySelectorAll("#audio-controls .filter-button");
+const loopButtons = document.querySelectorAll("#audio-controls .loop-button");
 const audioCount = document.getElementById("audio-count");
 
 let audioLoops = loadSaved("audioLoops", "5"); // "5", "10" or "infinite"
@@ -1665,12 +1685,113 @@ loopButtons.forEach(function (button) {
   });
 });
 
+// Playback speed: 0.5× to 1.5×, remembered like the loops. It stays the same for every repeat.
+const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5];
+let audioSpeed = Number(loadSaved("audioSpeed", 1));
+if (!SPEEDS.includes(audioSpeed)) audioSpeed = 1;
+const speedGroup = document.getElementById("audio-speed");
+
+// Give a recording the chosen speed, keeping voices at their natural pitch
+// (webkitPreservesPitch is the older name Safari and iPhone use)
+function applySpeed(audio) {
+  audio.preservesPitch = true;
+  audio.webkitPreservesPitch = true;
+  audio.playbackRate = audioSpeed;
+}
+
+function showSpeeds() {
+  speedGroup.querySelectorAll("button").forEach(function (button) {
+    const chosen = Number(button.dataset.speed) === audioSpeed;
+    button.classList.toggle("selected", chosen);
+    button.setAttribute("aria-pressed", chosen);
+  });
+}
+
+const speedLabel = document.createElement("span");
+speedLabel.className = "audio-row-label";
+speedLabel.setAttribute("aria-hidden", "true"); // The group is already called "Playback speed"
+speedLabel.textContent = "Speed";
+speedGroup.append(speedLabel);
+
+SPEEDS.forEach(function (speed) {
+  const button = makeButton(speed + "×", "filter-button speed-button", function () {
+    audioSpeed = speed;
+    save("audioSpeed", audioSpeed);
+    showSpeeds();
+    if (recording) applySpeed(recording); // Changes straight away, even in the middle of playing
+  });
+  button.dataset.speed = speed;
+  button.setAttribute("aria-label", "Playback speed " + speed + "×");
+  button.dataset.tip = "Playback speed " + speed + "×";
+  speedGroup.append(button);
+});
+showSpeeds();
+
+// ===== Tooltips =====
+// Buttons with a data-tip get a small bubble above them saying what they do:
+// on a computer when the mouse is over them (or they get keyboard focus),
+// on a touch screen when you press and hold (a long-press doesn't also press the button).
+const tooltip = document.createElement("div");
+tooltip.className = "tooltip";
+tooltip.setAttribute("aria-hidden", "true"); // The buttons' aria-labels already say the same thing
+tooltip.hidden = true;
+document.body.append(tooltip);
+let tooltipTimer = null;
+let longPressed = false;
+
+function showTooltip(button) {
+  tooltip.textContent = button.dataset.tip;
+  tooltip.hidden = false;
+  // Centred above the button, but never off the edge of the screen
+  const place = button.getBoundingClientRect();
+  const left = place.left + place.width / 2 - tooltip.offsetWidth / 2;
+  tooltip.style.left = Math.max(8, Math.min(left, window.innerWidth - tooltip.offsetWidth - 8)) + "px";
+  tooltip.style.top = (place.top - tooltip.offsetHeight - 6) + "px";
+}
+function hideTooltip() {
+  clearTimeout(tooltipTimer);
+  tooltip.hidden = true;
+}
+
+document.querySelectorAll("#audio-controls [data-tip]").forEach(function (button) {
+  button.addEventListener("mouseenter", function () { if (canHover) showTooltip(button); });
+  button.addEventListener("mouseleave", hideTooltip);
+  button.addEventListener("focus", function () { if (button.matches(":focus-visible")) showTooltip(button); });
+  button.addEventListener("blur", hideTooltip);
+  // Press and hold for half a second on a touch screen
+  button.addEventListener("pointerdown", function (event) {
+    if (event.pointerType !== "touch") return;
+    longPressed = false;
+    clearTimeout(tooltipTimer);
+    tooltipTimer = setTimeout(function () {
+      longPressed = true;
+      showTooltip(button);
+      tooltipTimer = setTimeout(hideTooltip, 1500); // Goes away by itself
+    }, 500);
+  });
+  ["pointerup", "pointercancel"].forEach(function (name) {
+    button.addEventListener(name, function () { if (!longPressed) clearTimeout(tooltipTimer); });
+  });
+  // After a long-press, the finger lifting shouldn't count as a tap
+  button.addEventListener("click", function (event) {
+    if (longPressed) {
+      longPressed = false;
+      event.stopImmediatePropagation();
+    }
+  }, true);
+  // The play button's words change (Play / Stop): keep an open bubble up to date
+  button.addEventListener("click", function () {
+    if (!tooltip.hidden) showTooltip(button);
+  });
+});
+window.addEventListener("scroll", hideTooltip, { passive: true });
+
 // Show the speaker or stop icon, and "3 / 10" while playing
 function showAudioState() {
   audioPlay.innerHTML = audioPlaying ? STOP_ICON : SPEAKER_ICON;
-  const label = audioPlaying ? "Stop" : "Play the sentence";
+  const label = audioPlaying ? "Stop" : "Play";
   audioPlay.setAttribute("aria-label", label);
-  audioPlay.title = label;
+  audioPlay.dataset.tip = label;
   audioPlay.classList.toggle("playing", audioPlaying);
 
   if (audioPlaying) {
@@ -1732,6 +1853,7 @@ async function playRecording(entry) {
   const end = entry.audioEnd === undefined ? null : entry.audioEnd;
   const thisRecording = new Audio(URL.createObjectURL(file));
   recording = thisRecording;
+  applySpeed(thisRecording);
   let partFinished = false;
 
   const playFromStart = function () {
@@ -1832,7 +1954,9 @@ function speakOnce() {
     }
   }
   showAudioState();
-  utterance.rate = 0.9; // A little slower than normal, for learning
+  // A little slower than normal, for learning, times the chosen speed.
+  // (The device voice can't change speed mid-sentence, so a new speed starts with the next repeat.)
+  utterance.rate = 0.9 * audioSpeed;
 
   utterance.onend = function () { playedOnce(speakOnce); };
   utterance.onerror = function () {
@@ -3151,7 +3275,7 @@ makeQuestionsButton.addEventListener("click", async function () {
 // sentences (from localStorage) and the sound files (from IndexedDB, written out as text).
 // The OpenAI key is left out, so the file is safe to keep in iCloud Drive etc.
 const BACKUP_KEYS = ["sentences", "audioLibrary", "myLanguage", "myLanguages", LEVEL_KEY,
-  "practiceTarget", "audioLoops", "theme", "openaiModel", "view", "knownWords"];
+  "practiceTarget", "audioLoops", "audioSpeed", "theme", "openaiModel", "view", "knownWords"];
 
 const backupDownload = document.getElementById("backup-download");
 const backupRestore = document.getElementById("backup-restore");
