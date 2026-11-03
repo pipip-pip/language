@@ -21,6 +21,7 @@
   --font-reading: var(--heading-font);      /* Sentences, passages, quiz questions */
   --font-ui: var(--font);                   /* Tabs, buttons, chips, labels, small print */
   --font-meta: var(--font-ui);              /* Dates, hints, form labels (a theme may make these monospace) */
+  --display-style: var(--heading-style);   /* The app title can stay upright when headings are italic */
   --display-weight: bold;
   --heading-weight: bold;
   --subheading-style: var(--heading-style);
@@ -88,7 +89,8 @@
   --heading-gap: 20px;           /* Space under a box title */
   --button-padding: 10px 16px;   /* Main buttons and tabs */
   --chip-padding: 6px 12px;      /* Chips (filters, Pure Text…) and levels */
-  --theme-button-padding: 12px 20px;  /* The theme buttons in Settings */
+  --theme-button-padding: 0 12px;     /* The theme buttons in Settings (their height is fixed) */
+  --theme-card-height: 50px;          /* Every theme button is exactly this tall */
 }
 
 /* Cold Brew Coffee: a close-up of iced coffee. Translucent caramel-amber coffee with darker
@@ -218,40 +220,20 @@
 }
 
 /* Main buttons (Let’s go, Add, Save…: the ones without a class): a soft swirl of milk cream,
-   with espresso letters. A thin glint waits off to the left, and sweeps across on hover.
-   The glint is its own layer that only slides (transform), so nothing else has to be redrawn. */
+   with espresso letters. On hover: the "icy" shimmer (see "Main button hover" further down). */
 [data-theme="coffee"] button:not([class]):not(#language-button),
 [data-theme="coffee"] button[class=""] {
-  position: relative;
-  overflow: hidden;
-  isolation: isolate;
   background: linear-gradient(105deg, #EBDDC5 0%, #E0CDAF 22%, #F2E7D6 38%, #DCC6A6 60%, #EBDDC5 74%, #D3BC9A 100%);
   color: #1E140C;
   box-shadow: inset 0 1px 0 rgba(238, 241, 242, 0.7);
 }
 
-[data-theme="coffee"] button:not([class]):not(#language-button)::after,
-[data-theme="coffee"] button[class=""]::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;  /* Above the button's colour, below its letters */
-  pointer-events: none;
-  background: linear-gradient(110deg, transparent 30%, rgba(238, 241, 242, 0.6) 50%, transparent 70%);
-  transform: translateX(-110%);
-  transition: transform 1.2s ease;
-}
-
-[data-theme="coffee"] button:not([class]):not(#language-button):hover::after,
-[data-theme="coffee"] button[class=""]:hover::after {
-  transform: translateX(110%);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  [data-theme="coffee"] button:not([class]):not(#language-button)::after,
-  [data-theme="coffee"] button[class=""]::after {
-    transition: none;
-  }
+/* Main button hover, "icy": milk cream with one narrow, crisp, bright band of ice white and frost,
+   like light catching ice (2.6s a pass). The espresso letters stay at least 13:1. */
+[data-theme="coffee"] {
+  --cta-time: 2.6s;
+  --cta-sweep-time: 0.5s;  /* The fast first sweep */
+  --cta-shimmer: linear-gradient(100deg, #E8DCC8 0%, #E8DCC8 40%, #F4F7F8 47%, #D3DCE0 53%, #E8DCC8 60%, #E8DCC8 100%);
 }
 
 /* The chosen page: a soft creamy fill, with a cream-to-caramel line under the name */
@@ -741,10 +723,13 @@ html[data-theme="matcha"]::after {
   box-shadow: inset 0 1px 0 rgba(238, 234, 223, 0.25);
 }
 
-/* On hover: a soft matcha glow around them (outside, so nothing changes size) */
-[data-theme="matcha"] button:not([class]):not(#language-button):hover,
-[data-theme="matcha"] button[class=""]:hover {
-  box-shadow: inset 0 1px 0 rgba(238, 234, 223, 0.25), 0 0 12px rgba(143, 163, 90, 0.25);
+/* Main button hover, "matcha latte": medium-wide, soft, low-contrast bands of milky foam, matcha
+   latte and soft matcha, like milk swirling into iced matcha (3.0s a pass).
+   The deep tea letters stay at least 8:1. */
+[data-theme="matcha"] {
+  --cta-time: 3s;
+  --cta-sweep-time: 0.7s;  /* The fast first sweep */
+  --cta-shimmer: linear-gradient(100deg, #E4E8CF 0%, #BFCB94 25%, #A6B872 50%, #BFCB94 75%, #E4E8CF 100%);
 }
 
 /* Chosen chips and levels: the same iron specks over their colour
@@ -1023,10 +1008,13 @@ html[data-theme="matcha"]::after {
     inset 0 -1px 0 rgba(214, 180, 110, 0.45), 0 0 14px rgba(255, 228, 170, 0.12);
 }
 
-[data-theme="riviera"] button:not([class]):not(#language-button):hover,
-[data-theme="riviera"] button[class=""]:hover {
-  box-shadow: inset 0 1px 0 rgba(255, 251, 240, 0.9), inset 0 6px 8px -4px rgba(255, 251, 240, 0.45),
-    inset 0 -1px 0 rgba(214, 180, 110, 0.45), 0 0 18px rgba(244, 226, 174, 0.3);
+/* Main button hover, "creamy sunset": wide, soft, feathered bands of coconut milk, peach cream,
+   pink colada blush and honey gold, like sunset light through a creamy drink (3.4s a pass).
+   The brown letters stay at least 9:1. */
+[data-theme="riviera"] {
+  --cta-time: 3.4s;
+  --cta-sweep-time: 0.8s;  /* The fast first sweep */
+  --cta-shimmer: linear-gradient(100deg, #F6ECE1 0%, #F4D4B2 25%, #EDC3BA 50%, #F0D49A 75%, #F6ECE1 100%);
 }
 
 /* The chosen page: the same butter-to-coconut cream with deep brown letters,
@@ -1382,6 +1370,608 @@ html[data-theme="riviera"]::after {
 }
 
 
+/* Peach Rosewater: pink roses in a milky bath with sunlight on the water, and roses on soft
+   white linen. Dreamy and soft, like a vintage film photo, but still refined.
+   Dim and misty, never bright: a soft peach-pink glow in the top right, through dusty rose,
+   to muted mauve in the bottom left. Frosted rose glass boxes, rose-cream text (never white),
+   blush and rose-peach on main buttons and chosen chips, soft gold for hairlines and the
+   chosen tab, and leaf sage used sparingly. No pictures of roses, leaves or water: only light.
+   Nothing moves: every decoration stands still.
+   The small details:
+     behind everything: water light (caustics) in the bottom left, a faint grid of bath tiles in
+     the top right, two or three soft diagonal folds of light and shade like a linen sheet, sheer
+     curtain folds along the left and right edges, a pink film light leak bleeding in from the
+     top-left edge (and a fainter one bottom right), a few big out-of-focus petals near the edges,
+     big and small blurred light spots (bokeh) near the glow, a lace watermark in the bottom-right
+     corner, a gentle vignette at the edges and a fine film grain;
+     on each box: a thin soft-gold hairline 6px inside with little gold flourishes in its corners,
+     a scalloped lace edge with a row of tiny pearls along its top, a soft pink glow along the top
+     edge, as if lit from above right, and a faint satin sheen across it.
+   Fonts (each followed by the one for Hebrew, then for Korean):
+     app title (and this theme's button in Settings): Cormorant Infant Italic (700 for the title,
+       600 for the button), a little bigger than usual / Bona Nova / Diphylleia
+     headings: Alegreya Italic 500 at the usual sizes / Bona Nova / Diphylleia
+     (all of them with a faint warm glow)
+     reading (sentences, passages, highlights, group titles, file names, quiz): Alegreya /
+       Bona Nova / Nanum Myeongjo
+     everything else: Alegreya Sans, with even-height numbers / Alef / Gowun Dodum
+     tabs and small labels: Alegreya Sans SC (small capitals) / Alef / Gowun Dodum
+   Cormorant Infant, Alegreya, Alegreya Sans (SC) and Bona Nova have every Polish, Turkish and Russian
+   letter (checked in Chrome). */
+[data-theme="rosewater"] {
+  color-scheme: dark; /* Dark text boxes, lists and scrollbars too */
+  --font-display: "Cormorant Infant", "Bona Nova", "Diphylleia", Georgia, serif;  /* Only the app title */
+  --font-heading: "Alegreya", "Bona Nova", "Diphylleia", Georgia, serif;     /* Box titles, in italic */
+  --font-subheading: var(--font-heading);
+  --font-reading: "Alegreya", "Bona Nova", "Nanum Myeongjo", Georgia, serif;
+  --font-ui: "Alegreya Sans", "Alef", "Gowun Dodum", sans-serif;
+  --font-meta: var(--font-ui);
+  --font-nav: "Alegreya Sans SC", "Alef", "Gowun Dodum", sans-serif;  /* Tabs and small labels */
+  --heading-style: italic;
+  --heading-spacing: normal;
+  --display-style: italic;   /* An elegant italic, much easier to read than the old script */
+  --display-weight: 700;
+  --heading-weight: 500;
+  --subheading-style: italic;
+  --subheading-weight: 500;
+  --reading-weight: 400;
+  --reading-strong-weight: 500;
+  --nav-transform: none;     /* The small-capital font makes the capitals itself */
+  --nav-spacing: 0.1em;
+  --nav-weight: 500;
+  --nav-active-weight: 500;
+  --ui-weight: 500;
+  --ui-strong-weight: 500;
+  --ui-spacing: 0.01em;
+  --meta-weight: 400;
+
+  /* The page: a peach-pink glow top right, through dusty rose, to muted mauve bottom left */
+  --bg: linear-gradient(225deg, #CF9A9A 0%, #956B75 50%, #634858 100%);
+  --text: #FCEFF0;          /* Rose cream: 4.5:1 or more everywhere */
+  --muted: #F2D8DC;         /* Soft blush for hints and dates: 4.5:1 or more */
+  --title: #FCEFF0;
+
+  --card: rgba(100, 64, 80, 0.78);  /* Frosted rose glass */
+  --card-border-color: rgba(252, 239, 240, 0.16);
+  /* A faint lighter top edge, and a soft rosy shadow below */
+  --shadow: inset 0 1px 0 rgba(252, 239, 240, 0.16), 0 12px 32px rgba(52, 28, 40, 0.32);
+  --glass: blur(14px);
+
+  --accent: #F0B2AC;        /* Rose peach: chosen chips, ticked boxes and quiz numbers */
+  --accent-text: #3E2A30;   /* Dark rose on the rose peach */
+  --accent-ink: #F8DCE0;    /* Blush for links */
+
+  --nav-bg: rgba(100, 64, 80, 0.86);  /* A little more solid: it sits where the page is lightest */
+  --nav-text: #F7E3E6;
+  --nav-active-bg: rgba(248, 220, 224, 0.06);  /* A soft blush fill, with a gold line underneath (below) */
+  --nav-active-text: #FCEFF0;
+
+  --chip: rgba(72, 42, 56, 0.42);  /* Darker glass until chosen */
+  --chip-text: #FCEFF0;
+  --soft: rgba(252, 239, 240, 0.08);
+  --line: rgba(252, 239, 240, 0.16);
+  --input-bg: #7A5463;      /* Inner surfaces: entries, text boxes, quiz and word cards */
+  --input-border: rgba(252, 239, 240, 0.22);
+  --selected-bg: rgba(240, 178, 172, 0.06);
+  --bubble: #5A3C49;
+  --bubble-text: #FCEFF0;
+  /* Chosen levels: blush, rose peach and soft gold, always with dark rose letters */
+  --level-a: #F8DCE0;  --level-a-text: #3E2A30;
+  --level-b: #F0B2AC;  --level-b-text: #3E2A30;
+  --level-c: #D6B072;  --level-c-text: #3E2A30;
+
+
+  /* The small textures, drawn by the CSS itself (no picture files) */
+  --rw-caustics: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1000' height='900'%3E%3Cfilter id='c' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='turbulence' baseFrequency='0.011 0.016' numOctaves='2' seed='8'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.99 0 0 0 0 0.91 0 0 0 0 0.92 -7 0 0 0 1.25'/%3E%3CfeGaussianBlur stdDeviation='1.4'/%3E%3C/filter%3E%3Crect width='1000' height='900' filter='url(%23c)'/%3E%3C/svg%3E");
+  /* Lace, pearls and gold corner flourishes for the boxes (see .box::before) */
+  --rw-lace: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25'%3E%3Cdefs%3E%3Cpattern id='l' width='10' height='6' patternUnits='userSpaceOnUse'%3E%3Cg fill='none' stroke='rgb(252,236,238)' stroke-width='0.6'%3E%3Cpath d='M0 0.5 H10'/%3E%3Cpath d='M0 0.5 Q5 7 10 0.5'/%3E%3Ccircle cx='5' cy='2.1' r='0.75'/%3E%3C/g%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100%25' height='6' fill='url(%23l)' opacity='0.22'/%3E%3C/svg%3E");
+  --rw-pearls: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25'%3E%3Cdefs%3E%3Cpattern id='p' width='120' height='4' patternUnits='userSpaceOnUse'%3E%3Cg fill='rgb(250,230,233)'%3E%3Ccircle cx='3.0' cy='1.6' r='1'/%3E%3Ccircle cx='2.65' cy='1.2' r='0.4' fill='white' fill-opacity='0.9'/%3E%3Ccircle cx='11.5' cy='1.6' r='1'/%3E%3Ccircle cx='11.15' cy='1.2' r='0.4' fill='white' fill-opacity='0.9'/%3E%3Ccircle cx='19.0' cy='1.6' r='1'/%3E%3Ccircle cx='18.65' cy='1.2' r='0.4' fill='white' fill-opacity='0.9'/%3E%3Ccircle cx='28.5' cy='1.6' r='1'/%3E%3Ccircle cx='28.15' cy='1.2' r='0.4' fill='white' fill-opacity='0.9'/%3E%3Ccircle cx='35.0' cy='1.6' r='1'/%3E%3Ccircle cx='34.65' cy='1.2' r='0.4' fill='white' fill-opacity='0.9'/%3E%3Ccircle cx='41.5' cy='1.6' r='1'/%3E%3Ccircle cx='41.15' cy='1.2' r='0.4' fill='white' fill-opacity='0.9'/%3E%3Ccircle cx='52.5' cy='1.6' r='1'/%3E%3Ccircle cx='52.15' cy='1.2' r='0.4' fill='white' fill-opacity='0.9'/%3E%3Ccircle cx='59.0' cy='1.6' r='1'/%3E%3Ccircle cx='58.65' cy='1.2' r='0.4' fill='white' fill-opacity='0.9'/%3E%3Ccircle cx='67.5' cy='1.6' r='1'/%3E%3Ccircle cx='67.15' cy='1.2' r='0.4' fill='white' fill-opacity='0.9'/%3E%3Ccircle cx='78.5' cy='1.6' r='1'/%3E%3Ccircle cx='78.15' cy='1.2' r='0.4' fill='white' fill-opacity='0.9'/%3E%3Ccircle cx='85.0' cy='1.6' r='1'/%3E%3Ccircle cx='84.65' cy='1.2' r='0.4' fill='white' fill-opacity='0.9'/%3E%3Ccircle cx='96.0' cy='1.6' r='1'/%3E%3Ccircle cx='95.65' cy='1.2' r='0.4' fill='white' fill-opacity='0.9'/%3E%3Ccircle cx='103.5' cy='1.6' r='1'/%3E%3Ccircle cx='103.15' cy='1.2' r='0.4' fill='white' fill-opacity='0.9'/%3E%3Ccircle cx='110.0' cy='1.6' r='1'/%3E%3Ccircle cx='109.65' cy='1.2' r='0.4' fill='white' fill-opacity='0.9'/%3E%3Ccircle cx='116.5' cy='1.6' r='1'/%3E%3Ccircle cx='116.15' cy='1.2' r='0.4' fill='white' fill-opacity='0.9'/%3E%3C/g%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100%25' height='4' fill='url(%23p)' opacity='0.25'/%3E%3C/svg%3E");
+  --rw-filigree-tl: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3Cg opacity='0.4' transform=''%3E%3Cg fill='none' stroke='%23D6B072' stroke-width='0.8' stroke-linecap='round'%3E%3Cpath d='M4.4 4.4 C8 1.2 11 6.4 15 4 C18 2 21 2.2 23.5 3.6 C25.6 4.8 25.2 7.2 23.4 7 C22 6.8 22 5.3 23.2 5.1'/%3E%3Cpath d='M4.4 4.4 C1.2 8 6.4 11 4 15 C2 18 2.2 21 3.6 23.5 C4.8 25.6 7.2 25.2 7 23.4 C6.8 22 5.3 22 5.1 23.2'/%3E%3Cpath d='M15 4 C16 6.2 17.8 6.9 19.4 6.4'/%3E%3Cpath d='M4 15 C6.2 16 6.9 17.8 6.4 19.4'/%3E%3Ccircle cx='2.9' cy='2.9' r='1.3'/%3E%3C/g%3E%3Cg fill='%23D6B072'%3E%3Ccircle cx='11.2' cy='6.6' r='0.6'/%3E%3Ccircle cx='6.6' cy='11.2' r='0.6'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  --rw-filigree-tr: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3Cg opacity='0.4' transform='translate(28 0) scale(-1 1)'%3E%3Cg fill='none' stroke='%23D6B072' stroke-width='0.8' stroke-linecap='round'%3E%3Cpath d='M4.4 4.4 C8 1.2 11 6.4 15 4 C18 2 21 2.2 23.5 3.6 C25.6 4.8 25.2 7.2 23.4 7 C22 6.8 22 5.3 23.2 5.1'/%3E%3Cpath d='M4.4 4.4 C1.2 8 6.4 11 4 15 C2 18 2.2 21 3.6 23.5 C4.8 25.6 7.2 25.2 7 23.4 C6.8 22 5.3 22 5.1 23.2'/%3E%3Cpath d='M15 4 C16 6.2 17.8 6.9 19.4 6.4'/%3E%3Cpath d='M4 15 C6.2 16 6.9 17.8 6.4 19.4'/%3E%3Ccircle cx='2.9' cy='2.9' r='1.3'/%3E%3C/g%3E%3Cg fill='%23D6B072'%3E%3Ccircle cx='11.2' cy='6.6' r='0.6'/%3E%3Ccircle cx='6.6' cy='11.2' r='0.6'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  --rw-filigree-bl: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3Cg opacity='0.4' transform='translate(0 28) scale(1 -1)'%3E%3Cg fill='none' stroke='%23D6B072' stroke-width='0.8' stroke-linecap='round'%3E%3Cpath d='M4.4 4.4 C8 1.2 11 6.4 15 4 C18 2 21 2.2 23.5 3.6 C25.6 4.8 25.2 7.2 23.4 7 C22 6.8 22 5.3 23.2 5.1'/%3E%3Cpath d='M4.4 4.4 C1.2 8 6.4 11 4 15 C2 18 2.2 21 3.6 23.5 C4.8 25.6 7.2 25.2 7 23.4 C6.8 22 5.3 22 5.1 23.2'/%3E%3Cpath d='M15 4 C16 6.2 17.8 6.9 19.4 6.4'/%3E%3Cpath d='M4 15 C6.2 16 6.9 17.8 6.4 19.4'/%3E%3Ccircle cx='2.9' cy='2.9' r='1.3'/%3E%3C/g%3E%3Cg fill='%23D6B072'%3E%3Ccircle cx='11.2' cy='6.6' r='0.6'/%3E%3Ccircle cx='6.6' cy='11.2' r='0.6'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  --rw-filigree-br: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3Cg opacity='0.4' transform='translate(28 28) scale(-1 -1)'%3E%3Cg fill='none' stroke='%23D6B072' stroke-width='0.8' stroke-linecap='round'%3E%3Cpath d='M4.4 4.4 C8 1.2 11 6.4 15 4 C18 2 21 2.2 23.5 3.6 C25.6 4.8 25.2 7.2 23.4 7 C22 6.8 22 5.3 23.2 5.1'/%3E%3Cpath d='M4.4 4.4 C1.2 8 6.4 11 4 15 C2 18 2.2 21 3.6 23.5 C4.8 25.6 7.2 25.2 7 23.4 C6.8 22 5.3 22 5.1 23.2'/%3E%3Cpath d='M15 4 C16 6.2 17.8 6.9 19.4 6.4'/%3E%3Cpath d='M4 15 C6.2 16 6.9 17.8 6.4 19.4'/%3E%3Ccircle cx='2.9' cy='2.9' r='1.3'/%3E%3C/g%3E%3Cg fill='%23D6B072'%3E%3Ccircle cx='11.2' cy='6.6' r='0.6'/%3E%3Ccircle cx='6.6' cy='11.2' r='0.6'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  --rw-leak: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='700'%3E%3Cfilter id='b' x='-50%25' y='-50%25' width='200%25' height='200%25'%3E%3CfeGaussianBlur stdDeviation='55'/%3E%3C/filter%3E%3Cg filter='url(%23b)' fill='rgb(255,168,176)'%3E%3Cpath fill-opacity='0.12' d='M-80 -60 L520 -60 C470 30 380 60 300 130 C230 190 200 280 120 330 C60 370 0 420 -80 470 Z'/%3E%3Cellipse fill-opacity='0.08' cx='60' cy='180' rx='170' ry='260' transform='rotate(-18 60 180)'/%3E%3Cellipse fill-opacity='0.07' cx='250' cy='30' rx='260' ry='90' transform='rotate(12 250 30)' fill='rgb(255,190,180)'/%3E%3C/g%3E%3C/svg%3E");
+  --rw-leak-faint: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='700' height='560'%3E%3Cfilter id='b' x='-50%25' y='-50%25' width='200%25' height='200%25'%3E%3CfeGaussianBlur stdDeviation='50'/%3E%3C/filter%3E%3Cg filter='url(%23b)' fill='rgb(255,168,176)'%3E%3Cpath fill-opacity='0.07' d='M780 640 L780 200 C700 260 650 330 560 380 C470 430 380 470 300 640 Z'/%3E%3Cellipse fill-opacity='0.05' cx='640' cy='520' rx='240' ry='110' transform='rotate(-30 640 520)'/%3E%3C/g%3E%3C/svg%3E");
+  --rw-petal-1: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260' viewBox='-80 -50 260 260'%3E%3Cfilter id='b' x='-50%25' y='-50%25' width='200%25' height='200%25'%3E%3CfeGaussianBlur stdDeviation='9'/%3E%3C/filter%3E%3Cpath filter='url(%23b)' fill='rgb(255,196,190)' fill-opacity='0.11' transform='rotate(-30 50 80)' d='M50 152 C18 130 4 70 22 30 C32 12 44 14 50 24 C56 14 68 12 78 30 C96 70 82 130 50 152 Z'/%3E%3C/svg%3E");
+  --rw-petal-2: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260' viewBox='-80 -50 260 260'%3E%3Cfilter id='b' x='-50%25' y='-50%25' width='200%25' height='200%25'%3E%3CfeGaussianBlur stdDeviation='9'/%3E%3C/filter%3E%3Cpath filter='url(%23b)' fill='rgb(242,168,186)' fill-opacity='0.09' transform='rotate(40 50 80)' d='M50 152 C18 130 4 70 22 30 C32 12 44 14 50 24 C56 14 68 12 78 30 C96 70 82 130 50 152 Z'/%3E%3C/svg%3E");
+  --rw-petal-3: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260' viewBox='-80 -50 260 260'%3E%3Cfilter id='b' x='-50%25' y='-50%25' width='200%25' height='200%25'%3E%3CfeGaussianBlur stdDeviation='9'/%3E%3C/filter%3E%3Cpath filter='url(%23b)' fill='rgb(242,168,186)' fill-opacity='0.12' transform='rotate(150 50 80)' d='M50 152 C18 130 4 70 22 30 C32 12 44 14 50 24 C56 14 68 12 78 30 C96 70 82 130 50 152 Z'/%3E%3C/svg%3E");
+  --rw-petal-4: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260' viewBox='-80 -50 260 260'%3E%3Cfilter id='b' x='-50%25' y='-50%25' width='200%25' height='200%25'%3E%3CfeGaussianBlur stdDeviation='9'/%3E%3C/filter%3E%3Cpath filter='url(%23b)' fill='rgb(255,196,190)' fill-opacity='0.08' transform='rotate(200 50 80)' d='M50 152 C18 130 4 70 22 30 C32 12 44 14 50 24 C56 14 68 12 78 30 C96 70 82 130 50 152 Z'/%3E%3C/svg%3E");
+  --rw-petal-5: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260' viewBox='-80 -50 260 260'%3E%3Cfilter id='b' x='-50%25' y='-50%25' width='200%25' height='200%25'%3E%3CfeGaussianBlur stdDeviation='9'/%3E%3C/filter%3E%3Cpath filter='url(%23b)' fill='rgb(250,184,196)' fill-opacity='0.1' transform='rotate(100 50 80)' d='M50 152 C18 130 4 70 22 30 C32 12 44 14 50 24 C56 14 68 12 78 30 C96 70 82 130 50 152 Z'/%3E%3C/svg%3E");
+  /* The film grain at 5%, for inside the boxes (the glass blurs the page's own grain away) */
+  --rw-bokeh: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='560' height='420'%3E%3Cfilter id='b' x='-100%25' y='-100%25' width='300%25' height='300%25'%3E%3CfeGaussianBlur stdDeviation='5'/%3E%3C/filter%3E%3Cg filter='url(%23b)'%3E%3Ccircle cx='470' cy='70' r='17' fill='rgb(255,204,186)' fill-opacity='0.11'/%3E%3Ccircle cx='410' cy='120' r='9' fill='rgb(248,196,206)' fill-opacity='0.1'/%3E%3Ccircle cx='500' cy='160' r='13' fill='rgb(255,204,186)' fill-opacity='0.09'/%3E%3Ccircle cx='360' cy='60' r='7' fill='rgb(248,196,206)' fill-opacity='0.12'/%3E%3Ccircle cx='300' cy='110' r='12' fill='rgb(255,204,186)' fill-opacity='0.07'/%3E%3Ccircle cx='440' cy='220' r='20' fill='rgb(248,196,206)' fill-opacity='0.07'/%3E%3Ccircle cx='380' cy='180' r='6' fill='rgb(255,214,196)' fill-opacity='0.12'/%3E%3Ccircle cx='250' cy='70' r='10' fill='rgb(248,196,206)' fill-opacity='0.06'/%3E%3Ccircle cx='330' cy='250' r='8' fill='rgb(255,204,186)' fill-opacity='0.08'/%3E%3Ccircle cx='480' cy='290' r='11' fill='rgb(248,196,206)' fill-opacity='0.08'/%3E%3Ccircle cx='230' cy='160' r='15' fill='rgb(255,204,186)' fill-opacity='0.06'/%3E%3Ccircle cx='400' cy='330' r='7' fill='rgb(255,214,196)' fill-opacity='0.07'/%3E%3Ccircle cx='190' cy='240' r='9' fill='rgb(248,196,206)' fill-opacity='0.06'/%3E%3C/g%3E%3C/svg%3E");
+  --rw-lace-corner: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='340' height='340'%3E%3Cg fill='none' stroke='rgb(252,236,232)' stroke-width='2'%3E%3Cpath d='M270.0 340.0 Q260.7 329.6 272.4 321.9 Q266.1 309.4 279.4 305.0 Q276.5 291.3 290.5 290.5 Q291.3 276.5 305.0 279.4 Q309.4 266.1 321.9 272.4 Q329.6 260.7 340.0 270.0'/%3E%3Cpath d='M190.0 340.0 Q178.3 329.4 191.3 320.4 Q181.1 308.4 195.1 301.2 Q186.6 287.9 201.4 282.6 Q194.7 268.3 210.1 265.0 Q205.3 250.0 221.0 248.7 Q218.2 233.2 233.9 233.9 Q233.2 218.2 248.7 221.0 Q250.0 205.3 265.0 210.1 Q268.3 194.7 282.6 201.4 Q287.9 186.6 301.2 195.1 Q308.4 181.1 320.4 191.3 Q329.4 178.3 340.0 190.0'/%3E%3Cpath d='M110.0 340.0 Q96.2 329.4 110.9 320.0 Q98.1 308.2 113.5 300.1 Q101.8 287.2 117.8 280.5 Q107.3 266.6 123.9 261.3 Q114.6 246.6 131.5 242.8 Q123.6 227.3 140.8 225.0 Q134.2 208.9 151.6 208.1 Q146.4 191.5 163.8 192.2 Q160.1 175.2 177.4 177.4 Q175.2 160.1 192.2 163.8 Q191.5 146.4 208.1 151.6 Q208.9 134.2 225.0 140.8 Q227.3 123.6 242.8 131.5 Q246.6 114.6 261.3 123.9 Q266.6 107.3 280.5 117.8 Q287.2 101.8 300.1 113.5 Q308.2 98.1 320.0 110.9 Q329.4 96.2 340.0 110.0'/%3E%3Cpath d='M35.0 340.0 Q21.2 329.6 35.7 320.1 Q22.5 308.7 37.6 300.2 Q25.3 288.0 40.9 280.5 Q29.3 267.6 45.4 261.1 Q34.7 247.4 51.2 242.0 Q41.4 227.6 58.2 223.3 Q49.4 208.3 66.5 205.1 Q58.7 189.6 75.9 187.5 Q69.1 171.5 86.4 170.6 Q80.7 154.2 98.0 154.3 Q93.4 137.6 110.7 138.9 Q107.2 121.9 124.3 124.3 Q121.9 107.2 138.9 110.7 Q137.6 93.4 154.3 98.0 Q154.2 80.7 170.6 86.4 Q171.5 69.1 187.5 75.9 Q189.6 58.7 205.1 66.5 Q208.3 49.4 223.3 58.2 Q227.6 41.4 242.0 51.2 Q247.4 34.7 261.1 45.4 Q267.6 29.3 280.5 40.9 Q288.0 25.3 300.2 37.6 Q308.7 22.5 320.1 35.7 Q329.6 21.2 340.0 35.0'/%3E%3Cpath d='M280.0 340.0 A60 60 0 0 1 340.0 280.0'/%3E%3Cpath d='M200.0 340.0 A140 140 0 0 1 340.0 200.0'/%3E%3Cpath d='M120.0 340.0 A220 220 0 0 1 340.0 120.0'/%3E%3Cpath d='M45.0 340.0 A295 295 0 0 1 340.0 45.0'/%3E%3Cpath d='M258.2 334.6 L202.3 331.0'/%3E%3Cpath d='M179.4 318.9 L123.9 311.5'/%3E%3Cpath d='M259.6 324.0 L204.7 313.1'/%3E%3Cpath d='M183.5 298.1 L129.4 283.6'/%3E%3Cpath d='M262.4 313.6 L209.3 295.6'/%3E%3Cpath d='M190.3 278.0 L138.6 256.6'/%3E%3Cpath d='M266.5 303.7 L216.2 279.0'/%3E%3Cpath d='M199.7 259.0 L151.2 231.0'/%3E%3Cpath d='M271.8 294.4 L225.3 263.3'/%3E%3Cpath d='M211.5 241.4 L167.0 207.3'/%3E%3Cpath d='M278.3 285.9 L236.2 249.0'/%3E%3Cpath d='M225.4 225.4 L185.9 185.9'/%3E%3Cpath d='M285.9 278.3 L249.0 236.2'/%3E%3Cpath d='M241.4 211.5 L207.3 167.0'/%3E%3Cpath d='M294.4 271.8 L263.3 225.3'/%3E%3Cpath d='M259.0 199.7 L231.0 151.2'/%3E%3Cpath d='M303.7 266.5 L279.0 216.2'/%3E%3Cpath d='M278.0 190.3 L256.6 138.6'/%3E%3Cpath d='M313.6 262.4 L295.6 209.3'/%3E%3Cpath d='M298.1 183.5 L283.6 129.4'/%3E%3Cpath d='M324.0 259.6 L313.1 204.7'/%3E%3Cpath d='M318.9 179.4 L311.5 123.9'/%3E%3Cpath d='M334.6 258.2 L331.0 202.3'/%3E%3C/g%3E%3Cg fill='rgb(252,236,232)'%3E%3Ccircle cx='78.1' cy='334.3' r='3'/%3E%3Ccircle cx='78.6' cy='322.9' r='3'/%3E%3Ccircle cx='79.6' cy='311.5' r='3'/%3E%3Ccircle cx='81.0' cy='300.1' r='3'/%3E%3Ccircle cx='83.0' cy='288.9' r='3'/%3E%3Ccircle cx='85.5' cy='277.7' r='3'/%3E%3Ccircle cx='88.5' cy='266.7' r='3'/%3E%3Ccircle cx='91.9' cy='255.8' r='3'/%3E%3Ccircle cx='95.8' cy='245.0' r='3'/%3E%3Ccircle cx='100.2' cy='234.5' r='3'/%3E%3Ccircle cx='105.0' cy='224.1' r='3'/%3E%3Ccircle cx='110.3' cy='214.0' r='3'/%3E%3Ccircle cx='116.0' cy='204.1' r='3'/%3E%3Ccircle cx='122.2' cy='194.4' r='3'/%3E%3Ccircle cx='128.7' cy='185.1' r='3'/%3E%3Ccircle cx='135.7' cy='176.0' r='3'/%3E%3Ccircle cx='143.0' cy='167.3' r='3'/%3E%3Ccircle cx='150.7' cy='158.8' r='3'/%3E%3Ccircle cx='158.8' cy='150.7' r='3'/%3E%3Ccircle cx='167.3' cy='143.0' r='3'/%3E%3Ccircle cx='176.0' cy='135.7' r='3'/%3E%3Ccircle cx='185.1' cy='128.7' r='3'/%3E%3Ccircle cx='194.4' cy='122.2' r='3'/%3E%3Ccircle cx='204.1' cy='116.0' r='3'/%3E%3Ccircle cx='214.0' cy='110.3' r='3'/%3E%3Ccircle cx='224.1' cy='105.0' r='3'/%3E%3Ccircle cx='234.5' cy='100.2' r='3'/%3E%3Ccircle cx='245.0' cy='95.8' r='3'/%3E%3Ccircle cx='255.8' cy='91.9' r='3'/%3E%3Ccircle cx='266.7' cy='88.5' r='3'/%3E%3Ccircle cx='277.7' cy='85.5' r='3'/%3E%3Ccircle cx='288.9' cy='83.0' r='3'/%3E%3Ccircle cx='300.1' cy='81.0' r='3'/%3E%3Ccircle cx='311.5' cy='79.6' r='3'/%3E%3Ccircle cx='322.9' cy='78.6' r='3'/%3E%3Ccircle cx='334.3' cy='78.1' r='3'/%3E%3Cellipse cx='230.2' cy='332.8' rx='11' ry='5' transform='rotate(3.7 230.2 332.8)'/%3E%3Cellipse cx='232.1' cy='318.5' rx='11' ry='5' transform='rotate(11.2 232.1 318.5)'/%3E%3Cellipse cx='235.8' cy='304.6' rx='11' ry='5' transform='rotate(18.8 235.8 304.6)'/%3E%3Cellipse cx='241.3' cy='291.3' rx='11' ry='5' transform='rotate(26.2 241.3 291.3)'/%3E%3Cellipse cx='248.5' cy='278.9' rx='11' ry='5' transform='rotate(33.8 248.5 278.9)'/%3E%3Cellipse cx='257.3' cy='267.5' rx='11' ry='5' transform='rotate(41.2 257.3 267.5)'/%3E%3Cellipse cx='267.5' cy='257.3' rx='11' ry='5' transform='rotate(48.8 267.5 257.3)'/%3E%3Cellipse cx='278.9' cy='248.5' rx='11' ry='5' transform='rotate(56.2 278.9 248.5)'/%3E%3Cellipse cx='291.3' cy='241.3' rx='11' ry='5' transform='rotate(63.8 291.3 241.3)'/%3E%3Cellipse cx='304.6' cy='235.8' rx='11' ry='5' transform='rotate(71.2 304.6 235.8)'/%3E%3Cellipse cx='318.5' cy='232.1' rx='11' ry='5' transform='rotate(78.8 318.5 232.1)'/%3E%3Cellipse cx='332.8' cy='230.2' rx='11' ry='5' transform='rotate(86.2 332.8 230.2)'/%3E%3C/g%3E%3C/svg%3E");
+  --rw-grain-soft: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' seed='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 0.95 0 0 0 0 0.9 0 0 0 0.08 -0.0375'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  --rw-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' seed='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 0.95 0 0 0 0 0.9 0 0 0 1.6 -0.75'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+
+  scrollbar-color: rgba(235, 203, 208, 0.35) #634858;
+}
+
+[data-theme="rosewater"] ::selection {
+  background: rgba(240, 178, 172, 0.4);
+  color: #FCEFF0;
+}
+
+/* All numbers stand at the same height (some fonts let them dip below the line), so times
+   like 1:05:250 look tidy */
+[data-theme="rosewater"] body {
+  font-variant-numeric: lining-nums;
+}
+
+/* Reading includes the names of audio groups and files and the quiz answers in this theme
+   (they can be in any language) */
+[data-theme="rosewater"] .entry-group-title,
+[data-theme="rosewater"] .entry-group-name,
+[data-theme="rosewater"] .audio-file-name,
+[data-theme="rosewater"] .quiz-option {
+  font-family: var(--font-reading);
+  font-weight: var(--reading-weight);
+  font-style: normal;
+}
+
+/* Tabs and small labels in small capitals, spaced out a little (font only, the size stays) */
+[data-theme="rosewater"] .tab,
+[data-theme="rosewater"] .subtab,
+[data-theme="rosewater"] .sentence-details label,
+[data-theme="rosewater"] .openai-form label,
+[data-theme="rosewater"] .audio-picker > label,
+[data-theme="rosewater"] .audio-edit-form label,
+[data-theme="rosewater"] .quiz-kind,
+[data-theme="rosewater"] .words-known-label {
+  font-family: var(--font-nav);
+  letter-spacing: var(--nav-spacing);
+}
+
+/* The app title: Cormorant has small lower-case letters, so it's drawn a little bigger to stay easy
+   to read. Only the letters grow: the line height stays the same as in every theme, so nothing
+   else moves. (Box titles are calm Alegreya Italic at the normal sizes.) */
+[data-theme="rosewater"] h1 { font-size: 38px; }
+
+/* This theme's own card in Settings uses the title's font, a touch lighter */
+.theme-card[data-theme="rosewater"] {
+  --font-heading: var(--font-display);
+  --heading-style: italic;
+  --heading-weight: 600;
+}
+
+/* Headings glow very faintly, like warm light blooming on old film (a shadow never moves anything) */
+[data-theme="rosewater"] h1,
+[data-theme="rosewater"] h2,
+[data-theme="rosewater"] h3,
+.theme-card[data-theme="rosewater"] .theme-name,
+[data-theme="rosewater"] .backup-confirm-title,
+[data-theme="rosewater"] .type-display,
+[data-theme="rosewater"] .type-heading,
+[data-theme="rosewater"] .type-subheading {
+  text-shadow: 0 0 18px rgba(247, 210, 190, 0.25);
+}
+
+/* ----- Behind everything (fixed, drawn once, ignore taps) ----- */
+
+/* Linen folds: two or three large, soft diagonal bands of light and shade, like a white sheet
+   in sunlight (4–6%) */
+html[data-theme="rosewater"]::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    linear-gradient(118deg,
+      transparent 8%, rgba(255, 240, 242, 0.05) 18%, transparent 30%,
+      rgba(48, 26, 38, 0.06) 42%, transparent 52%,
+      rgba(255, 240, 242, 0.045) 64%, transparent 76%,
+      rgba(48, 26, 38, 0.05) 88%, transparent 98%);
+}
+
+/* Water light: a clear but soft network of rosy cream light in the bottom-left area, like
+   sunlight on bathwater, standing still. About 8% in the corner, fading to nothing.
+   One big picture, never repeated (a repeating tile showed a seam), reaching past the bottom and
+   left edges of the screen. The mask fades it out completely before its top and right edges,
+   so no edge of the layer can ever show. It is already below 5% where the boxes begin. */
+html[data-theme="rosewater"]::after {
+  content: "";
+  position: fixed;
+  bottom: -80px;
+  left: -80px;
+  width: min(760px, calc(90vw + 80px));
+  height: min(700px, calc(70vh + 80px));
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.08;
+  background: var(--rw-caustics) left bottom / 1000px 900px no-repeat;
+  -webkit-mask-image: radial-gradient(farthest-side at 0% 100%, #000 18%, rgba(0, 0, 0, 0.5) 45%, transparent 85%);
+  mask-image: radial-gradient(farthest-side at 0% 100%, #000 18%, rgba(0, 0, 0, 0.5) 45%, transparent 85%);
+}
+
+/* Dreamy glow and vignette: a few large, softly blurred light spots near the glow (peach-pink,
+   very faint), and the edges of the picture gently darkened, like an old lens. A soft, darker pool
+   of mist sits behind the app title, so it stays readable over the light top of the page
+   (about 4.5 : 1 or more, also on a phone, where the title is nearer the sun corner). */
+[data-theme="rosewater"] body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 320px 64px at 50% 36px, rgba(64, 36, 50, 0.62), rgba(64, 36, 50, 0.4) 55%, transparent),
+    radial-gradient(circle 90px at 84% 12%, rgba(255, 208, 206, 0.10), transparent),
+    radial-gradient(circle 56px at 72% 22%, rgba(255, 208, 206, 0.08), transparent),
+    radial-gradient(circle 120px at 94% 30%, rgba(255, 208, 206, 0.07), transparent),
+    radial-gradient(circle 40px at 90% 6%, rgba(255, 222, 222, 0.09), transparent),
+    radial-gradient(circle 70px at 64% 8%, rgba(255, 208, 206, 0.05), transparent),
+    radial-gradient(ellipse at 50% 45%, transparent 55%, rgba(42, 22, 34, 0.32) 100%);
+}
+
+/* Film light leak: a soft, uneven peach-pink glow bleeding in from the top-left edge, like light
+   that slipped into an old camera, and a fainter one in the bottom right. Still, and drawn into the
+   page's own background layer (the blur is drawn into the picture, not done by the browser). */
+[data-theme="rosewater"] .page-background::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    var(--rw-leak) left top / min(900px, 120vw) auto no-repeat,
+    var(--rw-leak-faint) right bottom / min(700px, 100vw) auto no-repeat;
+}
+
+/* Out-of-focus petals: a few big, very blurred petal shapes in blush and peach-pink near the edges, as if
+   roses sat right in front of the lens (8–12%). Not on a phone, where the boxes fill the screen.
+   Each petal picture has plenty of empty room around it, so its blur fades out fully and is never cut
+   off by the picture's edge. */
+[data-theme="rosewater"] .page-background::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    var(--rw-petal-1) left -128px top 16% / 376px auto no-repeat,
+    var(--rw-petal-2) left -117px bottom 6% / 433px auto no-repeat,
+    var(--rw-petal-3) right -126px top 46% / 361px auto no-repeat,
+    var(--rw-petal-4) right 8% bottom -116px / 404px auto no-repeat,
+    var(--rw-petal-5) left 20% top -133px / 332px auto no-repeat;
+}
+
+@media (max-width: 600px) {
+  [data-theme="rosewater"] .page-background::after {
+    display: none;
+  }
+}
+
+/* The extra still layers inside the page background (see index.html). Each one is bigger than the
+   area it decorates, and its mask fades it out to nothing before its own edges, so no seam or
+   hard line can ever show. */
+[data-theme="rosewater"] .bg-layer {
+  display: block;
+  position: absolute;
+  pointer-events: none;
+}
+
+/* Bath tiles: a faint grid of 60px square tiles in rose cream in the top-right corner, a bit
+   brighter in the sun glow (8%) and fading out towards the middle. The grid starts at the
+   screen's top-right corner, so the corner tile is always whole. */
+[data-theme="rosewater"] .bg-tiles {
+  top: -60px;
+  right: -60px;
+  width: min(840px, calc(80vw + 60px));
+  height: min(680px, calc(65vh + 60px));
+  background:
+    linear-gradient(to right, transparent 59px, rgba(252, 236, 232, 0.08) 59px) right top / 60px 60px,
+    linear-gradient(to bottom, rgba(252, 236, 232, 0.08) 1px, transparent 1px) right top / 60px 60px;
+  -webkit-mask-image: radial-gradient(farthest-side at 100% 0%, #000 12%, rgba(0, 0, 0, 0.75) 35%, transparent 80%);
+  mask-image: radial-gradient(farthest-side at 100% 0%, #000 12%, rgba(0, 0, 0, 0.75) 35%, transparent 80%);
+}
+
+/* Sheer voile: soft vertical folds of light and shade down the left and right edges, like a sheer
+   curtain in the sun (4–7%). They reach past the top and bottom of the screen and fade out towards
+   the middle. Not on a phone, where the boxes fill the screen. */
+[data-theme="rosewater"] .bg-voile {
+  inset: -40px 0;
+  --voile-width: min(300px, 18vw);
+  --voile-folds:
+    rgba(255, 240, 242, 0.07) 0%, transparent 11%, rgba(48, 26, 38, 0.05) 21%, transparent 31%,
+    rgba(255, 240, 242, 0.06) 42%, transparent 54%, rgba(48, 26, 38, 0.04) 66%, transparent 77%,
+    rgba(255, 240, 242, 0.045) 88%, transparent 100%;
+  background:
+    linear-gradient(to right, var(--voile-folds)) left top / var(--voile-width) 100% no-repeat,
+    linear-gradient(to left, var(--voile-folds)) right top / var(--voile-width) 100% no-repeat;
+  -webkit-mask-image: linear-gradient(to right, #000, transparent var(--voile-width), transparent calc(100% - var(--voile-width)), #000);
+  mask-image: linear-gradient(to right, #000, transparent var(--voile-width), transparent calc(100% - var(--voile-width)), #000);
+}
+
+/* Soft bokeh: thirteen small, out-of-focus round lights (12–40px, peach and blush, 6–12%) near the
+   sun glow in the top right. Heavily blurred, so they look hazy, never sparkly. The blur is drawn
+   into the picture, which has plenty of empty room around the spots, so it's never cut off. */
+[data-theme="rosewater"] .bg-bokeh {
+  top: 0;
+  right: 0;
+  width: 560px;
+  height: 420px;
+  background: var(--rw-bokeh) right top / 560px 420px no-repeat;
+}
+
+/* Lace watermark: a quarter of a round lace doily, about 300px, fading in from the bottom-right
+   corner (5%) */
+[data-theme="rosewater"] .bg-lace {
+  right: 0;
+  bottom: 0;
+  width: 340px;
+  height: 340px;
+  opacity: 0.055;
+  background: var(--rw-lace-corner) right bottom / 340px 340px no-repeat;
+  -webkit-mask-image: radial-gradient(farthest-side at 100% 100%, #000 55%, transparent 100%);
+  mask-image: radial-gradient(farthest-side at 100% 100%, #000 55%, transparent 100%);
+}
+
+/* On a phone the title sits right under the sun corner: the light spots shrink and move up into
+   the corner, the lace gets smaller, and the voile is left out (there's no room beside the boxes) */
+@media (max-width: 600px) {
+  [data-theme="rosewater"] .bg-voile {
+    display: none;
+  }
+
+  [data-theme="rosewater"] .bg-bokeh {
+    width: 336px;
+    height: 252px;
+    background-size: 336px 252px;
+  }
+
+  [data-theme="rosewater"] .bg-lace {
+    width: 220px;
+    height: 220px;
+    background-size: 220px 220px;
+  }
+}
+
+/* Film grain over the whole page */
+[data-theme="rosewater"] body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.06;
+  background: var(--rw-grain) 0 0 / 160px 160px;
+}
+
+/* Lists that open over other things need a solid background, not glass */
+[data-theme="rosewater"] .dropdown-menu {
+  background: #6A4756;
+  border: 1px solid rgba(252, 239, 240, 0.2);
+  box-shadow: 0 10px 28px rgba(42, 22, 34, 0.4);
+}
+
+[data-theme="rosewater"] .dropdown-menu li.selected {
+  background: #F0B2AC;
+  color: #3E2A30;
+}
+
+/* ----- The boxes (and the tab bar) ----- */
+
+/* A soft pink glow along the top, as if lit from above right, and the film grain
+   again (the glass blurs the page's own grain away, so it's drawn into the box itself at 5%) */
+[data-theme="rosewater"] .box,
+[data-theme="rosewater"] #main-nav {
+  background:
+    var(--rw-grain-soft) 0 0 / 160px 160px,
+    radial-gradient(ellipse 60% 70px at 85% 0, rgba(245, 182, 188, 0.07), transparent),
+    linear-gradient(180deg, rgba(248, 220, 224, 0.03), transparent 56px),
+    var(--card);
+}
+
+[data-theme="rosewater"] #main-nav {
+  background-color: var(--nav-bg);
+  background-image:
+    var(--rw-grain-soft),
+    radial-gradient(ellipse 60% 70px at 85% 0, rgba(245, 182, 188, 0.07), transparent),
+    linear-gradient(180deg, rgba(248, 220, 224, 0.03), transparent 56px);
+}
+
+/* A thin soft-gold hairline 6px inside each box, with gently rounded corners, and on it:
+     - delicate curling gold flourishes in all four corners (28px, about 40%);
+     - a fine scalloped lace edge hanging from its top line (rose cream, about 22%);
+     - a row of tiny, unevenly spaced pearls just below the lace, each with a little highlight (25%).
+   Everything sits in the box's empty 16px margin, so it never touches the text. */
+[data-theme="rosewater"] .box::before {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  z-index: -1;
+  pointer-events: none;
+  border: 1px solid rgba(214, 176, 114, 0.38);
+  border-radius: 4px;
+  background:
+    var(--rw-filigree-tl) left top / 28px 28px no-repeat,
+    var(--rw-filigree-tr) right top / 28px 28px no-repeat,
+    var(--rw-filigree-bl) left bottom / 28px 28px no-repeat,
+    var(--rw-filigree-br) right bottom / 28px 28px no-repeat,
+    var(--rw-lace) center top / calc(100% - 64px) 6px no-repeat,
+    var(--rw-pearls) center 6px / calc(100% - 72px) 4px no-repeat;
+}
+
+/* Satin sheen: a very faint, still diagonal band of light across each box, like light lying on satin.
+   It uses "lighten": it only brightens the darker parts of the glass a little, and never past
+   the colour below, so the text keeps its contrast where the glass is lightest. */
+[data-theme="rosewater"] .box::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(105deg, transparent 30%, rgba(128, 90, 104, 0.6) 55%, transparent 80%);
+  mix-blend-mode: lighten;
+}
+
+[data-theme="rosewater"] #main-nav {
+  position: relative;
+}
+
+/* ----- Controls ----- */
+
+/* Main buttons (Let’s go, Add, Save…: the ones without a class): blush into rose peach,
+   with dark rose letters and a soft light line along the top.
+   On hover: the "pearl bloom" below (instead of the shimmer the other themes have). */
+[data-theme="rosewater"] button:not([class]):not(#language-button),
+[data-theme="rosewater"] button[class=""] {
+  background: linear-gradient(115deg, #F8DCE0 0%, #F0B2AC 100%);
+  color: #3E2A30;
+  box-shadow: inset 0 1px 0 rgba(255, 246, 248, 0.6);
+  overflow: visible;  /* So the soft halo can glow around the outside */
+}
+
+/* Hover, "pearl bloom": on main buttons and chosen chips (levels, Nouns, Pure Text, repeat…).
+   Nothing moves; it all just fades in (120ms) and out again (200ms):
+     - a pearly sheen over the button, blush → peach → soft lilac → blush, like the inside of a shell;
+     - a soft pink halo around the outside, like a soft-focus film lens.
+   The sheen is one layer (::after), the halo another (::before). Both are as big as
+   the button and lie under its letters, so it never moves or changes size. The letters stay dark. */
+[data-theme="rosewater"] .filter-button.selected,
+[data-theme="rosewater"] .level.selected {
+  position: relative;
+  isolation: isolate;
+}
+
+[data-theme="rosewater"] button:not([class]):not(#language-button)::after,
+[data-theme="rosewater"] button[class=""]::after,
+[data-theme="rosewater"] .filter-button.selected::after,
+[data-theme="rosewater"] .level.selected::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;  /* Above the button's colour, below its letters */
+  pointer-events: none;
+  border-radius: inherit;
+  background:
+    linear-gradient(120deg,
+      rgba(248, 220, 224, 0.55) 0%, rgba(247, 217, 196, 0.55) 35%,
+      rgba(230, 217, 240, 0.55) 68%, rgba(248, 220, 224, 0.55) 100%);
+  opacity: 0;
+  transition: opacity 200ms ease;  /* Fading out */
+  animation: none;
+}
+
+[data-theme="rosewater"] button:not([class]):not(#language-button)::before,
+[data-theme="rosewater"] button[class=""]::before,
+[data-theme="rosewater"] .filter-button.selected::before,
+[data-theme="rosewater"] .level.selected::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: inherit;
+  box-shadow: 0 0 24px 4px rgba(248, 200, 210, 0.35);
+  opacity: 0;
+  transition: opacity 200ms ease;  /* Fading out */
+}
+
+[data-theme="rosewater"] button:not([class]):not(#language-button):is(:hover, :focus-visible)::after,
+[data-theme="rosewater"] button[class=""]:is(:hover, :focus-visible)::after,
+[data-theme="rosewater"] .filter-button.selected:is(:hover, :focus-visible)::after,
+[data-theme="rosewater"] .level.selected:is(:hover, :focus-visible)::after,
+[data-theme="rosewater"] button:not([class]):not(#language-button):is(:hover, :focus-visible)::before,
+[data-theme="rosewater"] button[class=""]:is(:hover, :focus-visible)::before,
+[data-theme="rosewater"] .filter-button.selected:is(:hover, :focus-visible)::before,
+[data-theme="rosewater"] .level.selected:is(:hover, :focus-visible)::before {
+  opacity: 1;
+  transition: opacity 120ms ease-out;  /* Fading in */
+  animation: none;
+}
+
+/* Keyboard focus: a thin soft-gold outline. Only shown when moving around with the keyboard. */
+[data-theme="rosewater"] :focus-visible {
+  outline: 1.5px solid #D6B072;
+  outline-offset: 2px;
+}
+
+/* The chosen page: a soft blush fill, with a fine soft-gold line under the name */
+[data-theme="rosewater"] .tab.active {
+  background:
+    linear-gradient(#D6B072, #D6B072) center bottom 5px / calc(100% - 32px) 1px no-repeat,
+    rgba(248, 220, 224, 0.06);
+}
+
+/* Practice / Immerse: the same soft gold line */
+[data-theme="rosewater"] .subtab.active {
+  color: #FCEFF0;
+  border-bottom-color: #D6B072;
+}
+
+/* The selected entry: a soft gold edge */
+[data-theme="rosewater"] #entry-list li.selected {
+  border-color: rgba(214, 176, 114, 0.75);
+}
+
+[data-theme="rosewater"] ::placeholder {
+  color: #E8C8CE;
+  opacity: 1;
+}
+
+/* Soft, slow colour fades on hover (nothing moves or changes size) */
+[data-theme="rosewater"] button,
+[data-theme="rosewater"] #entry-list li,
+[data-theme="rosewater"] .word-card,
+[data-theme="rosewater"] .theme-card {
+  transition: background-color 0.4s ease, border-color 0.4s ease, color 0.4s ease;
+}
+
+/* "Reduce motion" switched on: the pearl bloom simply appears and disappears, without fading */
+@media (prefers-reduced-motion: reduce) {
+  [data-theme="rosewater"] button:not([class]):not(#language-button)::after,
+  [data-theme="rosewater"] button[class=""]::after,
+  [data-theme="rosewater"] .filter-button.selected::after,
+  [data-theme="rosewater"] .level.selected::after,
+  [data-theme="rosewater"] button:not([class]):not(#language-button)::before,
+  [data-theme="rosewater"] button[class=""]::before,
+  [data-theme="rosewater"] .filter-button.selected::before,
+  [data-theme="rosewater"] .level.selected::before,
+  [data-theme="rosewater"] button:not([class]):not(#language-button):is(:hover, :focus-visible)::after,
+  [data-theme="rosewater"] button[class=""]:is(:hover, :focus-visible)::after,
+  [data-theme="rosewater"] .filter-button.selected:is(:hover, :focus-visible)::after,
+  [data-theme="rosewater"] .level.selected:is(:hover, :focus-visible)::after,
+  [data-theme="rosewater"] button:not([class]):not(#language-button):is(:hover, :focus-visible)::before,
+  [data-theme="rosewater"] button[class=""]:is(:hover, :focus-visible)::before,
+  [data-theme="rosewater"] .filter-button.selected:is(:hover, :focus-visible)::before,
+  [data-theme="rosewater"] .level.selected:is(:hover, :focus-visible)::before {
+    transition: none;
+  }
+}
+
+/* Noun genders (Grammar Lens, its legend and the gender quiz answers): solid fills, no borders or
+   underlines: misty blue-grey, a deep cool rose and soft sage leaf. All three have exactly the same
+   brightness, sit clearly darker than every box (the rose is cooler than the pink glass, so it
+   doesn't blend in), and give the rose-cream text 8.9 : 1. */
+[data-theme="rosewater"] .noun { box-shadow: none; }
+[data-theme="rosewater"] .noun.masculine { background: #3A444A; color: #FCEFF0; } /* Mist */
+[data-theme="rosewater"] .noun.feminine  { background: #60344E; color: #FCEFF0; } /* Rose */
+[data-theme="rosewater"] .noun.neuter    { background: #3C4636; color: #FCEFF0; } /* Leaf */
+
+/* Quiz right / wrong: leaf sage and a warm terracotta, with a thin ring in the same colour
+   (drawn inside, so no size change) so they can't be mistaken for the Leaf and Rose genders */
+[data-theme="rosewater"] .quiz-option.right { background: rgba(143, 165, 138, 0.42); color: #FCEFF0; box-shadow: inset 0 0 0 1px #A9BFA3; }
+[data-theme="rosewater"] .quiz-option.wrong { background: rgba(196, 98, 78, 0.45); color: #FCEFF0; box-shadow: inset 0 0 0 1px #E0907C; }
+[data-theme="rosewater"] .quiz-card.answered-right { border-left-color: #A9BFA3; }
+[data-theme="rosewater"] .quiz-card.answered-wrong { border-left-color: #E0907C; }
+[data-theme="rosewater"] .quiz-built.right,
+[data-theme="rosewater"] .quiz-result.right { border-color: #A9BFA3; }
+[data-theme="rosewater"] .quiz-built.wrong,
+[data-theme="rosewater"] .quiz-result.wrong { border-color: #E0907C; }
+
+/* The theme's button in Settings shows the misty peach-pink light, even on a dark page */
+.theme-card[data-theme="rosewater"] {
+  background:
+    radial-gradient(ellipse at 90% 0%, rgba(240, 178, 172, 0.22), transparent 65%),
+    linear-gradient(225deg, #86596A, #74505E 50%, #5A4050);
+}
+
+.theme-card[data-theme="rosewater"].selected {
+  border-color: #D6B072;
+  box-shadow: 0 0 12px rgba(240, 178, 172, 0.3);
+}
+
+
 /* ===== Basic look for the whole page ===== */
 /* Buttons, boxes and lists take the page's font and colour, instead of the browser's own
    (each one's size and colour is set further down) */
@@ -1418,7 +2008,8 @@ body {
    height and nothing moves when the theme changes */
 h1 { font-size: 32px; line-height: 40px; }
 h2 { font-size: 24px; line-height: 32px; }
-h3 { font-size: 18px; line-height: 24px; }
+h3 { font-size: 18px; line-height: 24px; margin: 18px 0; }  /* The gap in px, not the browser's "1em",
+                                                             so a theme's bigger letters can't move anything */
 
 button, input, select, textarea {
   line-height: 20px;
@@ -1436,7 +2027,7 @@ h1,
 .type-display {
   font-family: var(--font-display);
   font-weight: var(--display-weight);
-  font-style: var(--heading-style);
+  font-style: var(--display-style);
   text-transform: var(--heading-transform);
   letter-spacing: var(--heading-spacing);
 }
@@ -1615,6 +2206,11 @@ html {
   will-change: transform;
 }
 
+/* Extra decoration layers inside the page background: hidden unless a theme draws them */
+.bg-layer {
+  display: none;
+}
+
 /* Background layers (each theme draws its decorations in these, fixed behind the page):
    each gets its own compositing layer, so scrolling or a slow animation just moves a finished
    picture, and the glass boxes on top never flicker. If a theme doesn't use one, it isn't drawn. */
@@ -1660,6 +2256,78 @@ button {
   background: var(--accent);
   color: var(--accent-text);
   cursor: pointer;
+}
+
+/* ===== Main button hover =====
+   Main buttons (Let’s go, Add, Try, Save…: the ones without a class) shimmer while the pointer is
+   over them, or while they're reached with the keyboard. One layer (::after) lies over the whole
+   button, under its letters: a gradient three times as wide as the button, in the theme's colours.
+   It shows at once, even on a very short hover:
+     1. it fades in within 80ms, already placed with its bright band over the button;
+     2. a fast first sweep carries the band across (--cta-sweep-time, ease-out);
+     3. if the pointer stays, it glides on slowly from end to end and back (--cta-time, ease-in-out,
+        "alternate"). The sweep ends where the slow glide starts, both moving slowly at that moment,
+        and the gradient's first and last colours are the same, so it never jumps.
+   When the pointer leaves, it fades out over 0.2s. A button nobody is hovering doesn't animate.
+   Only the layer's background position and opacity change: the button never moves or changes size.
+   Each theme gives the colours (--cta-shimmer) and the two times. */
+button:not([class]):not(#language-button),
+button[class=""] {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+button:not([class]):not(#language-button)::after,
+button[class=""]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;  /* Above the button's colour, below its letters */
+  pointer-events: none;
+  background: var(--cta-shimmer, none);
+  background-size: 300% 100%;
+  background-position: 100% 50%;  /* Resting place (the icy band is out of view here) */
+  opacity: 0;
+  transition: opacity 0.2s ease;  /* Fading out */
+}
+
+button:not([class]):not(#language-button):hover::after,
+button[class=""]:hover::after,
+button:not([class]):not(#language-button):focus-visible::after,
+button[class=""]:focus-visible::after {
+  opacity: 1;
+  transition: opacity 0.08s ease-out;  /* Fading in, almost at once */
+  animation:
+    cta-sweep var(--cta-sweep-time, 0.6s) ease-out,
+    cta-shimmer var(--cta-time, 3s) ease-in-out var(--cta-sweep-time, 0.6s) infinite alternate;
+}
+
+/* The fast first sweep: starts with the bright band near the button's left edge, carries it across
+   and out, and ends exactly where the slow glide begins */
+@keyframes cta-sweep {
+  from { background-position: 70% 50%; }
+  to   { background-position: 0% 50%; }
+}
+
+/* The slow glide, back and forth */
+@keyframes cta-shimmer {
+  from { background-position: 0% 50%; }
+  to   { background-position: 100% 50%; }
+}
+
+/* "Reduce motion" switched on: the same colours, standing still, shown at once on hover */
+@media (prefers-reduced-motion: reduce) {
+  button:not([class]):not(#language-button)::after,
+  button[class=""]::after,
+  button:not([class]):not(#language-button):hover::after,
+  button[class=""]:hover::after,
+  button:not([class]):not(#language-button):focus-visible::after,
+  button[class=""]:focus-visible::after {
+    animation: none;
+    background-position: 50% 50%;
+    transition: none;
+  }
 }
 
 /* ===== Navigation bar ===== */
@@ -2426,23 +3094,32 @@ button:disabled {
 }
 
 /* ===== Settings: theme picker ===== */
-/* The theme buttons sit in a row, each as wide as its name, and move to the next row
-   when they don't fit (a name never breaks) */
+/* The theme buttons sit in a grid of equal columns: four in a row on a computer, two on a
+   narrower screen. So every button is exactly the same size, whatever its name or font. */
 #theme-options {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
   gap: 10px;
+}
+
+@media (max-width: 760px) {
+  #theme-options {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 /* Each theme is a button with its name, in its own colours.
    Each one carries its own data-theme, so it always shows in its own look, but its size,
-   padding, border and corners are the shared layout sizes, so all three match. */
+   padding, border and corners are the shared layout sizes, so all four match.
+   The name sits in the middle, both ways. */
 .theme-card {
   display: flex;
   align-items: center;
-  width: auto;
+  justify-content: center;
+  min-width: 0;  /* A grid column never grows to fit a long name */
+  height: var(--theme-card-height);
   padding: var(--theme-button-padding);
-  text-align: left;
+  text-align: center;
   background: var(--card);
   color: var(--text);
   border: 2px solid var(--line);
@@ -2451,13 +3128,31 @@ button:disabled {
 
 .theme-card.selected {
   border-color: var(--accent-ink);
-  box-shadow: 0 0 0 2px var(--accent-ink);
+  box-shadow: 0 0 0 2px var(--accent-ink); /* A shadow, not a thicker border, so the size stays */
 }
 
+/* Each card's name is in its own theme's font, and the fonts are very different in size
+   (Cormorant Infant has small letters, Playfair Display big and wide). So each card gets its own
+   size, measured so the four names look equally big and are about equally wide.
+   font-size-adjust tells the browser how tall each font's small letters are, so the name keeps
+   that look even while the font is still loading (browsers that don't know it simply skip it). */
 .theme-name {
-  font-size: 17px;
+  font-size: calc(var(--theme-name-size, 17px) * var(--theme-name-scale, 1));
+  font-size-adjust: var(--theme-name-adjust, none);
   line-height: 22px;
   white-space: nowrap; /* Always one line */
+}
+
+.theme-card[data-theme="riviera"]   { --theme-name-size: 14px;   --theme-name-adjust: 0.52; } /* Playfair Display */
+.theme-card[data-theme="coffee"]    { --theme-name-size: 19px;   --theme-name-adjust: 0.46; } /* Oranienbaum */
+.theme-card[data-theme="matcha"]    { --theme-name-size: 16.5px; --theme-name-adjust: 0.44; } /* Zen Old Mincho */
+.theme-card[data-theme="rosewater"] { --theme-name-size: 18.5px; --theme-name-adjust: 0.395; } /* Cormorant Infant Italic */
+
+/* On a phone the two columns are narrower, so all four names shrink by the same amount */
+@media (max-width: 600px) {
+  .theme-name {
+    --theme-name-scale: 0.86;
+  }
 }
 
 /* ===== "Saved ✓" message ===== */

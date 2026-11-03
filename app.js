@@ -1910,6 +1910,10 @@ const THEMES = [
     id: "matcha",
     name: "Kyoto Iced Matcha",
   },
+  {
+    id: "rosewater",
+    name: "Peach Rosewater",
+  },
 ];
 
 const themeOptions = document.getElementById("theme-options");
