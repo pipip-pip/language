@@ -2914,7 +2914,7 @@ button[class=""]:focus-visible::after {
   display: block;
 }
 
-/* ===== My sentences and My audios: language filter ===== */
+/* ===== My sentences and My audio: language filter ===== */
 #sentence-filter,
 #audio-filter {
   display: flex;
@@ -3281,7 +3281,9 @@ button[aria-disabled="true"] {
 .audio-repeat-buttons { grid-row: 1; grid-column: 3; }
 .audio-speed-label { grid-row: 2; grid-column: 2; }
 #audio-speed { grid-row: 2; grid-column: 3; }
-#audio-count { grid-row: 3; grid-column: 2 / -1; }
+.audio-pause-label { grid-row: 3; grid-column: 2; }
+#audio-pause { grid-row: 3; grid-column: 3; }
+#audio-count { grid-row: 4; grid-column: 2 / -1; }
 #audio-count:empty { display: none; } /* No empty row when nothing is playing */
 
 /* 18px more room before the label column, plus the grid's 6px gap = 24px after the play button,
@@ -3297,7 +3299,9 @@ button[aria-disabled="true"] {
   .audio-repeat-buttons { grid-row: 2; grid-column: 2; }
   .audio-speed-label { grid-row: 3; grid-column: 1; }
   #audio-speed { grid-row: 3; grid-column: 2; }
-  #audio-count { grid-row: 4; grid-column: 1 / -1; }
+  .audio-pause-label { grid-row: 4; grid-column: 1; }
+  #audio-pause { grid-row: 4; grid-column: 2; }
+  #audio-count { grid-row: 5; grid-column: 1 / -1; }
 }
 
 /* A square button with just the speaker icon (same size in every theme) */

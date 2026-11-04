@@ -77,8 +77,14 @@ function newAudioId() {
   return "audio-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8);
 }
 
+// A file's name without its ending: "Lesson 3.MP3" → "Lesson 3".
+// Only endings of sound files are removed, so a name like "Lesson 3.2" stays whole.
+function nameWithoutExtension(name) {
+  return name.replace(/\.(mp3|m4a|m4b|aac|wav|ogg|oga|opus|flac|wma|aif|aiff|webm|mp4|caf|amr)$/i, "") || name;
+}
+
 // The audio library: every sound file uploaded, stored once. Many sentences can use the same
-// file, each with its own part (start and end time). Looks like: [{ id: "audio-...", name: "lesson.mp3" }]
+// file, each with its own part (start and end time). Looks like: [{ id: "audio-...", name: "lesson" }]
 let audioLibrary = loadSaved("audioLibrary", []);
 
 function saveAudioLibrary() {
@@ -100,10 +106,266 @@ async function addToAudioLibrary(file, language, source) {
     return null;
   }
   // Labelled with its language, where it came from (e.g. a YouTube link) and the day it was added
-  audioLibrary.push({ id: id, name: file.name, language: language || "", source: source, date: todayForDateBox() });
+  audioLibrary.push({ id: id, name: nameWithoutExtension(file.name), language: language || "", source: source, date: todayForDateBox() });
   saveAudioLibrary();
   showSaveMessage(true);
   return id;
+}
+
+// ===== Playing a part of a sound file =====
+// Every part is played by playPart, so the times are exact on every device.
+// iPhone's Safari jumps to the wrong place in many MP3 files. So we decode the whole file into
+// plain sound samples first, and then "start" and "end" are simply positions in those samples.
+//   Speed 1×: Web Audio plays the samples directly.
+//   Other speeds: Web Audio would change the pitch of the voice, so the exact part is copied into
+//   a small WAV file and played by an <audio> element, which keeps the pitch natural.
+// Either way a part sounds the same: a very short fade-in so there's no click, and it plays a little
+// past its end time and fades out over that bit, so the last sound isn't cut off.
+// The saved start and end times never change; this is only how a part is played.
+const FADE_IN_SECONDS = 0.015;
+const TAIL_SECONDS = 0.25;
+const FILE_END_FADE_SECONDS = 0.015; // No room for a tail at the very end of a file: just avoid a click
+let audioContext = null;
+const speedPlayer = new Audio(); // One <audio> element, used only for the other speeds
+let speedPlayerUnlocked = false;
+
+// Call this during a tap: iPhone only allows sound to start from a tap
+function wakeUpAudio() {
+  if (!audioContext) {
+    // Play even when the iPhone's silent switch is on (Safari 16.4 and newer)
+    if (navigator.audioSession) navigator.audioSession.type = "playback";
+    audioContext = new AudioContext();
+  }
+  if (audioContext.state !== "running") {
+    audioContext.resume().catch(function () { /* It's tried again on the next tap */ });
+  }
+  // A tiny silent sound during the first tap. After it, iPhone lets this element play later on too
+  // (decoding takes a moment, and by then the tap would no longer count).
+  if (!speedPlayerUnlocked) {
+    speedPlayerUnlocked = true;
+    speedPlayer.src = URL.createObjectURL(makeWav(audioContext.createBuffer(1, 441, audioContext.sampleRate), 0, 0.01));
+    speedPlayer.play().catch(function () { /* Replaced by the real sound, or not allowed */ });
+  }
+}
+
+// Decoded files stay in memory, so each is only decoded once. They're big (a 10-minute stereo
+// file takes about 200 MB), so above this size the file used longest ago is dropped;
+// it's decoded again if it's needed again. Without this, a phone could close the page.
+const DECODED_AUDIO_LIMIT = 300 * 1024 * 1024;
+const decodedAudio = new Map(); // id → { decoding: a promise of the samples, size: in bytes }
+
+function decodeAudioFile(id) {
+  let saved = decodedAudio.get(id);
+  if (saved) {
+    // Move it to the end of the list: the end is the most recently used
+    decodedAudio.delete(id);
+    decodedAudio.set(id, saved);
+    return saved.decoding;
+  }
+  saved = { size: 0, decoding: null };
+  saved.decoding = loadAudioFile(id).then(function (file) {
+    if (!file) throw new Error("The sound file for this sentence wasn't found on this device.");
+    return file.arrayBuffer();
+  }).then(function (bytes) {
+    return audioContext.decodeAudioData(bytes);
+  }).then(function (buffer) {
+    saved.size = buffer.length * buffer.numberOfChannels * 4;
+    dropOldDecodedAudio();
+    return buffer;
+  });
+  saved.decoding.catch(function () { decodedAudio.delete(id); }); // Failed: try again next time
+  decodedAudio.set(id, saved);
+  return saved.decoding;
+}
+
+function dropOldDecodedAudio() {
+  let total = 0;
+  decodedAudio.forEach(function (saved) { total += saved.size; });
+  for (const [id, saved] of decodedAudio) {
+    if (total <= DECODED_AUDIO_LIMIT || decodedAudio.size === 1) break;
+    total -= saved.size;
+    decodedAudio.delete(id);
+  }
+}
+
+// Copy a part of the decoded sound into a WAV file (one channel, to keep it small).
+// A WAV starts exactly at its first sample, so there's no jumping for Safari to get wrong.
+// The fades are written into the sound itself. fadeOutFrom = where the fade-out begins (optional).
+function makeWav(buffer, from, to, fadeOutFrom) {
+  const first = Math.floor(from * buffer.sampleRate);
+  const count = Math.max(0, Math.min(Math.ceil(to * buffer.sampleRate), buffer.length) - first);
+  const wav = new DataView(new ArrayBuffer(44 + count * 2));
+  function writeText(place, text) {
+    for (let i = 0; i < text.length; i++) wav.setUint8(place + i, text.charCodeAt(i));
+  }
+  // The 44-byte header that describes the sound
+  writeText(0, "RIFF");
+  wav.setUint32(4, 36 + count * 2, true);
+  writeText(8, "WAVEfmt ");
+  wav.setUint32(16, 16, true);
+  wav.setUint16(20, 1, true); // Plain, uncompressed sound
+  wav.setUint16(22, 1, true); // One channel
+  wav.setUint32(24, buffer.sampleRate, true);
+  wav.setUint32(28, buffer.sampleRate * 2, true);
+  wav.setUint16(32, 2, true);
+  wav.setUint16(34, 16, true);
+  writeText(36, "data");
+  wav.setUint32(40, count * 2, true);
+  // The sound itself: stereo is mixed down to one channel
+  const channels = [];
+  for (let c = 0; c < buffer.numberOfChannels; c++) channels.push(buffer.getChannelData(c));
+  for (let i = 0; i < count; i++) {
+    let sample = 0;
+    channels.forEach(function (channel) { sample += channel[first + i]; });
+    const time = from + i / buffer.sampleRate;
+    let volume = Math.min(1, (time - from) / FADE_IN_SECONDS);
+    if (time > fadeOutFrom) volume *= Math.max(0, (to - time) / (to - fadeOutFrom));
+    sample = Math.max(-1, Math.min(1, volume * sample / channels.length));
+    wav.setInt16(44 + i * 2, sample * 32767, true);
+  }
+  return new Blob([wav], { type: "audio/wav" });
+}
+
+// What's playing now (only ever one thing), or null
+let currentPart = null;
+
+// Start the sound of the current part from "from" (seconds in the file), in the right way for its speed
+function startPartSound(part, from) {
+  part.from = from;
+  if (part.speed === 1) {
+    const source = audioContext.createBufferSource();
+    source.buffer = part.buffer;
+    // The volume control does the fades
+    const volume = audioContext.createGain();
+    const now = audioContext.currentTime;
+    const fadeOutAt = now + part.fadeOutFrom - from;
+    if (from < part.fadeOutFrom) {
+      volume.gain.setValueAtTime(0, now);
+      volume.gain.linearRampToValueAtTime(1, now + Math.min(FADE_IN_SECONDS, part.fadeOutFrom - from));
+      volume.gain.setValueAtTime(1, fadeOutAt);
+    } else {
+      // Carrying on in the middle of the fade-out (the speed was changed there)
+      volume.gain.setValueAtTime((part.to - from) / (part.to - part.fadeOutFrom), now);
+    }
+    volume.gain.linearRampToValueAtTime(0, now + part.to - from);
+    source.connect(volume);
+    volume.connect(audioContext.destination);
+    source.onended = function () { finishPart(part); };
+    source.start(now, from, part.to - from);
+    part.source = source;
+    part.startedAt = now;
+  } else {
+    part.wavUrl = URL.createObjectURL(makeWav(part.buffer, from, part.to, part.fadeOutFrom));
+    speedPlayer.src = part.wavUrl;
+    setSpeedPlayerRate(part.speed);
+    speedPlayer.onended = function () { finishPart(part); };
+    speedPlayer.onerror = function () { failPart(part, "This sound file can't be played."); };
+    speedPlayer.play().catch(function () { failPart(part, "Couldn't start the sound. Please tap play again."); });
+  }
+}
+
+// Loading a new sound resets the speed to the default one, so both are set
+// (webkitPreservesPitch is the older name Safari and iPhone use)
+function setSpeedPlayerRate(speed) {
+  speedPlayer.preservesPitch = true;
+  speedPlayer.webkitPreservesPitch = true;
+  speedPlayer.defaultPlaybackRate = speed;
+  speedPlayer.playbackRate = speed;
+}
+
+// Silence the part. Its "ended" handlers are removed first, so stopping doesn't count as finishing.
+function stopPartSound(part) {
+  if (part.source) {
+    part.source.onended = null;
+    part.source.stop();
+    part.source = null;
+  }
+  if (part.wavUrl) {
+    speedPlayer.onended = null;
+    speedPlayer.onerror = null;
+    speedPlayer.pause();
+    speedPlayer.removeAttribute("src");
+    URL.revokeObjectURL(part.wavUrl); // Free the memory it used
+    part.wavUrl = null;
+  }
+}
+
+// The part reached its end
+function finishPart(part) {
+  if (currentPart !== part) return;
+  stopPartSound(part);
+  currentPart = null;
+  if (part.whenEnded) part.whenEnded(part.partLength);
+}
+
+// The part couldn't play
+function failPart(part, message) {
+  if (currentPart !== part) return;
+  stopPartSound(part);
+  currentPart = null;
+  if (part.whenFailed) part.whenFailed(message);
+}
+
+// Stop whatever part is playing (nothing happens if nothing is)
+function stopPart() {
+  const part = currentPart;
+  if (!part) return;
+  stopPartSound(part);
+  currentPart = null;
+  if (part.whenStopped) part.whenStopped();
+}
+
+// Play one sound file from "start" to "end" (seconds; end = null means to the end of the file).
+// Anything already playing stops first, so two sounds never overlap.
+// "handlers" can have: whenEnded(length of the part, without its tail, in seconds at speed 1×),
+// whenStopped(), whenFailed(message).
+async function playPart(audioId, start, end, speed, handlers) {
+  stopPart();
+  wakeUpAudio(); // Before the first "await", so it's still part of the tap
+  const part = {
+    speed: speed,
+    whenEnded: handlers.whenEnded,
+    whenStopped: handlers.whenStopped,
+    whenFailed: handlers.whenFailed,
+  };
+  currentPart = part;
+  try {
+    part.buffer = await decodeAudioFile(audioId);
+  } catch (error) {
+    failPart(part, error.message.startsWith("The sound file") ? error.message : "This sound file can't be played.");
+    return;
+  }
+  if (currentPart !== part) return; // Stopped while decoding
+  const from = Math.max(0, start);
+  // An end that's missing, too early or past the end of the file means "to the end of the file"
+  const partEnd = end !== null && end > from && end < part.buffer.duration ? end : part.buffer.duration;
+  if (from >= partEnd) {
+    failPart(part, "This part starts after the end of the sound file.");
+    return;
+  }
+  part.partLength = partEnd - from;
+  part.to = Math.min(partEnd + TAIL_SECONDS, part.buffer.duration); // The tail, but never past the file's end
+  part.fadeOutFrom = part.to > partEnd ? partEnd : Math.max(from, partEnd - FILE_END_FADE_SECONDS);
+  startPartSound(part, from);
+}
+
+// A new speed in the middle of playing: carries on from the same place
+function changePartSpeed(speed) {
+  const part = currentPart;
+  if (!part) return;
+  wakeUpAudio(); // We may be changing from Web Audio to the <audio> element, or back
+  const oldSpeed = part.speed;
+  part.speed = speed;
+  if (!part.source && !part.wavUrl) return; // Still decoding: it starts at the new speed
+  if (oldSpeed !== 1 && speed !== 1) {
+    setSpeedPlayerRate(speed); // The <audio> element can just change
+    return;
+  }
+  const place = part.source
+    ? part.from + audioContext.currentTime - part.startedAt
+    : part.from + speedPlayer.currentTime;
+  stopPartSound(part);
+  startPartSound(part, Math.min(place, part.to - 0.01));
 }
 
 // A time as three number boxes: minutes : seconds : milliseconds  →  [1] : [23] : [250]
@@ -317,38 +579,27 @@ function makeAudioPicker(current, languageSelect, sourceBox) {
   //   ▶ Check end: the last 2 seconds before End, so you hear exactly where it stops
   // Only one plays at a time; the playing one turns into "■ Stop".
   const CHECK_SECONDS = 2;
-  let partWatch = null;
   let playingButton = null;
-  function stopPart() {
-    clearInterval(partWatch);
-    partWatch = null;
+  function resetPlayingButton() {
     if (playingButton) playingButton.textContent = playingButton.dataset.label;
     playingButton = null;
   }
   // Plays the audio from "from" to "to" (seconds; to = null means to the end of the file)
   function playRange(button, from, to) {
     const wasThisOne = playingButton === button;
-    if (partWatch) {
-      player.pause();
-      stopPart();
-      if (wasThisOne) return; // Pressing "■ Stop" just stops
-    }
-    // Jump to the chosen time first. If the file hasn't loaded yet, a jump is ignored,
-    // so we wait until it knows its length and jump then (otherwise it plays from "Now").
-    if (player.readyState === 0) {
-      player.addEventListener("loadedmetadata", function () { player.currentTime = Math.max(0, from); }, { once: true });
-    } else {
-      player.currentTime = Math.max(0, from);
-    }
-    player.play().catch(stopPart); // If it can't play, the button goes back
+    player.pause(); // The small player and a part never play together
+    stopPart();
+    if (wasThisOne) return; // Pressing "■ Stop" just stops
     playingButton = button;
     button.textContent = "■ Stop";
-    partWatch = setInterval(function () {
-      if (player.paused || (to !== null && to > from && player.currentTime >= to)) {
-        player.pause();
-        stopPart();
-      }
-    }, 10);
+    playPart(selected, from, to, 1, {
+      whenEnded: resetPlayingButton,
+      whenStopped: resetPlayingButton,
+      whenFailed: function (message) {
+        resetPlayingButton();
+        nowMessage.textContent = message;
+      },
+    });
   }
   // A small button that remembers its own label, so it can go back to it after "■ Stop"
   function checkButton(label, onClick) {
@@ -356,7 +607,7 @@ function makeAudioPicker(current, languageSelect, sourceBox) {
     button.dataset.label = label;
     return button;
   }
-  const playPart = checkButton("▶ Play this part", function (button) {
+  const playThisPart = checkButton("▶ Play this part", function (button) {
     playRange(button, startTime.get() || 0, endTime.get());
   });
   const checkStart = checkButton("▶ Check start", function (button) {
@@ -376,7 +627,7 @@ function makeAudioPicker(current, languageSelect, sourceBox) {
   });
   const checks = document.createElement("div");
   checks.className = "audio-checks";
-  checks.append(playPart, checkStart, checkEnd);
+  checks.append(playThisPart, checkStart, checkEnd);
   // Check start / Check end only work once that time has been typed in (greyed out until then)
   function updateChecks() {
     checkStart.disabled = startTime.get() === null;
@@ -428,7 +679,7 @@ function makeAudioPicker(current, languageSelect, sourceBox) {
       playerUrl = null;
     }
     player.removeAttribute("src");
-    if (partWatch) stopPart();
+    if (playingButton) stopPart();
     part.hidden = !selected;
     if (!selected) return;
     try {
@@ -499,12 +750,12 @@ function makeAudioPicker(current, languageSelect, sourceBox) {
     }
     filledSource = null;
     // Saved straight away, labelled with the form's language.
-    // Without a link, the source is added when the sentence is added, or in 🎧 My audios → Edit.
+    // Without a link, the source is added when the sentence is added, or in the Audio tab → Edit.
     const id = await addToAudioLibrary(file, languageSelect.value, source);
     if (id) {
       selected = id;
       refreshAudioPickers(); // The new file appears in every picker's list
-      showAudioLibrary(); // And in My audios
+      showAudioLibrary(); // And in the Audio tab
       loadPlayer();
     }
   });
@@ -533,7 +784,7 @@ function makeAudioPicker(current, languageSelect, sourceBox) {
     // Stop the small player (a player taken off the page would otherwise keep playing)
     stop: function () {
       player.pause();
-      if (partWatch) stopPart();
+      if (playingButton) stopPart();
     },
   };
 }
@@ -615,8 +866,10 @@ function showTab(tabId) {
 tabButtons.forEach(function (button) {
   button.addEventListener("click", function () {
     // Leaving a tab closes any open Edit form (unsaved changes are dropped)
-    if (editingIndex !== null) { editingIndex = null; stopAudio(); showSentences(); }
+    if (editingIndex !== null) { editingIndex = null; showSentences(); }
     if (editingAudioId !== null) { editingAudioId = null; showAudioLibrary(); }
+    // Going to another tab stops all sound
+    if (document.getElementById(button.dataset.tab).hidden) stopAllSound();
     showTab(button.dataset.tab);
     saveView();
   });
@@ -637,6 +890,7 @@ function showSubtab(panelId) {
 
 subtabButtons.forEach(function (button) {
   button.addEventListener("click", function () {
+    if (document.getElementById(button.dataset.subtab).hidden) stopAllSound();
     showSubtab(button.dataset.subtab);
     saveView();
   });
@@ -727,7 +981,7 @@ function fillLanguageMenu() {
   pageTitle.textContent = myLanguage ? languageLabel(myLanguage) : "Language Study";
   document.title = myLanguage ? languageLabel(myLanguage) : "Video Study";
 
-  // My Collection → Add sentences has no language box: it says which language is used instead
+  // Sentences tab → Add sentences has no language box: it says which language is used instead
   addLanguageNote.textContent = myLanguage
     ? "They're saved in " + languageLabel(myLanguage) + ". To add another language, change it at the top of Study."
     : "No language chosen yet. Choose one at the top of Study first.";
@@ -917,12 +1171,18 @@ const OLD_TOPIC_NAMES = {
 };
 
 // Each sentence is saved like this:
-//   { text: "Merhaba", language: "Turkish", topics: ["Greetings"], ownTopics: [],
+//   { id: "entry-...", text: "Merhaba", language: "Turkish", topics: ["Greetings"], ownTopics: [],
 //     source: "YouTube", date: "2026-10-27" }
 // "topics" are all its topics. "ownTopics" are the ones you typed yourself,
 // which are kept whenever the automatic topics are found again.
 // Older sentences may be plain text, have no language, or have a single "topic".
 // Turn them into the new shape.
+// A new, unique name for a sentence. It never changes, even when other sentences are added or deleted.
+function newEntryId() {
+  return "entry-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8);
+}
+
+let sentenceIdsAdded = false;
 let sentences = loadSaved("sentences", []).map(function (sentence) {
   if (typeof sentence === "string") {
     sentence = { text: sentence, source: "", date: "" };
@@ -942,8 +1202,14 @@ let sentences = loadSaved("sentences", []).map(function (sentence) {
       return !keywordTopics.includes(topic);
     });
   }
+  // Sentences from before ids existed (or from an older backup) get one now
+  if (!sentence.id) {
+    sentence.id = newEntryId();
+    sentenceIdsAdded = true;
+  }
   return { language: "", ...sentence };
 });
+if (sentenceIdsAdded) save("sentences", sentences, true);
 
 // Find a sentence's topics by meaning (see ai-topics.js), keep your own topics,
 // then save and show the result. This takes a moment, so it happens in the background.
@@ -1049,6 +1315,16 @@ audioLibrary.forEach(function (item) {
   if (item.language === undefined) {
     const user = sentences.find(function (sentence) { return sentence.audioId === item.id; });
     item.language = user ? user.language : "";
+    libraryChanged = true;
+  }
+});
+
+// Names saved with their ending (older files, or a restored older backup): remove the ending.
+// This also runs right after a restore, because a restore reloads the page.
+audioLibrary.forEach(function (item) {
+  const cleanName = nameWithoutExtension(item.name);
+  if (cleanName !== item.name) {
+    item.name = cleanName;
     libraryChanged = true;
   }
 });
@@ -1171,6 +1447,7 @@ function makeSentenceRow(sentence, index) {
 
     const yesButton = makeButton("Yes", "small-button delete-yes", function () {
       // Its sound file stays in the library (other sentences may use it); delete files in Settings
+      forgetKnownWords(sentences[index]); // Its known words go with it
       sentences.splice(index, 1); // Remove this one sentence
       if (editingIndex !== null && editingIndex > index) editingIndex--;
       confirmingIndex = null;
@@ -1293,7 +1570,7 @@ const sentenceFilter = document.getElementById("sentence-filter");
 let filterLanguage = "all";
 
 // Make language filter buttons in "box": All, your languages (plus any others the items use),
-// and "No language" if some items don't have one. Used by My sentences and My audios.
+// and "No language" if some items don't have one. Used by My sentences and My audio.
 // Returns the chosen filter: "current", or "all" if that language is gone
 // (e.g. its last sentence was deleted). Clicking a button calls choose(language).
 function makeLanguageFilter(box, items, current, choose) {
@@ -1407,6 +1684,7 @@ sentenceForm.addEventListener("submit", async function (event) {
   const added = newSentences.map(function (line) {
     // A quick keyword guess for the topics, until the AI model has found the best ones
     const sentence = {
+      id: newEntryId(),
       text: line,
       language: language,
       topics: detectTopics(line, language),
@@ -1537,7 +1815,7 @@ function showEntries() {
   });
 
   if (matching.length === 0) {
-    noEntries.textContent = "No entries in " + languageLabel(myLanguage) + " yet. Add some in My Collection.";
+    noEntries.textContent = "No entries in " + languageLabel(myLanguage) + " yet. Add some in the Sentences tab.";
     noEntries.hidden = false;
     return;
   }
@@ -1740,14 +2018,6 @@ let audioSpeed = Number(loadSaved("audioSpeed", 1));
 if (!SPEEDS.includes(audioSpeed)) audioSpeed = 1;
 const speedGroup = document.getElementById("audio-speed");
 
-// Give a recording the chosen speed, keeping voices at their natural pitch
-// (webkitPreservesPitch is the older name Safari and iPhone use)
-function applySpeed(audio) {
-  audio.preservesPitch = true;
-  audio.webkitPreservesPitch = true;
-  audio.playbackRate = audioSpeed;
-}
-
 function showSpeeds() {
   speedGroup.querySelectorAll("button").forEach(function (button) {
     const chosen = Number(button.dataset.speed) === audioSpeed;
@@ -1761,7 +2031,7 @@ SPEEDS.forEach(function (speed) {
     audioSpeed = speed;
     save("audioSpeed", audioSpeed);
     showSpeeds();
-    if (recording) applySpeed(recording); // Changes straight away, even in the middle of playing
+    changePartSpeed(speed); // Changes straight away, even in the middle of playing
   });
   button.dataset.speed = speed;
   button.setAttribute("aria-label", "Playback speed " + speed + "×");
@@ -1769,6 +2039,35 @@ SPEEDS.forEach(function (speed) {
   speedGroup.append(button);
 });
 showSpeeds();
+
+// The silent pause between repeats, so you can say the sentence back. Remembered like the speed.
+//   Short: 1 second.  Echo: as long as the part takes at the chosen speed.  None: no pause.
+const PAUSES = { short: "Short", echo: "Echo", none: "None" };
+const PAUSE_TIPS = { short: "Pause 1 second", echo: "Pause as long as the sentence", none: "No pause" };
+let audioPause = loadSaved("audioPause", "echo");
+if (!PAUSES[audioPause]) audioPause = "echo";
+const pauseGroup = document.getElementById("audio-pause");
+
+function showPauses() {
+  pauseGroup.querySelectorAll("button").forEach(function (button) {
+    const chosen = button.dataset.pause === audioPause;
+    button.classList.toggle("selected", chosen);
+    button.setAttribute("aria-pressed", chosen);
+  });
+}
+
+Object.keys(PAUSES).forEach(function (pause) {
+  const button = makeButton(PAUSES[pause], "filter-button", function () {
+    audioPause = pause;
+    save("audioPause", audioPause);
+    showPauses();
+  });
+  button.dataset.pause = pause;
+  button.dataset.tip = PAUSE_TIPS[pause];
+  button.setAttribute("aria-label", PAUSE_TIPS[pause]);
+  pauseGroup.append(button);
+});
+showPauses();
 
 // ===== Tooltips =====
 // Buttons with a data-tip get a small bubble above them saying what they do:
@@ -1842,103 +2141,67 @@ function showAudioState() {
   if (audioPlaying) {
     const total = audioLoops === "infinite" ? "∞" : audioLoops;
     audioCount.textContent = Math.min(audioTimesPlayed + 1, Number(audioLoops) || Infinity) + " / " + total
-      + (recording || !speakingVoiceName ? "" : " · " + speakingVoiceName); // Which voice is reading
+      + (audioEntry.audioId || !speakingVoiceName ? "" : " · " + speakingVoiceName); // Which voice is reading
   } else {
     audioCount.textContent = "";
   }
 }
 
-// The sentence's own recording while it's playing (null when using the device voice)
-let recording = null;
+// The short wait before the next repeat
+let repeatTimer = null;
 
 function stopAudio() {
   audioPlaying = false;
   audioEntry = null;
+  clearTimeout(repeatTimer);
   if ("speechSynthesis" in window) {
     speechSynthesis.cancel();
   }
-  if (recording) {
-    recording.pause();
-    URL.revokeObjectURL(recording.src); // Free the memory it used
-    recording = null;
-  }
+  stopPart();
   showAudioState();
 }
 
-// After each play: play again until the chosen number of times, then stop
-function playedOnce(playAgain) {
+// The same, and the small players in the Add and Edit forms too
+function stopAllSound() {
+  stopAudio();
+  document.querySelectorAll("audio").forEach(function (player) { player.pause(); });
+}
+
+// After each play: pause, then play again until the chosen number of times, then stop.
+// secondsPlayed = how long this round took to hear, which is how long an Echo pause lasts.
+function playedOnce(playAgain, secondsPlayed) {
   if (!audioPlaying) return;
   audioTimesPlayed++;
   const finished = audioLoops !== "infinite" && audioTimesPlayed >= Number(audioLoops);
   if (finished) {
     stopAudio();
   } else {
-    showAudioState();
-    setTimeout(playAgain, 700); // A short pause between repeats
+    let pause = 0;
+    if (audioPause === "short") pause = 1;
+    if (audioPause === "echo") pause = secondsPlayed;
+    // The counter only moves on when the next round starts, so it's right during the pause
+    repeatTimer = setTimeout(function () {
+      showAudioState();
+      playAgain();
+    }, pause * 1000);
   }
 }
 
 // Play the sentence's part of its sound file: from its start time to its end time
 // (the whole file if no times were set)
-async function playRecording(entry) {
-  let file;
-  try {
-    file = await loadAudioFile(entry.audioId);
-  } catch {
-    file = null;
-  }
-  if (!file) {
-    stopAudio();
-    audioCount.textContent = "The sound file for this sentence wasn't found on this device.";
-    return;
-  }
-  if (!audioPlaying || audioEntry !== entry) return; // Stopped while loading
-
+function playRecording(entry) {
   const start = entry.audioStart || 0;
   const end = entry.audioEnd === undefined ? null : entry.audioEnd;
-  const thisRecording = new Audio(URL.createObjectURL(file));
-  recording = thisRecording;
-  applySpeed(thisRecording);
-  let partFinished = false;
-
-  const playFromStart = function () {
-    if (!audioPlaying || recording !== thisRecording) return;
-    partFinished = false;
-    thisRecording.currentTime = start;
-    thisRecording.play().catch(function () { stopAudio(); });
-  };
-
-  // The part is over: at the end time, or at the end of the file
-  const finishPart = function () {
-    if (partFinished) return;
-    partFinished = true;
-    thisRecording.pause();
-    playedOnce(playFromStart);
-  };
-
-  // Check often whether the end time has been reached (every 10 milliseconds, so it stops right on time)
-  const watch = setInterval(function () {
-    if (recording !== thisRecording) {
-      clearInterval(watch); // Stopped: stop checking
-      return;
-    }
-    if (end !== null && !thisRecording.paused && thisRecording.currentTime >= end) {
-      finishPart();
-    }
-  }, 10);
-
-  thisRecording.onended = finishPart;
-  thisRecording.onerror = function () {
-    stopAudio();
-    audioCount.textContent = "This sound file can't be played.";
-  };
-
-  // Wait until the file's length is known, so jumping to the start time works (needed on iPhone)
-  if (thisRecording.readyState >= 1) {
-    playFromStart();
-  } else {
-    thisRecording.addEventListener("loadedmetadata", playFromStart, { once: true });
-  }
+  playPart(entry.audioId, start, end, audioSpeed, {
+    // The part is over: play it again (at the speed chosen by then) until the chosen number of times
+    whenEnded: function (partLength) {
+      playedOnce(function () { playRecording(entry); }, partLength / audioSpeed);
+    },
+    whenFailed: function (message) {
+      stopAudio();
+      audioCount.textContent = message;
+    },
+  });
 }
 
 // Apple's novelty voices (Eddy, Flo, Grandma, Bubbles…): never chosen
@@ -2003,7 +2266,8 @@ function speakOnce() {
   // (The device voice can't change speed mid-sentence, so a new speed starts with the next repeat.)
   utterance.rate = 0.9 * audioSpeed;
 
-  utterance.onend = function () { playedOnce(speakOnce); };
+  const startedSpeaking = Date.now();
+  utterance.onend = function () { playedOnce(speakOnce, (Date.now() - startedSpeaking) / 1000); };
   utterance.onerror = function () {
     stopAudio();
   };
@@ -2123,7 +2387,7 @@ THEMES.forEach(function (theme) {
 applyTheme(myTheme);
 
 
-// ===== My audios tab: audio files =====
+// ===== Audio tab: audio files =====
 const audioLibraryList = document.getElementById("audio-library");
 const noAudioFiles = document.getElementById("no-audio-files");
 let confirmingAudioId = null; // The file waiting for "Delete it?" to be answered
@@ -2158,7 +2422,7 @@ function showAudioLibrary() {
     return audioFilterLanguage === "all" || item.language === audioFilterLanguage;
   });
   if (audioLibrary.length === 0) {
-    noAudioFiles.textContent = "No audio files yet. Add one with the Audio box when adding a sentence.";
+    noAudioFiles.textContent = "No audio files yet. Add one with the Audio box in the Sentences tab.";
   } else if (shown.length === 0) {
     noAudioFiles.textContent = "No audio files in this language.";
   }
@@ -2226,6 +2490,7 @@ function showAudioLibrary() {
         users.forEach(function (sentence) { applyAudio(sentence, { audioId: "" }); });
         audioLibrary = audioLibrary.filter(function (other) { return other.id !== item.id; });
         removeAudioFile(item.id);
+        decodedAudio.delete(item.id); // Free its memory too
         confirmingAudioId = null;
         saveAudioLibrary();
         saveSentences();
@@ -2603,9 +2868,12 @@ async function showGrammarLens() {
 
 
 // ===== Immerse: Word Focus (the words of an entry and their meanings) =====
-// GPT lists every word of the selected entry once, in order: as written, its dictionary form,
-// what kind of word it is, its form in the sentence and its English meaning.
+// GPT splits the selected entry into learning units, in order: single words, and chunks of 2-4 words
+// that are best learned together. Each has: as written, its dictionary form, its type,
+// its form in the sentence (or a usage note for a chunk) and its English meaning.
 // Like Grammar Lens, the answer is saved with the entry, so each entry is only asked about once.
+// Saved lists without this format number are the old word-by-word ones: they're made again when opened.
+const WORD_LIST_FORMAT = 2;
 const wordList = document.getElementById("word-list");
 const wordFocusStatus = document.getElementById("word-focus-status");
 const wordsKnownRow = document.getElementById("words-known");
@@ -2616,20 +2884,51 @@ function showWordFocusStatus(message) {
   wordFocusStatus.hidden = !message;
 }
 
+// True if the cards use up the whole text in order, with only punctuation and spaces left over
+function wordsCoverText(text, words) {
+  let place = 0;
+  let leftOver = "";
+  for (const item of words) {
+    const found = text.indexOf(item.word, place);
+    if (found === -1) return false;
+    leftOver += text.slice(place, found);
+    place = found + item.word.length;
+  }
+  leftOver += text.slice(place);
+  return !/[\p{L}\p{N}]/u.test(leftOver);
+}
+
+// GPT sometimes misses a word: ask once more. If the second answer misses one too, it's still used.
 async function findWords(sentence) {
+  const words = await askForWords(sentence);
+  return wordsCoverText(sentence.text, words) ? words : askForWords(sentence);
+}
+
+async function askForWords(sentence) {
   const answer = await askOpenai({
     model: openaiModel,
     messages: [
       {
         role: "system",
         content:
-          "You help a language learner understand the vocabulary of a text. List every word and fixed " +
-          "expression in the user's text, in the order they first appear, each only once. Leave out names of " +
-          "people and places, and numbers. For each: word exactly as written in the text; base: its dictionary " +
-          "form (infinitive for verbs, nominative singular for nouns, masculine singular for adjectives); " +
-          "type: its kind of word; form: a short English description of its form in the text (e.g. \"genitive " +
-          "plural\", \"1st person singular, present\") or \"\" if it is the dictionary form or the language has " +
-          "no such forms; meaning: a short English meaning that fits this text (1-4 words).",
+          "You help a language learner study a text. Split the user's text into the most useful learning units, " +
+          "in the order of the text. Every word of the text must be in exactly one unit, including repeated words, " +
+          "names and numbers. Leave out only punctuation between units.\n" +
+          "Use a chunk of 2-4 words when the words belong together and are best learned together: fixed " +
+          "expressions, collocations, phrasal verbs, verb + preposition, verb + its usual object, set phrases and " +
+          "idioms. Examples: \"mam ochotę na\" (I feel like), \"jechać pociągiem\" (go by train), \"give up\", " +
+          "\"take a photo\", \"çok teşekkür ederim\" (thank you very much), \"ne zaman\" (when).\n" +
+          "Use a single word when it makes sense on its own (most nouns, adjectives, simple verbs). Never split a " +
+          "chunk into parts that lose their meaning, and don't make chunks just to group words that happen to be " +
+          "next to each other.\n" +
+          "For each unit: word: the text exactly as written in the user's text, same letters and capitals; base: " +
+          "its dictionary form (infinitive for verbs, nominative singular for nouns, masculine singular for " +
+          "adjectives; for a chunk, the form you'd find it under, e.g. \"mieć ochotę na\"); type: its kind of word " +
+          "for a single word, or phrase, collocation, phrasal verb or idiom for a chunk; form: for a single word, " +
+          "a short English description of its form in the text (e.g. \"instrumental singular\", \"1st person " +
+          "singular, present\") or \"\" if it is the dictionary form or the language has no such forms; for a " +
+          "chunk, a short note on how it's used if helpful (e.g. \"+ accusative\"), otherwise \"\"; meaning: a " +
+          "short English meaning that fits this text (1-4 words).",
       },
       {
         role: "user",
@@ -2654,7 +2953,7 @@ async function findWords(sentence) {
                   type: {
                     type: "string",
                     enum: ["noun", "verb", "adjective", "adverb", "pronoun", "preposition", "conjunction",
-                      "particle", "numeral", "expression", "other"],
+                      "particle", "numeral", "phrase", "collocation", "phrasal verb", "idiom", "other"],
                   },
                   form: { type: "string" },
                   meaning: { type: "string" },
@@ -2676,40 +2975,85 @@ async function findWords(sentence) {
 // One card per word:  pociągiem → pociąg   noun
 //                      train
 //                      instrumental singular
-// Words you've marked as known, per language, by their dictionary form in lower case:
-// { Polish: ["dzisiaj", "do"], ... }. Only kept as data (and used when making questions).
-let knownWords = loadSaved("knownWords", {});
+// Words you've marked as known, per entry (by the entry's id), by their dictionary form in lower case:
+// { "entry-...": ["dzisiaj", "do"], ... }. A word only shows as known in the entry it was marked in.
+let knownByEntry = loadSaved("knownByEntry", {});
+// Older known words that aren't in any entry's word list. They're never shown,
+// but questions still avoid them: { Polish: ["dom"], ... }
+let knownWithoutEntry = loadSaved("knownWithoutEntry", {});
+
+// Known words used to be saved per language ("knownWords"), so a word marked in one entry showed as
+// known in all of them. Move them over once (this also runs after restoring an older backup).
+// The old data doesn't say where a word was marked, so it goes on every entry whose word list
+// already has it. Entries whose words haven't been looked up yet start with nothing marked.
+const oldKnownWords = loadSaved("knownWords", null);
+if (oldKnownWords) {
+  Object.keys(oldKnownWords).forEach(function (language) {
+    oldKnownWords[language].forEach(function (key) {
+      const entries = sentences.filter(function (entry) {
+        return entry.language === language && entry.words && entry.words.list.some(function (item) {
+          return knownKey(item) === key;
+        });
+      });
+      entries.forEach(function (entry) {
+        knownByEntry[entry.id] = (knownByEntry[entry.id] || []).concat(key);
+      });
+      if (entries.length === 0) {
+        knownWithoutEntry[language] = (knownWithoutEntry[language] || []).concat(key);
+      }
+    });
+  });
+  save("knownByEntry", knownByEntry, true);
+  save("knownWithoutEntry", knownWithoutEntry, true);
+  save("knownWords", null, true); // Only removed now that the words are safely moved
+}
 
 function knownKey(item) {
   return (item.base || item.word).toLocaleLowerCase();
 }
 
-function isKnown(language, item) {
-  return (knownWords[language] || []).includes(knownKey(item));
+function isKnown(entry, item) {
+  return (knownByEntry[entry.id] || []).includes(knownKey(item));
+}
+
+function forgetKnownWords(entry) {
+  delete knownByEntry[entry.id];
+  save("knownByEntry", knownByEntry, true);
+}
+
+// Everything marked as known in a language, for making questions
+function allKnownWords(language) {
+  const words = new Set(knownWithoutEntry[language] || []);
+  sentences.forEach(function (entry) {
+    if (entry.language === language) {
+      (knownByEntry[entry.id] || []).forEach(function (key) { words.add(key); });
+    }
+  });
+  return Array.from(words);
 }
 
 // Tap a word: mark it as known, or tap it again (under "Known") to bring it back
-function toggleKnown(language, item) {
-  const list = knownWords[language] || [];
+function toggleKnown(entry, item) {
+  const list = knownByEntry[entry.id] || [];
   const key = knownKey(item);
-  knownWords[language] = list.includes(key)
+  knownByEntry[entry.id] = list.includes(key)
     ? list.filter(function (other) { return other !== key; })
     : list.concat(key);
-  save("knownWords", knownWords, true);
+  save("knownByEntry", knownByEntry, true);
   showWordFocus();
 }
 
 // The words you still need, as cards. Known words go in a small row underneath.
-function drawWordList(words, language) {
+function drawWordList(words, entry) {
   wordList.innerHTML = "";
   wordsKnownRow.innerHTML = "";
-  const known = words.filter(function (item) { return isKnown(language, item); });
+  const known = words.filter(function (item) { return isKnown(entry, item); });
   words.forEach(function (item) {
-    if (isKnown(language, item)) return;
+    if (isKnown(entry, item)) return;
     const card = document.createElement("li");
     card.className = "word-card";
-    card.title = "Tap when you know this word";
-    card.addEventListener("click", function () { toggleKnown(language, item); });
+    card.title = "Tap when you know this";
+    card.addEventListener("click", function () { toggleKnown(entry, item); });
 
     const top = document.createElement("div");
     top.className = "word-top";
@@ -2752,7 +3096,7 @@ function drawWordList(words, language) {
     wordsKnownRow.append(label);
     known.forEach(function (item) {
       wordsKnownRow.append(makeButton("✓ " + item.word, "word-known-chip", function () {
-        toggleKnown(language, item);
+        toggleKnown(entry, item);
       }));
     });
   }
@@ -2771,11 +3115,12 @@ async function showWordFocus() {
     return;
   }
 
+  const haveWords = entry.words && entry.words.text === entry.text;
   // Already found earlier for this exact text: show it straight away (no new request)
-  if (entry.words && entry.words.text === entry.text) {
-    drawWordList(entry.words.list, entry.language);
-    const toLearn = entry.words.list.filter(function (item) { return !isKnown(entry.language, item); }).length;
-    let message = countOf(toLearn, "word") + " to learn. Tap a word when you know it.";
+  if (haveWords && entry.words.format === WORD_LIST_FORMAT) {
+    drawWordList(entry.words.list, entry);
+    const toLearn = entry.words.list.filter(function (item) { return !isKnown(entry, item); }).length;
+    let message = toLearn + " to learn. Tap a card when you know it.";
     if (entry.words.list.length === 0) message = "No words found in this entry.";
     else if (toLearn === 0) message = "You know every word in this entry!";
     showWordFocusStatus(message);
@@ -2783,6 +3128,7 @@ async function showWordFocus() {
   }
 
   if (!openaiKey) {
+    if (haveWords) drawWordList(entry.words.list, entry); // The old list is better than nothing
     showWordFocusStatus("Add your OpenAI API key in Settings → OpenAI to use Word Focus.");
     return;
   }
@@ -2795,11 +3141,14 @@ async function showWordFocus() {
   wordsBeingFound = entry;
   try {
     const words = await findWords(entry);
-    entry.words = { text: entry.text, list: words }; // Remember it, so it's never asked twice
+    entry.words = { text: entry.text, list: words, format: WORD_LIST_FORMAT }; // Remember it, so it's never asked twice
     saveSentences();
   } catch (error) {
-    if (selectedEntry === entry) showWordFocusStatus(error.message);
     wordsBeingFound = null;
+    if (selectedEntry === entry) {
+      if (haveWords) drawWordList(entry.words.list, entry); // The old list is kept until a new one arrives
+      showWordFocusStatus(error.message);
+    }
     return;
   }
   wordsBeingFound = null;
@@ -2983,7 +3332,7 @@ async function askForQuestions(entry, level, target, plan) {
     : "glossary: always [].";
   // Words marked as known in Word Focus: questions practise the other words instead,
   // and known words aren't explained again (the newest 300 are sent, to keep the request short)
-  const known = (knownWords[entry.language] || []).slice(-300);
+  const known = allKnownWords(entry.language).slice(-300);
   const knownPart = known.length === 0 ? "" :
     "\nWords the learner already knows (dictionary forms): " + known.join(", ") +
     "\nPrefer the other words of the sentence for the questions (above all the form, odd and gender questions), " +
@@ -3319,8 +3668,11 @@ makeQuestionsButton.addEventListener("click", async function () {
 // A backup is one .json file with everything saved in this browser: the saved settings and
 // sentences (from localStorage) and the sound files (from IndexedDB, written out as text).
 // The OpenAI key is left out, so the file is safe to keep in iCloud Drive etc.
+// The theme is left out too: it belongs to the device, so a restore never changes it
+// (and a "theme" inside an older backup is simply ignored).
 const BACKUP_KEYS = ["sentences", "audioLibrary", "myLanguage", "myLanguages", LEVEL_KEY,
-  "practiceTarget", "audioLoops", "audioSpeed", "theme", "openaiModel", "view", "knownWords"];
+  "practiceTarget", "audioLoops", "audioSpeed", "audioPause", "openaiModel", "view", "knownWords", "knownByEntry", "knownWithoutEntry"];
+// ("knownWords" is the old format: it only exists in older backups, and is moved over after the restore)
 
 const backupDownload = document.getElementById("backup-download");
 const backupRestore = document.getElementById("backup-restore");
@@ -3364,7 +3716,7 @@ backupDownload.addEventListener("click", async function () {
 
     // Every sound file in the library, with its name and type
     const audio = {};
-    const missing = []; // Files listed in My audios whose sound isn't in this browser
+    const missing = []; // Files listed in My audio whose sound isn't in this browser
     for (const item of audioLibrary) {
       const file = await loadAudioFile(item.id);
       if (file) {

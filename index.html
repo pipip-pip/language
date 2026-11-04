@@ -48,8 +48,8 @@
   <!-- ===== Navigation bar: always visible, switches between the pages ===== -->
   <nav id="main-nav">
     <button type="button" class="tab active" data-tab="study-tab">Study</button>
-    <button type="button" class="tab" data-tab="sentences-tab">My collection</button>
-    <button type="button" class="tab" data-tab="audios-tab">My playlist</button>
+    <button type="button" class="tab" data-tab="sentences-tab">Sentences</button>
+    <button type="button" class="tab" data-tab="audios-tab">Audio</button>
     <button type="button" class="tab" data-tab="settings-tab">Settings</button>
   </nav>
 
@@ -138,6 +138,9 @@
         <!-- Playback speed: one small button per speed (filled in by app.js) -->
         <span class="audio-row-label audio-speed-label" aria-hidden="true">Speed</span>
         <span id="audio-speed" class="audio-buttons" role="group" aria-label="Playback speed"></span>
+        <!-- The silent pause between repeats: one small button per choice (filled in by app.js) -->
+        <span class="audio-row-label audio-pause-label" aria-hidden="true">Pause</span>
+        <span id="audio-pause" class="audio-buttons" role="group" aria-label="Pause between repeats"></span>
         <span id="audio-count" class="hint"></span>
       </div>
 
@@ -291,15 +294,15 @@
     </section>
   </main>
 
-  <!-- ===== My audios tab (hidden until chosen in the navigation bar) ===== -->
+  <!-- ===== Audio tab (hidden until chosen in the navigation bar) ===== -->
   <main id="audios-tab" hidden>
     <!-- Every sound file uploaded, with how many sentences use it -->
     <section class="box">
-      <h2>My audios</h2>
+      <h2>My audio</h2>
       <p class="hint">Sound files you've uploaded, labelled by language. Each one can be used by many sentences in that language. They're kept in this browser on this device only.</p>
       <!-- Filter buttons: All, then one per language (same as My sentences) -->
       <div id="audio-filter"></div>
-      <p id="no-audio-files" class="hint">No audio files yet. Add one with the Audio box when adding a sentence.</p>
+      <p id="no-audio-files" class="hint">No audio files yet. Add one with the Audio box in the Sentences tab.</p>
       <ul id="audio-library"></ul>
     </section>
   </main>
