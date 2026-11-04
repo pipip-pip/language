@@ -119,12 +119,11 @@ async function addToAudioLibrary(file, language, source) {
 //   Speed 1×: Web Audio plays the samples directly.
 //   Other speeds: Web Audio would change the pitch of the voice, so the exact part is copied into
 //   a small WAV file and played by an <audio> element, which keeps the pitch natural.
-// Either way a part sounds the same: a very short fade-in so there's no click, and it plays a little
-// past its end time and fades out over that bit, so the last sound isn't cut off.
+// Either way a part sounds the same: it plays a little past its end time, so the last sound isn't
+// cut off, with a fade too tiny to hear at the very start and end, just to avoid a click.
 // The saved start and end times never change; this is only how a part is played.
-const FADE_IN_SECONDS = 0.015;
 const TAIL_SECONDS = 0.25;
-const FILE_END_FADE_SECONDS = 0.015; // No room for a tail at the very end of a file: just avoid a click
+const CLICK_FADE_SECONDS = 0.01;
 let audioContext = null;
 const speedPlayer = new Audio(); // One <audio> element, used only for the other speeds
 let speedPlayerUnlocked = false;
@@ -218,7 +217,7 @@ function makeWav(buffer, from, to, fadeOutFrom) {
     let sample = 0;
     channels.forEach(function (channel) { sample += channel[first + i]; });
     const time = from + i / buffer.sampleRate;
-    let volume = Math.min(1, (time - from) / FADE_IN_SECONDS);
+    let volume = Math.min(1, (time - from) / CLICK_FADE_SECONDS);
     if (time > fadeOutFrom) volume *= Math.max(0, (to - time) / (to - fadeOutFrom));
     sample = Math.max(-1, Math.min(1, volume * sample / channels.length));
     wav.setInt16(44 + i * 2, sample * 32767, true);
@@ -241,10 +240,10 @@ function startPartSound(part, from) {
     const fadeOutAt = now + part.fadeOutFrom - from;
     if (from < part.fadeOutFrom) {
       volume.gain.setValueAtTime(0, now);
-      volume.gain.linearRampToValueAtTime(1, now + Math.min(FADE_IN_SECONDS, part.fadeOutFrom - from));
+      volume.gain.linearRampToValueAtTime(1, now + Math.min(CLICK_FADE_SECONDS, part.fadeOutFrom - from));
       volume.gain.setValueAtTime(1, fadeOutAt);
     } else {
-      // Carrying on in the middle of the fade-out (the speed was changed there)
+      // Carrying on in the middle of the tiny end fade (the speed was changed there)
       volume.gain.setValueAtTime((part.to - from) / (part.to - part.fadeOutFrom), now);
     }
     volume.gain.linearRampToValueAtTime(0, now + part.to - from);
@@ -295,7 +294,7 @@ function finishPart(part) {
   if (currentPart !== part) return;
   stopPartSound(part);
   currentPart = null;
-  if (part.whenEnded) part.whenEnded(part.partLength);
+  if (part.whenEnded) part.whenEnded();
 }
 
 // The part couldn't play
@@ -317,8 +316,7 @@ function stopPart() {
 
 // Play one sound file from "start" to "end" (seconds; end = null means to the end of the file).
 // Anything already playing stops first, so two sounds never overlap.
-// "handlers" can have: whenEnded(length of the part, without its tail, in seconds at speed 1×),
-// whenStopped(), whenFailed(message).
+// "handlers" can have: whenEnded(), whenStopped(), whenFailed(message).
 async function playPart(audioId, start, end, speed, handlers) {
   stopPart();
   wakeUpAudio(); // Before the first "await", so it's still part of the tap
@@ -343,9 +341,8 @@ async function playPart(audioId, start, end, speed, handlers) {
     failPart(part, "This part starts after the end of the sound file.");
     return;
   }
-  part.partLength = partEnd - from;
   part.to = Math.min(partEnd + TAIL_SECONDS, part.buffer.duration); // The tail, but never past the file's end
-  part.fadeOutFrom = part.to > partEnd ? partEnd : Math.max(from, partEnd - FILE_END_FADE_SECONDS);
+  part.fadeOutFrom = Math.max(from, part.to - CLICK_FADE_SECONDS);
   startPartSound(part, from);
 }
 
@@ -2039,35 +2036,7 @@ SPEEDS.forEach(function (speed) {
   speedGroup.append(button);
 });
 showSpeeds();
-
-// The silent pause between repeats, so you can say the sentence back. Remembered like the speed.
-//   Short: 1 second.  Echo: as long as the part takes at the chosen speed.  None: no pause.
-const PAUSES = { short: "Short", echo: "Echo", none: "None" };
-const PAUSE_TIPS = { short: "Pause 1 second", echo: "Pause as long as the sentence", none: "No pause" };
-let audioPause = loadSaved("audioPause", "echo");
-if (!PAUSES[audioPause]) audioPause = "echo";
-const pauseGroup = document.getElementById("audio-pause");
-
-function showPauses() {
-  pauseGroup.querySelectorAll("button").forEach(function (button) {
-    const chosen = button.dataset.pause === audioPause;
-    button.classList.toggle("selected", chosen);
-    button.setAttribute("aria-pressed", chosen);
-  });
-}
-
-Object.keys(PAUSES).forEach(function (pause) {
-  const button = makeButton(PAUSES[pause], "filter-button", function () {
-    audioPause = pause;
-    save("audioPause", audioPause);
-    showPauses();
-  });
-  button.dataset.pause = pause;
-  button.dataset.tip = PAUSE_TIPS[pause];
-  button.setAttribute("aria-label", PAUSE_TIPS[pause]);
-  pauseGroup.append(button);
-});
-showPauses();
+save("audioPause", null, true); // A setting that no longer exists: tidy it away
 
 // ===== Tooltips =====
 // Buttons with a data-tip get a small bubble above them saying what they do:
@@ -2167,23 +2136,20 @@ function stopAllSound() {
   document.querySelectorAll("audio").forEach(function (player) { player.pause(); });
 }
 
-// After each play: pause, then play again until the chosen number of times, then stop.
-// secondsPlayed = how long this round took to hear, which is how long an Echo pause lasts.
-function playedOnce(playAgain, secondsPlayed) {
+// After each play: play again after a tiny gap until the chosen number of times, then stop
+const REPEAT_GAP_SECONDS = 0.7; // At speed 1×. It stretches with the speed, so it feels the same at every speed
+function playedOnce(playAgain) {
   if (!audioPlaying) return;
   audioTimesPlayed++;
   const finished = audioLoops !== "infinite" && audioTimesPlayed >= Number(audioLoops);
   if (finished) {
     stopAudio();
   } else {
-    let pause = 0;
-    if (audioPause === "short") pause = 1;
-    if (audioPause === "echo") pause = secondsPlayed;
-    // The counter only moves on when the next round starts, so it's right during the pause
+    // The counter only moves on when the next round starts
     repeatTimer = setTimeout(function () {
       showAudioState();
       playAgain();
-    }, pause * 1000);
+    }, REPEAT_GAP_SECONDS / audioSpeed * 1000);
   }
 }
 
@@ -2194,8 +2160,8 @@ function playRecording(entry) {
   const end = entry.audioEnd === undefined ? null : entry.audioEnd;
   playPart(entry.audioId, start, end, audioSpeed, {
     // The part is over: play it again (at the speed chosen by then) until the chosen number of times
-    whenEnded: function (partLength) {
-      playedOnce(function () { playRecording(entry); }, partLength / audioSpeed);
+    whenEnded: function () {
+      playedOnce(function () { playRecording(entry); });
     },
     whenFailed: function (message) {
       stopAudio();
@@ -2266,8 +2232,7 @@ function speakOnce() {
   // (The device voice can't change speed mid-sentence, so a new speed starts with the next repeat.)
   utterance.rate = 0.9 * audioSpeed;
 
-  const startedSpeaking = Date.now();
-  utterance.onend = function () { playedOnce(speakOnce, (Date.now() - startedSpeaking) / 1000); };
+  utterance.onend = function () { playedOnce(speakOnce); };
   utterance.onerror = function () {
     stopAudio();
   };
@@ -3671,7 +3636,7 @@ makeQuestionsButton.addEventListener("click", async function () {
 // The theme is left out too: it belongs to the device, so a restore never changes it
 // (and a "theme" inside an older backup is simply ignored).
 const BACKUP_KEYS = ["sentences", "audioLibrary", "myLanguage", "myLanguages", LEVEL_KEY,
-  "practiceTarget", "audioLoops", "audioSpeed", "audioPause", "openaiModel", "view", "knownWords", "knownByEntry", "knownWithoutEntry"];
+  "practiceTarget", "audioLoops", "audioSpeed", "openaiModel", "view", "knownWords", "knownByEntry", "knownWithoutEntry"];
 // ("knownWords" is the old format: it only exists in older backups, and is moved over after the restore)
 
 const backupDownload = document.getElementById("backup-download");
