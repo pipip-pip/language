@@ -8,10 +8,10 @@
 
   <!-- Fonts used by the themes, all in one link (if they can't load, similar built-in fonts are used).
        Fonts for other alphabets (Hebrew: Frank Ruhl Libre, Assistant, Noto Serif Hebrew, Noto Sans Hebrew; Korean: Hahmlet,
-       Nanum Myeongjo, IBM Plex Sans KR, Gowun Batang, Nanum Gothic) are only downloaded when such letters are on the page. -->
+       Nanum Myeongjo, IBM Plex Sans KR, Gowun Batang, Nanum Gothic, Jua) are only downloaded when such letters are on the page. -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@400;500&family=Noto+Sans:wght@300;400&family=Noto+Serif+Hebrew:wght@400;500&family=Noto+Sans+Hebrew:wght@400;500&family=Gowun+Batang&family=Nanum+Gothic&family=Oranienbaum&family=Bellefair&family=Song+Myung&family=Spectral:wght@300;400&family=Noto+Serif+KR:wght@300;400&family=Tenor+Sans&family=Miriam+Libre:wght@400&family=Gothic+A1:wght@300;400&family=Sofia+Sans:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,400;1,500&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,500;1,600&family=Noto+Serif+Display:wght@400;500&family=Frank+Ruhl+Libre:wght@400;500;700&family=Hahmlet:wght@400;600&family=Nanum+Myeongjo:wght@400;700&family=Assistant:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600&family=Cormorant+Infant:ital,wght@0,500;0,600;1,500;1,600;1,700&family=Bona+Nova:ital,wght@0,400;1,400&family=Diphylleia&family=Alegreya:ital,wght@0,400;0,500;1,500&family=Alegreya+Sans:wght@400;500&family=Alegreya+Sans+SC:wght@400;500&family=Alef:wght@400;700&family=Gowun+Dodum&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@400;500&family=Noto+Sans:wght@300;400&family=Noto+Serif+Hebrew:wght@400;500&family=Noto+Sans+Hebrew:wght@400;500&family=Gowun+Batang&family=Nanum+Gothic:wght@400;700&family=Oranienbaum&family=Bellefair&family=Song+Myung&family=Spectral:wght@300;400&family=Noto+Serif+KR:wght@300;400&family=Tenor+Sans&family=Miriam+Libre:wght@400&family=Gothic+A1:wght@300;400&family=Sofia+Sans:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,400;1,500&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,500;1,600&family=Noto+Serif+Display:wght@400;500&family=Frank+Ruhl+Libre:wght@400;500;700&family=Hahmlet:wght@400;600&family=Nanum+Myeongjo:wght@400;700&family=Assistant:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600&family=Cormorant+Infant:ital,wght@0,500;0,600;1,500;1,600;1,700&family=Bona+Nova:ital,wght@0,400;1,400&family=Diphylleia&family=Alegreya:ital,wght@0,400;0,500;1,500&family=Alegreya+Sans:wght@400;500&family=Alegreya+Sans+SC:wght@400;500&family=Alef:wght@400;700&family=Gowun+Dodum&family=Grenze+Gotisch:wght@600&family=Exo+2:ital,wght@1,700&family=Pixelify+Sans:wght@400&family=VT323&family=PT+Sans:wght@400;700&family=Arimo:wght@400;700&family=Fira+Sans:wght@400;700&family=Rubik:wght@400;700&display=swap">
   <link rel="stylesheet" href="style.css">
 
   <!-- Put the saved theme on straight away, so the page doesn't flash in the wrong colours.
@@ -20,7 +20,7 @@
     document.documentElement.dataset.theme = "riviera";
     try {
       const savedTheme = JSON.parse(localStorage.getItem("theme"));
-      if (["riviera", "coffee", "matcha", "rosewater"].includes(savedTheme)) {
+      if (["riviera", "coffee", "matcha", "rosewater", "cosmopolitan"].includes(savedTheme)) {
         document.documentElement.dataset.theme = savedTheme;
       }
     } catch (error) {
@@ -32,11 +32,14 @@
   <!-- The theme's background colours, on their own layer fixed behind everything
        (screen readers skip it: it's only decoration). The empty layers inside are extra
        decorations that only Peach Rosewater draws; every other theme hides them. -->
+  <div class="phone-art phone-header-art" aria-hidden="true"></div>
   <div class="page-background" aria-hidden="true">
     <div class="bg-layer bg-tiles"></div>
     <div class="bg-layer bg-voile"></div>
     <div class="bg-layer bg-bokeh"></div>
     <div class="bg-layer bg-lace"></div>
+    <div class="phone-art phone-field-art"></div>
+    <div class="phone-art phone-gutter-art"></div>
   </div>
 
   <!-- Top row: the title (the language button is in Study → Select entry) -->

@@ -975,7 +975,18 @@ function fillLanguageMenu() {
   languageName.textContent = myLanguage ? languageLabel(myLanguage) : "Choose language";
 
   // The big title (and the browser tab's name) show the chosen language
-  pageTitle.textContent = myLanguage ? languageLabel(myLanguage) : "Language Study";
+  // The name gets its own span, so a theme can give it a metallic fill without hiding the flag
+  const titleName = document.createElement("span");
+  titleName.className = "page-title-text";
+  titleName.textContent = myLanguage || "Language Study";
+  pageTitle.replaceChildren(titleName);
+  // The flag gets its own span too, so it's the same size in every theme
+  if (LANGUAGE_FLAGS[myLanguage]) {
+    const titleFlag = document.createElement("span");
+    titleFlag.className = "page-title-flag";
+    titleFlag.textContent = LANGUAGE_FLAGS[myLanguage];
+    pageTitle.append(titleFlag);
+  }
   document.title = myLanguage ? languageLabel(myLanguage) : "Video Study";
 
   // Sentences tab → Add sentences has no language box: it says which language is used instead
@@ -2312,6 +2323,10 @@ const THEMES = [
     id: "rosewater",
     name: "Peach Rosewater",
   },
+  {
+    id: "cosmopolitan",
+    name: "Bubblegum Bling",
+  },
 ];
 
 const themeOptions = document.getElementById("theme-options");
@@ -2678,24 +2693,48 @@ function showGrammarStatus(message) {
   grammarStatus.hidden = !message;
 }
 
-// Ask GPT for every noun in a sentence and its gender.
-// The answer must follow a fixed shape: { nouns: [{ word: "kawa", gender: "feminine" }, ...] }
+// Saved results without this format number came from the older nouns-only question:
+// they're asked for again when Grammar Lens is opened.
+const GRAMMAR_FORMAT = 2;
+
+// Find the nouns of a sentence and their genders. GPT labels every word, so we can check that it
+// looked at all of them. If it missed some, ask once more; the second answer is used either way.
+// Then only the nouns are kept: [{ word: "kawa", base: "kawa", type: "noun", gender: "feminine" }, ...]
 async function findNounGenders(sentence) {
+  let words = await askForWordGenders(sentence);
+  if (!wordsCoverText(sentence.text, words)) {
+    words = await askForWordGenders(sentence);
+  }
+  return words.filter(function (item) {
+    return item.type === "noun" && item.gender !== "none";
+  });
+}
+
+// The answer must follow a fixed shape:
+// { words: [{ word: "kawa", base: "kawa", type: "noun", gender: "feminine" }, ...] }
+async function askForWordGenders(sentence) {
   const answer = await askOpenai({
     model: openaiModel,
+    temperature: 0, // So the answer stays steady
     messages: [
       {
         role: "system",
         content:
-          "You are a careful linguist. Find every noun in the user's sentence and give its grammatical gender. " +
-          "Copy each noun exactly as it is written in the sentence (same letters, same ending, same capitals). " +
-          "List the nouns in the order they appear; if the same noun appears twice, list it twice. " +
-          "Use only masculine, feminine or neuter (for Polish, masculine personal, animate and inanimate are all masculine). " +
-          "Leave out words that are not nouns, and nouns that have no gender.",
+          "You are a careful linguist. Go through the user's text and return every word, in order, leaving out " +
+          "only punctuation. If a word appears twice, list it twice. For each word:\n" +
+          "word: exactly as written in the text (same letters, same ending, same capitals).\n" +
+          "base: its dictionary form (nominative singular for nouns).\n" +
+          "type: \"noun\" or \"other\".\n" +
+          "gender: for a noun, masculine, feminine or neuter; for any other word, \"none\". " +
+          "For Polish, masculine personal, animate and inanimate are all masculine.\n" +
+          "A plural noun has the gender of its singular dictionary form, e.g. rzeczy → rzecz → feminine, " +
+          "pędzle → pędzel → masculine. Proper names that are nouns (like \"Kicia Kocia\") are nouns and get " +
+          "their gender too. Verbs, adjectives and participles are never nouns, even when they have a feminine " +
+          "or masculine ending (e.g. \"umówiła\", \"malarski\"): their type is \"other\" and their gender \"none\".",
       },
       {
         role: "user",
-        content: "Language: " + (sentence.language || "unknown") + "\nSentence: " + sentence.text,
+        content: "Language: " + (sentence.language || "unknown") + "\nText: " + sentence.text,
       },
     ],
     response_format: {
@@ -2706,26 +2745,28 @@ async function findNounGenders(sentence) {
         schema: {
           type: "object",
           properties: {
-            nouns: {
+            words: {
               type: "array",
               items: {
                 type: "object",
                 properties: {
                   word: { type: "string" },
-                  gender: { type: "string", enum: ["masculine", "feminine", "neuter"] },
+                  base: { type: "string" },
+                  type: { type: "string", enum: ["noun", "other"] },
+                  gender: { type: "string", enum: ["masculine", "feminine", "neuter", "none"] },
                 },
-                required: ["word", "gender"],
+                required: ["word", "base", "type", "gender"],
                 additionalProperties: false,
               },
             },
           },
-          required: ["nouns"],
+          required: ["words"],
           additionalProperties: false,
         },
       },
     },
   });
-  return JSON.parse(answer).nouns;
+  return JSON.parse(answer).words;
 }
 
 // Find where each noun is in the sentence, as whole words only (so "kot" isn't found inside "kotlet").
@@ -2797,13 +2838,19 @@ async function showGrammarLens() {
   }
 
   // Already found earlier for this exact text: show it straight away (no new request)
-  if (entry.grammar && entry.grammar.text === entry.text) {
+  const haveGrammar = entry.grammar && entry.grammar.text === entry.text;
+  if (haveGrammar && entry.grammar.format === GRAMMAR_FORMAT) {
     drawColouredSentence(entry.text, entry.grammar.nouns);
     showGrammarStatus(entry.grammar.nouns.length === 0 ? "No nouns with a gender found in this sentence." : "");
     return;
   }
 
-  grammarSentence.textContent = entry.text;
+  // An older result stays on screen until the new one arrives (or if a new one can't be made)
+  if (haveGrammar) {
+    drawColouredSentence(entry.text, entry.grammar.nouns);
+  } else {
+    grammarSentence.textContent = entry.text;
+  }
   if (!openaiKey) {
     showGrammarStatus("Add your OpenAI API key in Settings → OpenAI to use Grammar Lens.");
     return;
@@ -2816,7 +2863,7 @@ async function showGrammarLens() {
   grammarBeingFound = entry;
   try {
     const nouns = await findNounGenders(entry);
-    entry.grammar = { text: entry.text, nouns: nouns }; // Remember it, so it's never asked twice
+    entry.grammar = { text: entry.text, nouns: nouns, format: GRAMMAR_FORMAT }; // Remember it, so it's never asked twice
     saveSentences();
   } catch (error) {
     if (selectedEntry === entry) showGrammarStatus(error.message);
@@ -3138,6 +3185,19 @@ const QUESTION_TYPES = {
   gender: "Gender",
 };
 
+// At these levels, instructions, questions and explanations are in the practice language too
+const IMMERSION_LEVELS = ["C1", "C2"];
+
+// The line at the top of each question card at A1-B2. It's fixed here, not written by GPT,
+// so it's never in the wrong language. At C1-C2, GPT writes it in the practice language.
+const QUESTION_INSTRUCTIONS = {
+  reading: "Read the text and answer the question.",
+  form: "Choose the correct form for the gap.",
+  order: "Tap the words to put them in the right order.",
+  odd: "Which word doesn't belong?",
+  gender: "What is the gender of this noun?",
+};
+
 const GENDER_QUESTION_LEVELS = ["A1", "A2", "B1", "B2"];
 
 // At these levels, each question lists the meanings of its words that aren't in the selected entry
@@ -3255,10 +3315,11 @@ async function makeQuestionSet(entry, level, target) {
 }
 
 // One question type, as described to GPT
-function questionRule(type, words, genders, target) {
+function questionRule(type, words, genders, target, guideLanguage) {
   if (type === "reading") {
     return "type \"reading\": a NEW passage of 1-2 short sentences on the same topic, using some of the sentence's " +
-      "words; a short question about it; 3 options (4 for B1 and above); answer_index is the correct option.";
+      "words; a short question about it, written in " + guideLanguage + "; 3 options (4 for B1 and above); " +
+      "answer_index is the correct option.";
   }
   if (type === "form") {
     return "type \"form\": a short sentence with one " + words.one + " replaced by ___ and its base form in brackets " +
@@ -3285,6 +3346,8 @@ function questionRule(type, words, genders, target) {
 async function askForQuestions(entry, level, target, plan) {
   const words = targetWords(target);
   const genders = genderChoices(entry, level);
+  // The language of everything that says what to do or explains the answer
+  const guideLanguage = IMMERSION_LEVELS.includes(level) ? entry.language : "English";
   // A1-B1: explain the new words in each question
   const wordHelpPart = WORD_HELP_LEVELS.includes(level)
     ? "glossary: list the words in this question (passage, question, options, answer_sentence) that are NOT in " +
@@ -3304,7 +3367,7 @@ async function askForQuestions(entry, level, target, plan) {
     "and never list a known word in a glossary.";
   // The plan as a numbered list, e.g. "1. type "odd": …". A type used twice should ask about different words.
   const planPart = plan.map(function (type, index) {
-    return (index + 1) + ". " + questionRule(type, words, genders, target);
+    return (index + 1) + ". " + questionRule(type, words, genders, target, guideLanguage);
   }).join("\n") + "\nIf a type appears twice, use different words in each.\n";
 
   const answer = await askOpenai({
@@ -3313,16 +3376,20 @@ async function askForQuestions(entry, level, target, plan) {
       {
         role: "system",
         content:
-          "You write short practice questions for a language learner. Everything the learner reads in the questions " +
-          "(passages, questions, options, sentences) is in " + entry.language + ". Instructions and explanations are " +
-          "in simple English. Match CEFR level " + level + ": simple words and grammar for A1-A2, richer for B1-B2, " +
-          "natural and advanced for C1-C2. Keep everything short. Focus on " + words.focus + ". Reuse words from the " +
+          "You write short practice questions for a language learner. The exercise content is in " + entry.language +
+          ": passages, the sentence with the gap in a form question, options, answer_sentence and the noun in a " +
+          "gender question. The instruction, the question about a reading passage and the explanation are in clear, " +
+          "simple " + guideLanguage + ". Match CEFR level " + level + " in the exercise content: simple words and " +
+          "grammar for A1-A2, richer for B1-B2, natural and advanced for C1-C2. Keep everything short. Focus on " + words.focus + ". Reuse words from the " +
           "learner's sentence and stay on its topic. Every question has exactly one correct answer.\n\n" +
           "Write exactly " + plan.length + " questions, in this order:\n" +
           planPart + "\n" +
           "Use \"\" for passage when there is none, [] for options when there are none, -1 for answer_index when " +
-          "there is none, and \"\" for answer_sentence except in the order question. explanation: one short English " +
-          "sentence explaining the answer.\n" + wordHelpPart,
+          "there is none, and \"\" for answer_sentence except in the order question. instruction: one short line " +
+          "telling the learner what to do, in " + guideLanguage + ". explanation: one short sentence in " +
+          guideLanguage + " explaining the answer.\n" + wordHelpPart + "\n" +
+          // Said again at the very end, because GPT tended to forget it
+          "The instruction, the question about a reading passage and the explanation must be in " + guideLanguage + ".",
       },
       {
         role: "user",
@@ -3344,20 +3411,24 @@ async function askForQuestions(entry, level, target, plan) {
                 type: "object",
                 properties: {
                   type: { type: "string", enum: ["reading", "form", "order", "odd", "gender"] },
-                  instruction: { type: "string" },
+                  instruction: { type: "string", description: "Written in " + guideLanguage + "." },
                   passage: { type: "string" },
-                  question: { type: "string" },
+                  // A form question keeps its sentence with the gap here, so that stays in the practice language
+                  question: {
+                    type: "string",
+                    description: "Reading question: written in " + guideLanguage + ". Form question: the sentence with the gap, in " + entry.language + ".",
+                  },
                   options: { type: "array", items: { type: "string" } },
                   answer_index: { type: "integer" },
                   answer_sentence: { type: "string" },
-                  explanation: { type: "string" },
+                  explanation: { type: "string", description: "Written in " + guideLanguage + "." },
                   glossary: {
                     type: "array",
                     items: {
                       type: "object",
                       properties: {
                         word: { type: "string" },
-                        meaning: { type: "string" },
+                        meaning: { type: "string", description: "Always in simple English, at every CEFR level." },
                       },
                       required: ["word", "meaning"],
                       additionalProperties: false,
@@ -3386,6 +3457,9 @@ async function askForQuestions(entry, level, target, plan) {
 
   // Keep only questions that can really be answered
   return ordered.filter(function (question) {
+    if (!IMMERSION_LEVELS.includes(level)) {
+      question.instruction = QUESTION_INSTRUCTIONS[question.type];
+    }
     if (!WORD_HELP_LEVELS.includes(level)) {
       question.glossary = []; // Word help is only for A1-B1
     }
@@ -3736,6 +3810,17 @@ backupFile.addEventListener("change", async function () {
     countOf(Object.keys(backupToRestore.audio || {}).length, "audio file") + ".";
   backupConfirm.hidden = false;
   showBackupStatus("");
+  // Backup is the last section, so the box can open below the bottom of an iPhone's screen.
+  // Wait a moment first: the iPhone's file picker is still closing, and a scroll now could get lost.
+  setTimeout(function () {
+    if (backupConfirm.hidden) return; // Already answered: nothing to show
+    // Cancel gets the focus, so a stray Enter or VoiceOver tap can't replace the data by accident.
+    // preventScroll: only the scroll below moves the page
+    backupNo.focus({ preventScroll: true });
+    // Glide to the box, or jump straight there if "Reduce motion" is switched on
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    backupConfirm.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "center" });
+  }, 200);
 });
 
 backupNo.addEventListener("click", function () {
