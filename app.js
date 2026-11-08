@@ -960,19 +960,131 @@ ALL_LANGUAGES.forEach(function (language) {
 });
 
 
-// --- The language button (at the top of Study) ---
+// --- The language button: one design, used at the top of Study and in the sentence forms ---
+// The parts every language button shares: opening, closing, the keyboard and screen readers.
+
+function setDropdownOpen(dropdown, open) {
+  dropdown.classList.toggle("open", open);
+  dropdown.querySelector("button").setAttribute("aria-expanded", String(open));
+}
+
+// Keyboard users land on the chosen language in the list (or the first one if none is chosen)
+function focusChosenItem(menu) {
+  const item = menu.querySelector("li.selected") || menu.querySelector("li");
+  if (item) item.focus();
+}
+
+function setUpDropdown(dropdown, button, menu) {
+  button.setAttribute("aria-haspopup", "listbox");
+  button.setAttribute("aria-expanded", "false");
+  menu.setAttribute("role", "listbox");
+
+  // On a touch screen, tapping the button opens and closes the list.
+  // "detail" is 0 when Enter, Space or a screen reader pressed it instead of a mouse or finger:
+  // those need it to open on a computer too, where a mouse just hovers over the button.
+  button.addEventListener("click", function (event) {
+    if (!canHover || event.detail === 0) {
+      setDropdownOpen(dropdown, !dropdown.classList.contains("open"));
+    }
+    if (event.detail === 0 && dropdown.classList.contains("open")) {
+      focusChosenItem(menu);
+    }
+  });
+
+  // The up and down arrows open the list too
+  button.addEventListener("keydown", function (event) {
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      setDropdownOpen(dropdown, true);
+      focusChosenItem(menu);
+    }
+  });
+
+  // Inside the list: arrows, Home and End move, Enter or Space chooses, Escape closes, Tab leaves
+  menu.addEventListener("keydown", function (event) {
+    const items = Array.from(menu.querySelectorAll("li"));
+    const here = items.indexOf(event.target);
+    let next = null;
+    if (event.key === "ArrowDown") next = items[Math.min(here + 1, items.length - 1)];
+    if (event.key === "ArrowUp") next = items[Math.max(here - 1, 0)];
+    if (event.key === "Home") next = items[0];
+    if (event.key === "End") next = items[items.length - 1];
+
+    if (next) {
+      event.preventDefault();
+      next.focus();
+    } else if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault(); // Enter must not send the form
+      event.target.click();
+      button.focus();
+    } else if (event.key === "Escape") {
+      setDropdownOpen(dropdown, false);
+      button.focus();
+    } else if (event.key === "Tab") {
+      setDropdownOpen(dropdown, false);
+    }
+  });
+}
+
+// Fill a language list with the languages ticked in Settings.
+// Choosing one calls pick(language); what that changes is up to each button.
+function fillLanguageItems(dropdown, menu, chosen, pick) {
+  menu.innerHTML = "";
+
+  function addItem(text, className, onClick) {
+    const item = document.createElement("li");
+    item.textContent = text;
+    item.className = className;
+    item.tabIndex = -1; // Reached with the arrow keys, not with Tab
+    item.setAttribute("role", "option");
+    item.setAttribute("aria-selected", String(className === "selected"));
+    item.addEventListener("click", function () {
+      setDropdownOpen(dropdown, false);
+      onClick();
+    });
+    menu.append(item);
+  }
+
+  if (myLanguages.length === 0) {
+    // Nothing ticked yet: offer a shortcut to Settings
+    addItem("Add languages in Settings", "hint-item", function () {
+      showTab("settings-tab");
+    });
+    return;
+  }
+
+  myLanguages.forEach(function (language) {
+    addItem(languageLabel(language), language === chosen ? "selected" : "", function () {
+      pick(language);
+    });
+  });
+}
+
+// Tapping anywhere else closes an open list. "pointerdown" as well as "click",
+// because iPhone Safari sends no click when you tap an empty part of the page.
+function closeOtherDropdowns(event) {
+  document.querySelectorAll(".dropdown.open").forEach(function (dropdown) {
+    if (!dropdown.contains(event.target)) {
+      setDropdownOpen(dropdown, false);
+    }
+  });
+}
+document.addEventListener("click", closeOtherDropdowns);
+document.addEventListener("pointerdown", closeOtherDropdowns);
+
+
+// --- The language button at the top of Study ---
 const languageDropdown = document.getElementById("language-dropdown");
 const languageButton = document.getElementById("language-button");
 const languageName = document.getElementById("language-name");
 const languageMenu = document.getElementById("language-menu");
 
 const pageTitle = document.getElementById("page-title");
-const addLanguageNote = document.getElementById("add-language-note");
 
 // Fill the language list with the languages ticked in Settings
 function fillLanguageMenu() {
-  languageMenu.innerHTML = "";
   languageName.textContent = myLanguage ? languageLabel(myLanguage) : "Choose language";
+  languageButton.setAttribute("aria-label", "Language: " + languageName.textContent);
 
   // The big title (and the browser tab's name) show the chosen language
   // The name gets its own span, so a theme can give it a metallic fill without hiding the flag
@@ -989,54 +1101,53 @@ function fillLanguageMenu() {
   }
   document.title = myLanguage ? languageLabel(myLanguage) : "Video Study";
 
-  // Sentences tab → Add sentences has no language box: it says which language is used instead
-  addLanguageNote.textContent = myLanguage
-    ? "They're saved in " + languageLabel(myLanguage) + ". To add another language, change it at the top of Study."
-    : "No language chosen yet. Choose one at the top of Study first.";
-
-  if (myLanguages.length === 0) {
-    // Nothing ticked yet: offer a shortcut to Settings
-    const item = document.createElement("li");
-    item.textContent = "Add languages in Settings";
-    item.className = "hint-item";
-    item.addEventListener("click", function () {
-      languageDropdown.classList.remove("open");
-      showTab("settings-tab");
-    });
-    languageMenu.append(item);
-    return;
-  }
-
-  myLanguages.forEach(function (language) {
-    const item = document.createElement("li");
-    item.textContent = languageLabel(language);
-    item.classList.toggle("selected", language === myLanguage);
-    item.addEventListener("click", function () {
-      myLanguage = language;
-      saveMyLanguage();
-      languageDropdown.classList.remove("open");
-      fillLanguageMenu();
-      fillLanguageSelect(sentenceLanguage, language); // New sentences use this language too
-      refreshAudioPickers(); // So the Audio list shows this language's files
-      showEntries(); // Study only shows entries in this language
-    });
-    languageMenu.append(item);
+  fillLanguageItems(languageDropdown, languageMenu, myLanguage, function (language) {
+    myLanguage = language;
+    saveMyLanguage();
+    fillLanguageMenu();
+    resetAddFormLanguage(); // New sentences start in this language too
+    refreshAudioPickers(); // So the Audio list shows this language's files
+    showEntries(); // Study only shows entries in this language
   });
 }
 
-// On a touch screen, tapping the button opens and closes the list
-languageButton.addEventListener("click", function () {
-  if (!canHover) {
-    languageDropdown.classList.toggle("open");
-  }
-});
+setUpDropdown(languageDropdown, languageButton, languageMenu);
 
-// Tapping anywhere else closes the list
-document.addEventListener("click", function (event) {
-  if (!languageDropdown.contains(event.target)) {
-    languageDropdown.classList.remove("open");
+
+// --- The language button in a sentence form ---
+// It looks and works just like Study's, but only changes the form's own hidden language box,
+// so Study's language stays as it is. The box also tells the audio list and the Source
+// suggestions when the language changes.
+function makeLanguagePicker(select) {
+  const dropdown = document.createElement("div");
+  dropdown.className = "dropdown";
+
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "language-button";
+  const name = document.createElement("span");
+  button.append(name, " ▾");
+
+  const menu = document.createElement("ul");
+  menu.className = "dropdown-menu";
+  dropdown.append(button, menu);
+  setUpDropdown(dropdown, button, menu);
+
+  // Show the language that's in the box right now
+  function show() {
+    const chosen = select.value;
+    name.textContent = chosen ? languageLabel(chosen) : "Choose language";
+    button.setAttribute("aria-label", "Language of this entry: " + name.textContent);
+    fillLanguageItems(dropdown, menu, chosen, function (language) {
+      select.value = language;
+      select.dispatchEvent(new Event("change"));
+      show();
+    });
   }
-});
+  show();
+
+  return { element: dropdown, show: show };
+}
 
 
 // --- Language boxes for sentences ---
@@ -1059,10 +1170,16 @@ function fillLanguageSelect(select, selected, extra) {
   }
 }
 
+// The Add form starts in the language chosen in Study
+function resetAddFormLanguage() {
+  fillLanguageSelect(sentenceLanguage, myLanguage);
+  addLanguagePicker.show();
+}
+
 // Refresh everything that lists your languages (after a change in Settings)
 function updateLanguageLists() {
   fillLanguageMenu();
-  fillLanguageSelect(sentenceLanguage, myLanguage);
+  resetAddFormLanguage();
   refreshAudioPickers();
   showSentences();
 }
@@ -1343,6 +1460,10 @@ addAudioPicker = makeAudioPicker({}, sentenceLanguage, sourceInput);
 document.getElementById("add-audio").append(addAudioPicker.element);
 addSourceSuggestions(sourceInput, sentenceLanguage);
 
+// The Add form's language button, where its hidden language box is
+const addLanguagePicker = makeLanguagePicker(sentenceLanguage);
+sentenceLanguage.before(addLanguagePicker.element);
+
 // The number of the sentence being edited right now (null = none)
 let editingIndex = null;
 
@@ -1500,8 +1621,12 @@ function makeEditRow(sentence, index) {
   textBox.value = sentence.text;
   tidyWhenPasted(textBox, true);
 
+  // The hidden box holds this entry's language. A language no longer ticked in Settings
+  // stays in it, so the button can still show it and saving doesn't lose it.
   const languageBox = document.createElement("select");
+  languageBox.hidden = true;
   fillLanguageSelect(languageBox, sentence.language, sentence.language);
+  const languagePicker = makeLanguagePicker(languageBox);
 
   const sourceBox = document.createElement("input");
   sourceBox.type = "text";
@@ -1511,7 +1636,7 @@ function makeEditRow(sentence, index) {
   // No topic or date boxes: they're kept as they are (topics are found again on Save)
   const details = document.createElement("div");
   details.className = "sentence-details";
-  details.append(languageBox, sourceBox);
+  details.append(languagePicker.element, languageBox, sourceBox);
   addSourceSuggestions(sourceBox, languageBox); // After append, so the list can go next to the box
 
   // Audio: the same picker as in the Add form, showing this sentence's file and part
@@ -1717,10 +1842,12 @@ sentenceForm.addEventListener("submit", async function (event) {
   added.forEach(updateTopics); // Find the best topics by meaning, in the background
 
   // Empty the form for the next entry: sentence, source and audio.
-  // The language stays, since the next sentence is most likely in the same language.
+  // A language chosen here was only for this entry, so it goes back to Study's language.
   sentenceInput.value = "";
   sourceInput.value = "";
   addAudioPicker.reset();
+  resetAddFormLanguage();
+  addAudioPicker.refresh(); // The audio list follows the language
 });
 
 
@@ -3901,7 +4028,7 @@ function restoreView() {
 restoreView();
 showLevel();
 fillLanguageMenu();
-fillLanguageSelect(sentenceLanguage, myLanguage);
+resetAddFormLanguage();
 refreshAudioPickers(); // The Audio list shows the Add form's language
 showSentences();
 showTopicStatus();

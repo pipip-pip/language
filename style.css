@@ -2334,7 +2334,7 @@ html[data-theme="cosmopolitan"]::after {
 
 /* Earbud cords: dividers are a thin glossy white-pink line that curves up at its right end.
    The old line's space is kept (see-through), so nothing moves. */
-[data-theme="cosmopolitan"] #sentence-list li,
+[data-theme="cosmopolitan"] #sentence-list ol > li,
 [data-theme="cosmopolitan"] .audio-file-row,
 [data-theme="cosmopolitan"] .quiz-header {
   border-bottom-color: transparent;
@@ -2361,7 +2361,7 @@ html[data-theme="cosmopolitan"]::after {
 [data-theme="cosmopolitan"] .filter-button,
 [data-theme="cosmopolitan"] .level,
 [data-theme="cosmopolitan"] .small-button,
-[data-theme="cosmopolitan"] #language-button {
+[data-theme="cosmopolitan"] :is(#language-button, .language-button) {
   background-image: var(--pc-top-gloss);
   box-shadow: inset 0 0 0 1px rgba(215, 211, 218, 0.2);
 }
@@ -3230,7 +3230,8 @@ button[class=""]:focus-visible::after {
   line-height: 1.3;
 }
 
-#sentence-list li {
+/* Only the rows themselves ("ol > li"), not the language list inside an Edit form */
+#sentence-list ol > li {
   padding: 8px 0;
   border-bottom: 1px solid var(--line);
 }
@@ -3516,7 +3517,9 @@ button[class=""]:focus-visible::after {
   transform: translateX(-50%);
 }
 
-#language-button {
+/* Study's button and the ones in the sentence forms. ":is" gives both the same strength,
+   so the same rules win for both in every theme and they always look identical. */
+:is(#language-button, .language-button) {
   width: auto; /* Just as wide as the language name, flag and ▾ */
   max-width: 220px;
   white-space: nowrap;
@@ -3572,6 +3575,16 @@ button[class=""]:focus-visible::after {
 /* The chosen language */
 .dropdown-menu li.selected {
   color: var(--accent-ink);
+}
+
+/* Keep the keyboard outline inside the list, which would otherwise cut it off */
+.dropdown-menu li:focus-visible {
+  outline-offset: -2px;
+}
+
+/* In a sentence form: on the same line as the Source box, lined up with its box, not its label */
+.sentence-details .dropdown {
+  align-self: flex-end;
 }
 
 /* ===== Language level (CEFR) ===== */
