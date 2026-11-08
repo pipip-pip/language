@@ -2148,7 +2148,7 @@ html[data-theme="rosewater"]::after {
   letter-spacing: 0.08em;
 }
 
-/* The app title: chrome running into pink, with a few tiny still rhinestone glints.
+/* The app title: chrome running into pink (no glints on or around it, at the owner's request).
    The fill is only on the name, not the flag: an emoji inside this kind of fill would turn invisible.
    The padding gives the tall letters room inside the fill; the margin takes it back, so nothing moves. */
 [data-theme="cosmopolitan"] .page-title-text {
@@ -2161,17 +2161,6 @@ html[data-theme="rosewater"]::after {
   background-clip: text;
   color: transparent;
   -webkit-text-fill-color: transparent;
-}
-
-[data-theme="cosmopolitan"] .page-title-text::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    var(--pc-glint) 16% 30% / 8px 8px no-repeat,
-    var(--pc-glint) 58% 22% / 6px 6px no-repeat,
-    var(--pc-glint) 88% 46% / 7px 7px no-repeat;
 }
 
 /* The Immerse passage sits on the darker inner surface. A shadow instead of padding, so nothing moves. */
@@ -2232,12 +2221,10 @@ html[data-theme="cosmopolitan"]::after {
   background: var(--pc-sparkle) right top / 380px 440px no-repeat;
 }
 
-/* No margin to use: one tiny cluster beside the title instead */
+/* No margin to use: no rhinestones at all (the cluster that sat beside the title was removed by request) */
 @media (max-width: 1040px) {
   [data-theme="cosmopolitan"] body::before {
-    width: 110px;
-    height: 66px;
-    background: var(--pc-sparkle-small) right top / 110px 66px no-repeat;
+    display: none;
   }
 }
 
@@ -2647,7 +2634,6 @@ html[data-theme="cosmopolitan"]::after {
   /* Bubblegum Bling: pink glow, rhinestones and a leopard edge */
   [data-theme="cosmopolitan"] {
     --phone-header:
-      var(--pc-sparkle-small) right 4px top 4px / 110px 66px no-repeat,
       radial-gradient(ellipse at 100% 0, rgba(200, 80, 140, 0.34), rgba(200, 80, 140, 0) 70%),
       linear-gradient(90deg, rgba(26, 16, 21, 0.84), #1A1015 32%),
       var(--pc-leopard) left top / 340px 340px no-repeat;
@@ -3505,14 +3491,16 @@ button[class=""]:focus-visible::after {
 
 /* At the very top of Study, on its own row, in the middle: only as wide as the button,
    so the list only opens when the cursor is over the button itself */
-#study-tab > .dropdown {
+#study-tab > .dropdown,
+#sentences-tab > .dropdown {
   display: block;
   width: fit-content;
   margin: 0 auto var(--card-gap);
 }
 
 /* Its list opens centred under the button */
-#study-tab > .dropdown .dropdown-menu {
+#study-tab > .dropdown .dropdown-menu,
+#sentences-tab > .dropdown .dropdown-menu {
   left: 50%;
   transform: translateX(-50%);
 }

@@ -1460,9 +1460,10 @@ addAudioPicker = makeAudioPicker({}, sentenceLanguage, sourceInput);
 document.getElementById("add-audio").append(addAudioPicker.element);
 addSourceSuggestions(sourceInput, sentenceLanguage);
 
-// The Add form's language button, where its hidden language box is
+// The Add form's language button: at the very top of the Sentences tab,
+// in exactly the same place as the one at the top of Study
 const addLanguagePicker = makeLanguagePicker(sentenceLanguage);
-sentenceLanguage.before(addLanguagePicker.element);
+document.getElementById("sentences-tab").prepend(addLanguagePicker.element);
 
 // The number of the sentence being edited right now (null = none)
 let editingIndex = null;
