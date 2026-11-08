@@ -3491,16 +3491,14 @@ button[class=""]:focus-visible::after {
 
 /* At the very top of Study, on its own row, in the middle: only as wide as the button,
    so the list only opens when the cursor is over the button itself */
-#study-tab > .dropdown,
-#sentences-tab > .dropdown {
+#study-tab > .dropdown {
   display: block;
   width: fit-content;
   margin: 0 auto var(--card-gap);
 }
 
 /* Its list opens centred under the button */
-#study-tab > .dropdown .dropdown-menu,
-#sentences-tab > .dropdown .dropdown-menu {
+#study-tab > .dropdown .dropdown-menu {
   left: 50%;
   transform: translateX(-50%);
 }
@@ -3568,6 +3566,13 @@ button[class=""]:focus-visible::after {
 /* Keep the keyboard outline inside the list, which would otherwise cut it off */
 .dropdown-menu li:focus-visible {
   outline-offset: -2px;
+}
+
+/* In the "Add sentences" box: on its own line above the sentence box, at the left */
+#sentences-tab .box > .dropdown {
+  display: block;
+  width: fit-content;
+  margin-bottom: 8px;
 }
 
 /* In a sentence form: on the same line as the Source box, lined up with its box, not its label */
