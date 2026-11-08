@@ -1800,10 +1800,10 @@ function showSentences() {
 sentenceForm.addEventListener("submit", async function (event) {
   event.preventDefault();
 
-  // Each non-empty line becomes its own sentence (with extra spaces tidied away)
-  const newSentences = tidyText(sentenceInput.value, false)
-    .split("\n")
-    .filter(function (line) { return line !== ""; });
+  // Everything in the box becomes ONE entry: line breaks are joined with a space,
+  // just like in the Edit box (and extra spaces are tidied away)
+  const text = tidyText(sentenceInput.value, true);
+  const newSentences = text === "" ? [] : [text];
 
   if (newSentences.length === 0) {
     return;
