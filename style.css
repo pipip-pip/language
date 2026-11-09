@@ -4635,7 +4635,65 @@ button[aria-disabled="true"] {
   font-weight: 600;
 }
 
-/* The "Choose an earlier source" dropdown under each Source box */
-.source-picker {
-  margin-top: 4px;
+/* The Source box with its ▾ list of earlier sources (looks like the language list) */
+.source-dropdown {
+  display: block;
+  width: 100%;
+}
+
+.source-dropdown input {
+  width: 100%;
+  box-sizing: border-box;
+  padding-right: 40px; /* Room for the ▾ button, so text never runs under it */
+}
+
+/* The ▾ sits inside the right end of the box */
+.source-dropdown .source-button {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 36px;
+  padding: 0;
+  background: transparent;
+  color: var(--muted);
+  border: none;
+  box-shadow: none;
+}
+
+.source-dropdown .source-button:hover {
+  color: var(--text);
+}
+
+/* The list is as wide as the box; it opens only with ▾, not on hover */
+.source-dropdown .dropdown-menu {
+  right: 0;
+  font-family: var(--font-reading);
+}
+
+@media (hover: hover) {
+  .source-dropdown:not(.open):hover .dropdown-menu {
+    display: none;
+  }
+}
+
+/* Long sources (links) wrap instead of making the list wider than the box */
+.source-dropdown .dropdown-menu li {
+  overflow-wrap: anywhere;
+}
+
+/* The list sits inside the "Source" label: don't take the label's small capitals or italics */
+.sentence-details label .source-dropdown .dropdown-menu {
+  text-transform: none;
+  letter-spacing: normal;
+  font-style: normal;
+  font-size: 16px;
+  color: var(--text);
+}
+
+/* In the Edit form the Source box sits in a row: share the row like the other boxes */
+.sentence-details > .source-dropdown {
+  flex: 1;
+  min-width: 140px;
+  width: auto;
 }

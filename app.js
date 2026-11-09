@@ -1395,37 +1395,83 @@ function fillTopicSuggestions() {
   });
 }
 
-// A dropdown under a Source box with the sources used before in that form's language
-// (from sentences and audio files, links too). Choosing one copies it into the box.
-// A real <select> (not a <datalist>), because it works the same on a computer and an iPhone.
+// A ▾ button inside a Source box that opens a list of the sources used before in that
+// form's language (from sentences and audio files; links are left out), styled like the language list.
+// Choosing one copies it into the box.
 function addSourceSuggestions(sourceBox, languageSelect) {
-  const picker = document.createElement("select");
-  picker.className = "source-picker";
-  sourceBox.after(picker);
+  // Wrap the box, so the button can sit inside its right end and the list can open under it
+  const dropdown = document.createElement("div");
+  dropdown.className = "dropdown source-dropdown";
+  sourceBox.before(dropdown);
+
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "source-button";
+  button.textContent = "▾";
+  button.setAttribute("aria-label", "Choose an earlier source");
+  button.setAttribute("aria-haspopup", "listbox");
+  button.setAttribute("aria-expanded", "false");
+
+  const menu = document.createElement("ul");
+  menu.className = "dropdown-menu";
+  menu.setAttribute("role", "listbox");
+  dropdown.append(sourceBox, button, menu);
 
   function fill() {
     const language = languageSelect.value;
     const found = [];
     sentences.concat(audioLibrary).forEach(function (item) {
       const source = (item.source || "").trim();
-      if (item.language === language && source && !found.includes(source)) found.push(source);
+      if (item.language === language && source && !webAddress(source) && !found.includes(source)) found.push(source);
     });
-    picker.innerHTML = "";
-    picker.append(new Option("Choose an earlier source ▾", ""));
-    found.sort().forEach(function (source) { picker.append(new Option(source)); });
-    picker.hidden = found.length === 0; // Nothing to choose yet: no dropdown
+    menu.innerHTML = "";
+    found.sort().forEach(function (source) {
+      const item = document.createElement("li");
+      item.textContent = source;
+      item.tabIndex = -1;
+      item.setAttribute("role", "option");
+      item.classList.toggle("selected", source === sourceBox.value.trim());
+      item.addEventListener("click", function (event) {
+        event.preventDefault(); // Inside a label: don't let the click jump anywhere else
+        setDropdownOpen(dropdown, false);
+        sourceBox.value = source;
+        // Tell the rest of the form (e.g. the audio picker) that the source changed
+        sourceBox.dispatchEvent(new Event("input", { bubbles: true }));
+        sourceBox.dispatchEvent(new Event("change", { bubbles: true }));
+        sourceBox.focus();
+      });
+      menu.append(item);
+    });
+    button.hidden = found.length === 0; // Nothing to choose yet: no button
+    if (found.length === 0) setDropdownOpen(dropdown, false);
   }
   fill();
   languageSelect.addEventListener("change", fill);
-  sourceBox.addEventListener("focus", fill); // So sources added a moment ago are there too
 
-  picker.addEventListener("change", function () {
-    if (!picker.value) return;
-    sourceBox.value = picker.value;
-    // Tell the rest of the form (e.g. the audio picker) that the source changed
-    sourceBox.dispatchEvent(new Event("input", { bubbles: true }));
-    sourceBox.dispatchEvent(new Event("change", { bubbles: true }));
-    picker.value = ""; // Back to "Choose…", so the same source can be chosen again
+  // Tapping or clicking ▾ opens and closes the list (on a computer too: hover would get in the way of typing)
+  button.addEventListener("click", function (event) {
+    event.preventDefault();
+    const open = !dropdown.classList.contains("open");
+    if (open) fill(); // So sources added a moment ago are there too
+    setDropdownOpen(dropdown, open);
+    if (open && event.detail === 0) focusChosenItem(menu); // Opened with the keyboard
+  });
+
+  // Keyboard inside the list: arrows move, Enter chooses, Escape closes
+  menu.addEventListener("keydown", function (event) {
+    const items = Array.from(menu.querySelectorAll("li"));
+    const here = items.indexOf(event.target);
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      const next = items[Math.max(0, Math.min(items.length - 1, here + (event.key === "ArrowDown" ? 1 : -1)))];
+      if (next) next.focus();
+    } else if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      event.target.click();
+    } else if (event.key === "Escape") {
+      setDropdownOpen(dropdown, false);
+      button.focus();
+    }
   });
 }
 
