@@ -1395,31 +1395,38 @@ function fillTopicSuggestions() {
   });
 }
 
-// Sources typed before that aren't links (e.g. "Pan Tadeusz", "my teacher"),
-// suggested in a Source box. Only sources of sentences (and audio files) in that form's language.
-let sourceListCount = 0; // Each list needs its own id
+// A dropdown under a Source box with the sources used before in that form's language
+// (from sentences and audio files, links too). Choosing one copies it into the box.
+// A real <select> (not a <datalist>), because it works the same on a computer and an iPhone.
 function addSourceSuggestions(sourceBox, languageSelect) {
-  const list = document.createElement("datalist");
-  sourceListCount += 1;
-  list.id = "source-suggestions-" + sourceListCount;
-  sourceBox.setAttribute("list", list.id);
-  sourceBox.after(list); // A datalist is never shown on the page itself
+  const picker = document.createElement("select");
+  picker.className = "source-picker";
+  sourceBox.after(picker);
 
   function fill() {
     const language = languageSelect.value;
     const found = [];
     sentences.concat(audioLibrary).forEach(function (item) {
       const source = (item.source || "").trim();
-      if (item.language === language && source && !webAddress(source) && !found.includes(source)) {
-        found.push(source);
-      }
+      if (item.language === language && source && !found.includes(source)) found.push(source);
     });
-    list.innerHTML = "";
-    found.sort().forEach(function (source) { list.append(new Option(source)); });
+    picker.innerHTML = "";
+    picker.append(new Option("Choose an earlier source ▾", ""));
+    found.sort().forEach(function (source) { picker.append(new Option(source)); });
+    picker.hidden = found.length === 0; // Nothing to choose yet: no dropdown
   }
   fill();
   languageSelect.addEventListener("change", fill);
   sourceBox.addEventListener("focus", fill); // So sources added a moment ago are there too
+
+  picker.addEventListener("change", function () {
+    if (!picker.value) return;
+    sourceBox.value = picker.value;
+    // Tell the rest of the form (e.g. the audio picker) that the source changed
+    sourceBox.dispatchEvent(new Event("input", { bubbles: true }));
+    sourceBox.dispatchEvent(new Event("change", { bubbles: true }));
+    picker.value = ""; // Back to "Choose…", so the same source can be chosen again
+  });
 }
 
 function saveSentences() {
@@ -1956,20 +1963,28 @@ function showEntries() {
   }
   noEntries.hidden = true;
 
-  // Put the entries in groups: one per audio file, plus "Without audio"
+  // Put the entries in groups: one per audio file, then one per source (entries without
+  // audio), plus "Without source"
   const groups = {};
   matching.forEach(function (sentence) {
-    const groupId = sentence.audioId && audioFileName(sentence.audioId) ? sentence.audioId : "none";
+    const source = (sentence.source || "").trim();
+    let groupId = "none";
+    if (sentence.audioId && audioFileName(sentence.audioId)) groupId = sentence.audioId;
+    else if (source) groupId = "source:" + source;
     if (!groups[groupId]) groups[groupId] = [];
     groups[groupId].push(sentence);
   });
   const audioGroupIds = newestFirst(audioLibrary, audioLibrary)
     .map(function (item) { return item.id; })
     .filter(function (id) { return groups[id]; });
+  const sourceGroupIds = Object.keys(groups)
+    .filter(function (id) { return id.startsWith("source:"); })
+    .sort(function (a, b) { return a.localeCompare(b); });
+  const groupIds = audioGroupIds.concat(sourceGroupIds, groups.none ? ["none"] : []);
 
-  // No audio files used at all: just the list of entries, no groups needed
-  if (audioGroupIds.length === 0) {
-    showGroupEntries(groups.none, false);
+  // Only one group (e.g. no audio and no sources): just the list of entries, no groups needed
+  if (groupIds.length === 1) {
+    showGroupEntries(groups[groupIds[0]], !!audioFileName(groupIds[0]));
     return;
   }
   if (openEntryGroup && !groups[openEntryGroup]) openEntryGroup = null;
@@ -1978,7 +1993,7 @@ function showEntries() {
     // Inside a group: a way back, then its entries
     const back = document.createElement("li");
     back.className = "entry-back";
-    back.textContent = "← All audios";
+    back.textContent = "← All groups";
     back.addEventListener("click", function () {
       openEntryGroup = null;
       showEntries();
@@ -1986,15 +2001,15 @@ function showEntries() {
     });
     const title = document.createElement("span");
     title.className = "entry-group-title";
-    title.textContent = openEntryGroup === "none" ? "Without audio" : audioFileName(openEntryGroup);
+    title.textContent = entryGroupName(openEntryGroup);
     back.append(title);
     entryList.append(back);
-    showGroupEntries(groups[openEntryGroup], openEntryGroup !== "none");
+    // Audio groups are in audio order; the others newest first
+    showGroupEntries(groups[openEntryGroup], !!audioFileName(openEntryGroup));
     return;
   }
 
-  // The groups: each audio file (newest first), then "Without audio"
-  const groupIds = groups.none ? audioGroupIds.concat("none") : audioGroupIds;
+  // The groups: each audio file (newest first), then each source (A–Z), then "Without source"
   groupIds.forEach(function (groupId) {
     const item = document.createElement("li");
     item.className = "entry-group";
@@ -2002,7 +2017,7 @@ function showEntries() {
     item.classList.toggle("selected", groups[groupId].includes(selectedEntry));
     const name = document.createElement("span");
     name.className = "entry-group-name";
-    name.textContent = groupId === "none" ? "Without audio" : audioFileName(groupId);
+    name.textContent = entryGroupName(groupId);
     const count = document.createElement("span");
     count.className = "entry-group-count";
     count.textContent = groups[groupId].length === 1 ? "1 entry ›" : groups[groupId].length + " entries ›";
@@ -2014,6 +2029,17 @@ function showEntries() {
     });
     entryList.append(item);
   });
+}
+
+// The name shown for a group in Select entry.
+// Audio file: its source if that's a name (e.g. "Pan Tadeusz"), or the file's name if the
+// source is a link (a link is long and says little). Other groups: the source itself.
+function entryGroupName(groupId) {
+  if (groupId === "none") return "Without source";
+  if (groupId.startsWith("source:")) return groupId.slice("source:".length);
+  const file = audioLibrary.find(function (entry) { return entry.id === groupId; });
+  const source = file ? (file.source || "").trim() : "";
+  return source && !webAddress(source) ? source : audioFileName(groupId);
 }
 
 // The entries of one group, numbered. With audio: in the order they come in the audio,

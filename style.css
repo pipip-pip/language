@@ -4634,3 +4634,8 @@ button[aria-disabled="true"] {
 .quiz-glossary b {
   font-weight: 600;
 }
+
+/* The "Choose an earlier source" dropdown under each Source box */
+.source-picker {
+  margin-top: 4px;
+}
