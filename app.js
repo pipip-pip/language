@@ -4073,6 +4073,13 @@ backupYes.addEventListener("click", async function () {
         localStorage.removeItem(key);
       }
     });
+    // Open on the Study tab, at the top of the page, with no group or entry open
+    const view = loadSaved("view", {});
+    view.tab = "study-tab";
+    view.openEntryGroup = null;
+    view.selectedEntry = null;
+    localStorage.setItem("view", JSON.stringify(view));
+    try { sessionStorage.setItem("justRestored", "yes"); } catch {} // Start-up then scrolls to the top
     location.reload(); // Start again with the restored data
   } catch {
     showBackupStatus("The backup couldn't be restored (maybe there isn't enough space). Please try again.");
@@ -4119,6 +4126,14 @@ function restoreView() {
 
 // ===== Start-up: show everything =====
 restoreView();
+// Just restored a backup: start at the top (the browser would jump back down to the Backup box)
+try {
+  if (sessionStorage.getItem("justRestored")) {
+    sessionStorage.removeItem("justRestored");
+    history.scrollRestoration = "manual";
+    window.scrollTo(0, 0);
+  }
+} catch {}
 showLevel();
 fillLanguageMenu();
 resetAddFormLanguage();
