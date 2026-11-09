@@ -2009,28 +2009,43 @@ function showEntries() {
   }
   noEntries.hidden = true;
 
-  // Put the entries in groups: one per audio file, then one per source (entries without
-  // audio), plus "Without source"
+  // Put the entries in groups: one per named source (whatever audio file they use),
+  // then one per audio file for entries whose source is a link (or empty), then one per link
+  // without audio, plus "Without source". Names that differ only in capitals or spaces match.
   const groups = {};
+  const sourceNames = {}; // The name to show for each source group (as it was first typed)
   matching.forEach(function (sentence) {
-    const source = (sentence.source || "").trim();
+    const source = (sentence.source || "").trim().replace(/\s+/g, " ");
     let groupId = "none";
-    if (sentence.audioId && audioFileName(sentence.audioId)) groupId = sentence.audioId;
-    else if (source) groupId = "source:" + source;
+    if (source && !webAddress(source)) {
+      groupId = "source:" + source.toLowerCase();
+      if (!sourceNames[groupId]) sourceNames[groupId] = source;
+    } else if (sentence.audioId && audioFileName(sentence.audioId)) {
+      groupId = sentence.audioId;
+    } else if (source) {
+      groupId = "source:" + source.toLowerCase();
+      if (!sourceNames[groupId]) sourceNames[groupId] = source;
+    }
     if (!groups[groupId]) groups[groupId] = [];
     groups[groupId].push(sentence);
   });
+  const hasAudio = function (groupId) {
+    return groups[groupId].some(function (sentence) { return audioFileName(sentence.audioId); });
+  };
+  const groupName = function (groupId) {
+    return sourceNames[groupId] || entryGroupName(groupId);
+  };
   const audioGroupIds = newestFirst(audioLibrary, audioLibrary)
     .map(function (item) { return item.id; })
     .filter(function (id) { return groups[id]; });
   const sourceGroupIds = Object.keys(groups)
     .filter(function (id) { return id.startsWith("source:"); })
-    .sort(function (a, b) { return a.localeCompare(b); });
+    .sort(function (a, b) { return groupName(a).localeCompare(groupName(b)); });
   const groupIds = audioGroupIds.concat(sourceGroupIds, groups.none ? ["none"] : []);
 
   // Only one group (e.g. no audio and no sources): just the list of entries, no groups needed
   if (groupIds.length === 1) {
-    showGroupEntries(groups[groupIds[0]], !!audioFileName(groupIds[0]));
+    showGroupEntries(groups[groupIds[0]], hasAudio(groupIds[0]));
     return;
   }
   if (openEntryGroup && !groups[openEntryGroup]) openEntryGroup = null;
@@ -2047,11 +2062,11 @@ function showEntries() {
     });
     const title = document.createElement("span");
     title.className = "entry-group-title";
-    title.textContent = entryGroupName(openEntryGroup);
+    title.textContent = groupName(openEntryGroup);
     back.append(title);
     entryList.append(back);
     // Audio groups are in audio order; the others newest first
-    showGroupEntries(groups[openEntryGroup], !!audioFileName(openEntryGroup));
+    showGroupEntries(groups[openEntryGroup], hasAudio(openEntryGroup));
     return;
   }
 
@@ -2063,7 +2078,7 @@ function showEntries() {
     item.classList.toggle("selected", groups[groupId].includes(selectedEntry));
     const name = document.createElement("span");
     name.className = "entry-group-name";
-    name.textContent = entryGroupName(groupId);
+    name.textContent = groupName(groupId);
     const count = document.createElement("span");
     count.className = "entry-group-count";
     count.textContent = groups[groupId].length === 1 ? "1 entry ›" : groups[groupId].length + " entries ›";
@@ -2092,9 +2107,15 @@ function entryGroupName(groupId) {
 // each showing its part (start – end). Without audio: the newest first, with the date.
 // Long entries show two lines; the selected one is shown in full.
 function showGroupEntries(list, byTime) {
+  // With audio: file by file (oldest file first), each in audio order; entries without audio last
+  const fileOrder = function (sentence) {
+    const place = audioLibrary.findIndex(function (item) { return item.id === sentence.audioId; });
+    return place === -1 ? Infinity : place;
+  };
   const ordered = byTime
     ? list.slice().sort(function (a, b) {
-      return (a.audioStart ?? Infinity) - (b.audioStart ?? Infinity) || sentences.indexOf(a) - sentences.indexOf(b);
+      return (fileOrder(a) - fileOrder(b)) ||
+        (a.audioStart ?? Infinity) - (b.audioStart ?? Infinity) || sentences.indexOf(a) - sentences.indexOf(b);
     })
     : newestFirst(list, sentences);
 
