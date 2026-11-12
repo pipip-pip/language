@@ -3609,7 +3609,10 @@ async function askForQuestions(entry, level, target, plan) {
           "Use \"\" for passage when there is none, [] for options when there are none, -1 for answer_index when " +
           "there is none, and \"\" for answer_sentence except in the order question. instruction: one short line " +
           "telling the learner what to do, in " + guideLanguage + ". explanation: one short sentence in " +
-          guideLanguage + " explaining the answer.\n" + wordHelpPart + "\n" +
+          guideLanguage + " explaining the answer.\n" +
+          "translation: a natural English translation of the full sentence(s) of the question: the passage for " +
+          "reading, the COMPLETED sentence (gap filled with the right answer) for form, answer_sentence for order; " +
+          "\"\" for odd and gender. It is only shown after the learner answers.\n" + wordHelpPart + "\n" +
           // Said again at the very end, because GPT tended to forget it
           "The instruction, the question about a reading passage and the explanation must be in " + guideLanguage + ".",
       },
@@ -3644,6 +3647,7 @@ async function askForQuestions(entry, level, target, plan) {
                   answer_index: { type: "integer" },
                   answer_sentence: { type: "string" },
                   explanation: { type: "string", description: "Written in " + guideLanguage + "." },
+                  translation: { type: "string", description: "English translation of the full sentence(s); \"\" for odd and gender." },
                   glossary: {
                     type: "array",
                     items: {
@@ -3657,7 +3661,7 @@ async function askForQuestions(entry, level, target, plan) {
                     },
                   },
                 },
-                required: ["type", "instruction", "passage", "question", "options", "answer_index", "answer_sentence", "explanation", "glossary"],
+                required: ["type", "instruction", "passage", "question", "options", "answer_index", "answer_sentence", "explanation", "translation", "glossary"],
                 additionalProperties: false,
               },
             },
@@ -3724,12 +3728,20 @@ function sameSentence(a, b) {
 }
 
 // After each answer: ✓ or ✗, the explanation, and the score once all are answered
-function markAnswer(card, correct, explanation) {
+function markAnswer(card, correct, explanation, translation) {
   card.classList.add(correct ? "answered-right" : "answered-wrong");
   const result = document.createElement("p");
   result.className = "quiz-result " + (correct ? "right" : "wrong");
   result.textContent = (correct ? "✓ Correct. " : "✗ Not quite. ") + explanation;
   card.append(result);
+
+  // Whole-sentence questions (reading, form, order): the English meaning, only after answering
+  if (translation && translation.trim()) {
+    const english = document.createElement("p");
+    english.className = "quiz-translation";
+    english.textContent = translation.trim();
+    card.append(english);
+  }
 
   quizScore.answered++;
   if (correct) quizScore.correct++;
@@ -3749,7 +3761,7 @@ function makeChoiceQuestion(card, question) {
       options.querySelectorAll("button").forEach(function (other) { other.disabled = true; });
       button.classList.add(index === question.answer_index ? "right" : "wrong");
       options.children[question.answer_index].classList.add("right"); // Always show the right one
-      markAnswer(card, index === question.answer_index, question.explanation);
+      markAnswer(card, index === question.answer_index, question.explanation, question.translation);
     });
     options.append(button);
   });
@@ -3779,7 +3791,7 @@ function makeOrderQuestion(card, question) {
     check.disabled = true;
     const correct = sameSentence(answer, question.answer_sentence);
     built.classList.add(correct ? "right" : "wrong");
-    markAnswer(card, correct, (correct ? "" : "Correct: " + question.answer_sentence + ". ") + question.explanation);
+    markAnswer(card, correct, (correct ? "" : "Correct: " + question.answer_sentence + ". ") + question.explanation, question.translation);
   });
   check.disabled = true; // Until every word is used
 
@@ -4148,13 +4160,14 @@ showTopicStatus();
 // Smaller screens: make the open Practice/Immerse panel's scroll area end exactly at
 // the bottom of the screen, so only the panel scrolls, not the whole page.
 function fitStudyPanels() {
-  const small = window.matchMedia("(max-width: 760px), (max-height: 900px)").matches;
   document.querySelectorAll(".panel-scroll").forEach(function (area) {
-    if (!small || area.offsetParent === null) return;
+    if (area.offsetParent === null) return;
     const top = area.getBoundingClientRect().top + window.scrollY;
     const space = (window.visualViewport ? window.visualViewport.height : window.innerHeight)
       - top - 16 /* box padding */ - 16 /* page padding */;
-    area.style.setProperty("--panel-max", Math.max(220, Math.floor(space)) + "px");
+    // At least 80% of the screen tall, so more content shows at once
+    const tall = Math.max(space, (window.visualViewport ? window.visualViewport.height : window.innerHeight) * 0.8);
+    area.style.setProperty("--panel-max", Math.floor(tall) + "px");
   });
 }
 window.addEventListener("resize", fitStudyPanels);

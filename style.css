@@ -2922,6 +2922,7 @@ textarea {
 .quiz-kind,
 .quiz-instruction,
 .quiz-glossary,
+.quiz-translation,
 .backup-warning,
 .type-meta {
   font-family: var(--font-meta);
@@ -3606,7 +3607,7 @@ button[class=""]:focus-visible::after {
   list-style: none;
   margin: 0;
   padding: 0;
-  max-height: 300px; /* Long lists scroll instead of filling the page */
+  max-height: 45vh; /* Long lists scroll instead of filling the page */
   overflow-y: auto;
 }
 
@@ -4598,6 +4599,14 @@ button[aria-disabled="true"] {
 
 /* ✓ Correct. / ✗ Not quite. with the explanation: normal text colour (readable in every theme)
    with a green or red bar beside it */
+/* English translation of a whole-sentence question, shown after answering */
+.quiz-translation {
+  margin: 6px 0 0;
+  padding-left: 12px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
 .quiz-result {
   margin: 8px 0 0;
   padding-left: 8px;
@@ -4698,21 +4707,18 @@ button[aria-disabled="true"] {
   width: auto;
 }
 
-/* ===== Study on smaller screens: the entry list and the Practice/Immerse panel
-   scroll inside themselves, so the page itself barely has to move ===== */
+/* ===== Study: the questions (Practice) and the Pure Text / Grammar Lens / Word Focus
+   views (Immerse) scroll inside their own area, which ends at the bottom of the screen
+   (app.js sets --panel-max), so the page itself doesn't move ===== */
+.panel-scroll {
+  max-height: var(--panel-max, 80vh);
+  overflow-y: auto;
+  overscroll-behavior: contain; /* reaching the end doesn't start scrolling the page */
+}
 @media (max-width: 760px), (max-height: 900px) {
   #entry-list {
-    max-height: 30vh;
-    max-height: 30dvh;
-  }
-  .panel-scroll {
-    /* app.js sets --panel-max so the panel ends at the bottom of the screen */
-    max-height: var(--panel-max, 50dvh);
-    overflow-y: auto;
-    overscroll-behavior: contain; /* reaching the end doesn't start scrolling the page */
-    -webkit-overflow-scrolling: touch;
-  }
-  #entry-list {
+    max-height: 45vh;
+    max-height: 45dvh;
     overscroll-behavior: contain;
   }
 }
