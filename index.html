@@ -68,6 +68,13 @@
     <!-- Your sentences in the chosen language. Click one to select it. -->
     <section class="box">
       <h2>Select entry</h2>
+      <!-- Currently learning: up to 3 entries you're working on, always at hand (outside the scrolling list) -->
+      <div id="learning-holder" hidden>
+        <h3>Currently learning</h3>
+        <p id="learning-empty" class="hint">Press Learn on an entry to keep it here (up to 3).</p>
+        <ul id="learning-list"></ul>
+        <p id="learning-full" class="error-text" hidden>You're already learning 3 entries. Remove one first.</p>
+      </div>
       <p id="no-entries" class="hint"></p>
       <ul id="entry-list"></ul>
     </section>

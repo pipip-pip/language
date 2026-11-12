@@ -4727,3 +4727,59 @@ button[aria-disabled="true"] {
     overscroll-behavior: contain;
   }
 }
+
+/* ===== Study: Currently learning (up to 3 entries, above the entry list) ===== */
+#learning-holder {
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+#learning-holder h3 {
+  margin-top: 0;
+}
+#learning-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+#learning-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  margin-bottom: 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-small);
+  cursor: pointer;
+}
+#learning-list li:hover {
+  background: var(--soft);
+}
+#learning-list li.selected {
+  border-color: var(--accent-ink);
+  background: var(--selected-bg);
+}
+#learning-list .entry-text {
+  flex: 1;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+#learning-list li.selected .entry-text {
+  display: block;
+}
+/* Learn / Remove: on the right of each entry */
+.learn-button {
+  flex: none;
+  margin-left: auto;
+}
+#entry-list li .learn-button {
+  float: right;
+  margin: 0 0 4px 8px;
+}
+.learn-button.learning {
+  background: var(--selected-bg);
+  color: var(--text);
+  border: 1px solid var(--accent-ink);
+}

@@ -1990,8 +1990,81 @@ let selectedEntry = null;
 // The audio group opened in Select entry: an audio file's id, "none" (without audio) or null (the list of groups)
 let openEntryGroup = null;
 
+// ===== Currently learning: up to 3 entries per language you're working on =====
+const LEARNING_MAX = 3;
+let learningIds = loadSaved("learningIds", []);
+const learningHolder = document.getElementById("learning-holder");
+const learningList = document.getElementById("learning-list");
+const learningEmpty = document.getElementById("learning-empty");
+const learningFull = document.getElementById("learning-full");
+
+// The learning entries in the chosen language (entries deleted since are skipped)
+function learningEntries() {
+  return learningIds
+    .map(function (id) { return sentences.find(function (sentence) { return sentence.id === id; }); })
+    .filter(function (sentence) { return sentence && sentence.language === myLanguage; });
+}
+
+function isLearning(sentence) {
+  return learningIds.includes(sentence.id);
+}
+
+// Add or remove an entry. Adding a 4th in the same language shows a message instead.
+function toggleLearning(sentence) {
+  learningFull.hidden = true;
+  if (isLearning(sentence)) {
+    learningIds = learningIds.filter(function (id) { return id !== sentence.id; });
+  } else if (learningEntries().length >= LEARNING_MAX) {
+    learningFull.hidden = false;
+    return;
+  } else {
+    learningIds.push(sentence.id);
+  }
+  // Forget ids of entries that no longer exist
+  learningIds = learningIds.filter(function (id) {
+    return sentences.some(function (sentence) { return sentence.id === id; });
+  });
+  save("learningIds", learningIds, true);
+  showEntries();
+}
+
+// The small Learn / Remove button on an entry
+function makeLearnButton(sentence, label) {
+  const button = makeButton(label, "small-button learn-button", function (event) {
+    event.stopPropagation(); // Don't select or unselect the entry
+    toggleLearning(sentence);
+  });
+  button.classList.toggle("learning", isLearning(sentence));
+  return button;
+}
+
+function showLearning() {
+  learningList.innerHTML = "";
+  const hasEntries = myLanguage && sentences.some(function (sentence) { return sentence.language === myLanguage; });
+  learningHolder.hidden = !hasEntries;
+  if (!hasEntries) return;
+  const list = learningEntries();
+  learningEmpty.hidden = list.length > 0;
+  if (list.length < LEARNING_MAX) learningFull.hidden = true;
+  list.forEach(function (sentence) {
+    const item = document.createElement("li");
+    item.classList.toggle("selected", sentence === selectedEntry);
+    const text = document.createElement("span");
+    text.className = "entry-text";
+    text.textContent = sentence.text;
+    item.append(text, makeLearnButton(sentence, "Remove"));
+    item.addEventListener("click", function () {
+      selectedEntry = selectedEntry === sentence ? null : sentence;
+      showEntries();
+      saveView();
+    });
+    learningList.append(item);
+  });
+}
+
 function showEntries() {
   showImmerse(); // Immerse shows the selected entry, so keep it up to date too
+  showLearning();
   entryList.innerHTML = "";
 
   if (!myLanguage) {
@@ -2143,7 +2216,8 @@ function showGroupEntries(list, byTime) {
     text.className = "entry-text";
     text.textContent = sentence.text;
 
-    item.append(label, text);
+    // The button comes first so it floats to the top right
+    item.append(makeLearnButton(sentence, isLearning(sentence) ? "Learning ✓" : "Learn"), label, text);
     item.addEventListener("click", function () {
       // Clicking the selected entry again unselects it
       selectedEntry = selectedEntry === sentence ? null : sentence;
@@ -3944,7 +4018,7 @@ makeQuestionsButton.addEventListener("click", async function () {
 // The theme is left out too: it belongs to the device, so a restore never changes it
 // (and a "theme" inside an older backup is simply ignored).
 const BACKUP_KEYS = ["sentences", "audioLibrary", "myLanguage", "myLanguages", LEVEL_KEY,
-  "practiceTarget", "audioLoops", "audioSpeed", "openaiModel", "view", "knownWords", "knownByEntry", "knownWithoutEntry"];
+  "practiceTarget", "audioLoops", "audioSpeed", "openaiModel", "view", "knownWords", "knownByEntry", "knownWithoutEntry", "learningIds"];
 // ("knownWords" is the old format: it only exists in older backups, and is moved over after the restore)
 
 const backupDownload = document.getElementById("backup-download");
