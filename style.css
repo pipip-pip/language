@@ -4470,6 +4470,11 @@ button[aria-disabled="true"] {
   margin-bottom: 8px;
 }
 
+/* Hidden until Save is pressed with an empty source (display: block would override hidden) */
+.audio-edit-form .error-text[hidden] {
+  display: none;
+}
+
 /* ===== Practice: questions ===== */
 #quiz-list {
   list-style: none;
