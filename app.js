@@ -852,6 +852,7 @@ const tabButtons = document.querySelectorAll(".tab");
 
 // Show one tab (e.g. "settings-tab") and hide the others
 function showTab(tabId) {
+  requestAnimationFrame(fitStudyPanels);
   tabButtons.forEach(function (button) {
     const isThisOne = button.dataset.tab === tabId;
     button.classList.toggle("active", isThisOne);
@@ -878,6 +879,7 @@ const subtabButtons = document.querySelectorAll(".subtab");
 
 // Show one of them (e.g. "immerse-panel") and hide the other
 function showSubtab(panelId) {
+  requestAnimationFrame(fitStudyPanels);
   subtabButtons.forEach(function (button) {
     const isThisOne = button.dataset.subtab === panelId;
     button.classList.toggle("active", isThisOne);
@@ -4141,3 +4143,21 @@ refreshAudioPickers(); // The Audio list shows the Add form's language
 showSentences();
 showTopicStatus();
 
+
+
+// Smaller screens: make the open Practice/Immerse panel's scroll area end exactly at
+// the bottom of the screen, so only the panel scrolls, not the whole page.
+function fitStudyPanels() {
+  const small = window.matchMedia("(max-width: 760px), (max-height: 900px)").matches;
+  document.querySelectorAll(".panel-scroll").forEach(function (area) {
+    if (!small || area.offsetParent === null) return;
+    const top = area.getBoundingClientRect().top + window.scrollY;
+    const space = (window.visualViewport ? window.visualViewport.height : window.innerHeight)
+      - top - 16 /* box padding */ - 16 /* page padding */;
+    area.style.setProperty("--panel-max", Math.max(220, Math.floor(space)) + "px");
+  });
+}
+window.addEventListener("resize", fitStudyPanels);
+if (window.visualViewport) window.visualViewport.addEventListener("resize", fitStudyPanels);
+new ResizeObserver(fitStudyPanels).observe(document.getElementById("entry-list"));
+fitStudyPanels();

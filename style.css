@@ -4697,3 +4697,22 @@ button[aria-disabled="true"] {
   min-width: 140px;
   width: auto;
 }
+
+/* ===== Study on smaller screens: the entry list and the Practice/Immerse panel
+   scroll inside themselves, so the page itself barely has to move ===== */
+@media (max-width: 760px), (max-height: 900px) {
+  #entry-list {
+    max-height: 30vh;
+    max-height: 30dvh;
+  }
+  .panel-scroll {
+    /* app.js sets --panel-max so the panel ends at the bottom of the screen */
+    max-height: var(--panel-max, 50dvh);
+    overflow-y: auto;
+    overscroll-behavior: contain; /* reaching the end doesn't start scrolling the page */
+    -webkit-overflow-scrolling: touch;
+  }
+  #entry-list {
+    overscroll-behavior: contain;
+  }
+}
