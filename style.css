@@ -2829,6 +2829,7 @@ h3,
 .immerse-sentence:not(.hint),
 .sentence-text,
 .entry-text,
+.learning-text,
 .quiz-passage,
 .quiz-question,
 .quiz-result,
@@ -4728,29 +4729,33 @@ button[aria-disabled="true"] {
   }
 }
 
-/* ===== Study: Currently learning (up to 3 entries, above the entry list) ===== */
-#learning-holder {
-  margin-bottom: 12px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--line);
+/* ===== Study: Currently learning (its own box above Select entry) ===== */
+.learning-count {
+  font-size: 14px;
+  font-weight: normal;
+  color: var(--muted);
 }
-#learning-holder h3 {
-  margin-top: 0;
+#learning-holder .hint {
+  margin: 0;
 }
 #learning-list {
   list-style: none;
   margin: 0;
   padding: 0;
 }
+/* Each entry: number, one line of text cut with "…", and × to remove */
 #learning-list li {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
+  gap: 10px;
+  padding: 6px 8px 6px 10px;
   margin-bottom: 6px;
   border: 1px solid var(--line);
   border-radius: var(--radius-small);
   cursor: pointer;
+}
+#learning-list li:last-child {
+  margin-bottom: 0;
 }
 #learning-list li:hover {
   background: var(--soft);
@@ -4759,15 +4764,27 @@ button[aria-disabled="true"] {
   border-color: var(--accent-ink);
   background: var(--selected-bg);
 }
-#learning-list .entry-text {
-  flex: 1;
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+.learning-number {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  line-height: 22px;
+  border-radius: 50%;
+  text-align: center;
+  font-size: 13px;
+  background: var(--chip);
+  color: var(--chip-text);
 }
-#learning-list li.selected .entry-text {
-  display: block;
+.learning-text {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#learning-list .learn-button {
+  padding: 0 8px;
+  line-height: 24px;
 }
 /* Learn / Remove: on the right of each entry */
 .learn-button {

@@ -2046,13 +2046,22 @@ function showLearning() {
   const list = learningEntries();
   learningEmpty.hidden = list.length > 0;
   if (list.length < LEARNING_MAX) learningFull.hidden = true;
-  list.forEach(function (sentence) {
+  document.getElementById("learning-count").textContent = list.length + " / " + LEARNING_MAX;
+  list.forEach(function (sentence, index) {
     const item = document.createElement("li");
     item.classList.toggle("selected", sentence === selectedEntry);
+    item.title = sentence.text; // The whole entry on hover
+    const number = document.createElement("span");
+    number.className = "learning-number";
+    number.textContent = index + 1;
+    // One line, cut with "…" (the full entry shows in Practice and Immerse once selected)
     const text = document.createElement("span");
-    text.className = "entry-text";
+    text.className = "learning-text";
     text.textContent = sentence.text;
-    item.append(text, makeLearnButton(sentence, "Remove"));
+    const remove = makeLearnButton(sentence, "×");
+    remove.setAttribute("aria-label", "Remove from Currently learning");
+    remove.dataset.tip = "Remove";
+    item.append(number, text, remove);
     item.addEventListener("click", function () {
       selectedEntry = selectedEntry === sentence ? null : sentence;
       showEntries();
