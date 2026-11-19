@@ -151,8 +151,13 @@
         <!-- Playback speed: one small button per speed (filled in by app.js) -->
         <span class="audio-row-label audio-speed-label" aria-hidden="true">Speed</span>
         <span id="audio-speed" class="audio-buttons" role="group" aria-label="Playback speed"></span>
-        <!-- Karaoke: light up each word as it's said (on by default, remembered) -->
-        <button type="button" id="follow-along" class="filter-button" aria-pressed="true">Follow along</button>
+        <!-- Karaoke: light up each word as it's said (on by default, remembered).
+             A labelled row like REPEAT and SPEED, so it's clear what On and Off mean. -->
+        <span class="audio-row-label audio-follow-label" aria-hidden="true">Highlight</span>
+        <span id="follow-along" class="audio-buttons" role="group" aria-label="Highlight each word as it's spoken">
+          <button type="button" class="filter-button" data-follow="on" data-tip="Highlight each word as it's spoken">On</button>
+          <button type="button" class="filter-button" data-follow="off" data-tip="Don't highlight the words">Off</button>
+        </span>
         <span id="audio-count" class="hint"></span>
       </div>
       <!-- Shown when this entry's word timing is only estimated (no exact timing from OpenAI) -->

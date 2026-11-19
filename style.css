@@ -4973,11 +4973,14 @@ html.sheet-open body { overflow: hidden; }
    The word being said gets an underline or glow, never a background fill, so the gender
    colours of Grammar Lens stay visible underneath. No transitions: it jumps from word to word.
    Nothing here changes a size, so the layout is the same in every theme. */
-#follow-along { grid-row: 3; grid-column: 3; justify-self: start; }
+/* HIGHLIGHT: a third labelled row under REPEAT and SPEED */
+.audio-follow-label { grid-row: 3; grid-column: 2; }
+#follow-along { grid-row: 3; grid-column: 3; }
 #audio-count { grid-row: 4; }
 @media (max-width: 600px) {
-  #follow-along { grid-row: 6; grid-column: 1; justify-self: start; margin-top: 6px; }
-  #audio-count { grid-row: 7; }
+  .audio-follow-label { grid-row: 6; }
+  #follow-along { grid-row: 7; grid-column: 1; }
+  #audio-count { grid-row: 8; }
 }
 .karaoke-note { margin: -4px 0 8px; font-size: 13px; }
 .audio-timing {

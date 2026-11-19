@@ -3161,15 +3161,23 @@ function playFromWord(index) {
 const followButton = document.getElementById("follow-along");
 let followAlong = loadSaved("followAlong", true);
 
+// The HIGHLIGHT row: On or Off, like the REPEAT and SPEED rows
+const followChoices = followButton.querySelectorAll("button");
 function showFollowButton() {
-  followButton.classList.toggle("selected", followAlong);
-  followButton.setAttribute("aria-pressed", followAlong);
+  followChoices.forEach(function (button) {
+    const chosen = (button.dataset.follow === "on") === followAlong;
+    button.classList.toggle("selected", chosen);
+    button.setAttribute("aria-pressed", chosen);
+  });
 }
-followButton.addEventListener("click", function () {
-  followAlong = !followAlong;
-  save("followAlong", followAlong);
-  showFollowButton();
-  refreshFollowAlong();
+followChoices.forEach(function (button) {
+  addTooltip(button); // Hover (or press and hold) to see what it does
+  button.addEventListener("click", function () {
+    followAlong = button.dataset.follow === "on";
+    save("followAlong", followAlong);
+    showFollowButton();
+    refreshFollowAlong();
+  });
 });
 showFollowButton();
 
