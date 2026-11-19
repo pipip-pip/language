@@ -151,8 +151,12 @@
         <!-- Playback speed: one small button per speed (filled in by app.js) -->
         <span class="audio-row-label audio-speed-label" aria-hidden="true">Speed</span>
         <span id="audio-speed" class="audio-buttons" role="group" aria-label="Playback speed"></span>
+        <!-- Karaoke: light up each word as it's said (on by default, remembered) -->
+        <button type="button" id="follow-along" class="filter-button" aria-pressed="true">Follow along</button>
         <span id="audio-count" class="hint"></span>
       </div>
+      <!-- Shown when this entry's word timing is only estimated (no exact timing from OpenAI) -->
+      <p id="karaoke-note" class="hint karaoke-note" hidden></p>
 
       <!-- Pure Text: just the selected entry, big and clear -->
       <div class="panel-scroll">
@@ -176,6 +180,21 @@
         <div id="words-known" hidden></div>
       </div>
       </div>
+
+      <!-- Explain this sentence: opened with the small "?" after a sentence (filled in by app.js).
+           On a computer it sits right here, under the passage; on a phone app.js moves it to the
+           end of the page and it slides up from the bottom of the screen. -->
+      <section id="explain-panel" class="box" role="dialog" aria-labelledby="explain-title" hidden>
+        <div class="explain-grabber" aria-hidden="true"></div>
+        <div class="explain-head">
+          <h3 id="explain-title">Explain this sentence</h3>
+          <button type="button" id="explain-refresh" class="filter-button" data-tip="Ask for a new explanation">Refresh</button>
+          <button type="button" id="explain-close" class="filter-button" aria-label="Close" data-tip="Close">✕</button>
+        </div>
+        <p id="explain-sentence"></p>
+        <button type="button" id="explain-play" class="filter-button">▶ Play this sentence</button>
+        <div id="explain-body" aria-live="polite"></div>
+      </section>
     </section>
   </main>
 
@@ -277,6 +296,12 @@
         </div>
       </form>
       <p id="openai-status" class="hint status-line"></p>
+      <!-- Exact word timing for the karaoke in Immerse (OpenAI's whisper-1, once per audio) -->
+      <p class="hint">Follow along in Immerse lights up each word as it's said. For exact timing, each audio is sent to OpenAI once.</p>
+      <div class="edit-buttons">
+        <button type="button" id="timing-all" class="small-button">Get timing for all audios</button>
+      </div>
+      <p id="timing-all-status" class="hint status-line" hidden></p>
     </section>
 
     <!-- Backup: everything in one file, to keep safe or to move to another device -->
@@ -322,6 +347,9 @@
   <div id="save-message" hidden></div>
 
   <!-- Our own code: the topic keyword lists first, then the rest of the app -->
+  <!-- Dims the page behind the phone's "Explain this sentence" sheet; tapping it closes the sheet -->
+  <div id="explain-backdrop" hidden></div>
+
   <script src="topics.js"></script>
   <script src="ai-topics.js"></script>
   <script src="app.js"></script>

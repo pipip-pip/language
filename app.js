@@ -68,9 +68,29 @@ function loadAudioFile(id) {
 }
 
 function removeAudioFile(id) {
+  audioTimings.delete(id);
+  removeTiming(id); // Its word timing goes too
   return withAudioStore("readwrite", function (store) { return store.delete(id); })
     .catch(function () { /* Already gone: nothing to do */ });
 }
+
+// The exact word timing of a sound file (from OpenAI, see "Karaoke" below) is kept next to
+// the file in the same storage, under the file's id + "#timing": [{ word, start, end }, …]
+function timingKey(id) {
+  return id + "#timing";
+}
+function storeTiming(id, words) {
+  return withAudioStore("readwrite", function (store) { return store.put(words, timingKey(id)); });
+}
+function loadTiming(id) {
+  return withAudioStore("readonly", function (store) { return store.get(timingKey(id)); });
+}
+function removeTiming(id) {
+  return withAudioStore("readwrite", function (store) { return store.delete(timingKey(id)); })
+    .catch(function () { /* Already gone: nothing to do */ });
+}
+// The timings in memory, so they're ready while playing: id → words (loaded at start-up)
+const audioTimings = new Map();
 
 // A new, unique name for a stored sound file
 function newAudioId() {
@@ -109,6 +129,8 @@ async function addToAudioLibrary(file, language, source) {
   audioLibrary.push({ id: id, name: nameWithoutExtension(file.name), language: language || "", source: source, date: todayForDateBox() });
   saveAudioLibrary();
   showSaveMessage(true);
+  // Get its exact word timing in the background (only with an API key; nothing waits for it)
+  if (openaiKey) getExactTiming(id);
   return id;
 }
 
@@ -130,11 +152,7 @@ let speedPlayerUnlocked = false;
 
 // Call this during a tap: iPhone only allows sound to start from a tap
 function wakeUpAudio() {
-  if (!audioContext) {
-    // Play even when the iPhone's silent switch is on (Safari 16.4 and newer)
-    if (navigator.audioSession) navigator.audioSession.type = "playback";
-    audioContext = new AudioContext();
-  }
+  makeAudioContext();
   if (audioContext.state !== "running") {
     audioContext.resume().catch(function () { /* It's tried again on the next tap */ });
   }
@@ -144,6 +162,16 @@ function wakeUpAudio() {
     speedPlayerUnlocked = true;
     speedPlayer.src = URL.createObjectURL(makeWav(audioContext.createBuffer(1, 441, audioContext.sampleRate), 0, 0.01));
     speedPlayer.play().catch(function () { /* Replaced by the real sound, or not allowed */ });
+  }
+}
+
+// Make the Web Audio "player" once. (Making it without a tap is fine: it can decode files,
+// it just stays silent until wakeUpAudio runs during a tap.)
+function makeAudioContext() {
+  if (!audioContext) {
+    // Play even when the iPhone's silent switch is on (Safari 16.4 and newer)
+    if (navigator.audioSession) navigator.audioSession.type = "playback";
+    audioContext = new AudioContext();
   }
 }
 
@@ -2273,12 +2301,15 @@ function showImmerse() {
   if (visible) {
     pureTextSentence.textContent = selectedEntry.text;
     pureTextSentence.classList.remove("hint");
+    markSentences(pureTextSentence, selectedEntry); // A small "?" after each sentence
   } else {
     pureTextSentence.textContent = "Select an entry above to read it here.";
     pureTextSentence.classList.add("hint");
   }
 
   stopAudioIfEntryChanged(); // A different entry: stop reading the old one
+  refreshFollowAlong(); // Karaoke: the "estimated" note, and the timing worked out again after edits
+  closeExplanationIfEntryChanged(); // ...and close the old entry's explanation
 
   // If Grammar Lens is open, show the (newly) selected entry there too
   if (!document.getElementById("grammar-lens").hidden) {
@@ -2471,8 +2502,9 @@ function playedOnce(playAgain) {
 
 // Play the sentence's part of its sound file: from its start time to its end time
 // (the whole file if no times were set)
-function playRecording(entry) {
-  const start = entry.audioStart || 0;
+// from (optional): start at this time instead, e.g. a tapped word. Repeats start at the beginning again.
+function playRecording(entry, from) {
+  const start = from === undefined ? entry.audioStart || 0 : from;
   const end = entry.audioEnd === undefined ? null : entry.audioEnd;
   playPart(entry.audioId, start, end, audioSpeed, {
     // The part is over: play it again (at the speed chosen by then) until the chosen number of times
@@ -2525,10 +2557,19 @@ function voicesReady() {
 let speakingVoiceName = "";
 
 // Read the sentence once; when it ends, read it again until the chosen number of times
+// speakFrom: where in the text to start (a tapped word); only for the first round
+let speakFrom = 0;
 function speakOnce() {
   if (!audioPlaying) return;
 
-  const utterance = new SpeechSynthesisUtterance(audioEntry.text);
+  const offset = speakFrom;
+  speakFrom = 0;
+  const utterance = new SpeechSynthesisUtterance(audioEntry.text.slice(offset));
+  // Follow along: the voice says which word it's starting (on most devices)
+  spokenWordIndex = -1;
+  utterance.onboundary = function (event) {
+    if (event.name === "word") spokenWordIndex = wordIndexAtChar(audioEntry, offset + event.charIndex);
+  };
   const languageCode = SPEECH_LANGUAGES[audioEntry.language];
   speakingVoiceName = "";
   if (languageCode) {
@@ -2548,7 +2589,7 @@ function speakOnce() {
   // (The device voice can't change speed mid-sentence, so a new speed starts with the next repeat.)
   utterance.rate = 0.9 * audioSpeed;
 
-  utterance.onend = function () { playedOnce(speakOnce); };
+  utterance.onend = function () { spokenWordIndex = -1; playedOnce(speakOnce); };
   utterance.onerror = function () {
     stopAudio();
   };
@@ -2561,7 +2602,12 @@ audioPlay.addEventListener("click", function () {
     stopAudio();
     return;
   }
-  const entry = selectedEntry;
+  startListening(selectedEntry);
+});
+
+// Start playing an entry (from the play button, or from a tapped word).
+// fromSeconds / fromChar (optional): start at a word instead of the beginning.
+function startListening(entry, fromSeconds, fromChar) {
   if (!entry || !sentences.includes(entry) || entry.language !== myLanguage) {
     audioCount.textContent = "Select an entry above first.";
     return;
@@ -2576,11 +2622,13 @@ audioPlay.addEventListener("click", function () {
   audioEntry = entry;
   audioTimesPlayed = 0;
   showAudioState();
+  startFollowing(); // The karaoke highlight (and its scrolling) starts afresh
 
   if (entry.audioId) {
-    playRecording(entry); // The sentence's own MP3
+    playRecording(entry, fromSeconds); // The sentence's own MP3
   } else {
     speechSynthesis.cancel(); // Clear anything left over
+    speakFrom = fromChar || 0;
     // The device's voice. Speak straight away if the voices are there (iPhone needs that);
     // otherwise wait a moment for them to load.
     if (speechSynthesis.getVoices().length > 0) {
@@ -2589,7 +2637,7 @@ audioPlay.addEventListener("click", function () {
       voicesReady().then(speakOnce);
     }
   }
-});
+}
 
 // Ask for the list of voices early, so it's ready by the time 🔊 is pressed
 if ("speechSynthesis" in window) {
@@ -2605,6 +2653,641 @@ function stopAudioIfEntryChanged() {
 
 showLoops();
 showAudioState();
+
+
+// ===== Immerse: karaoke follow-along =====
+// While an entry plays, the word being said gets a soft underline or glow (the theme decides).
+// The exact time of every word comes from OpenAI's whisper-1, asked once per audio file and kept
+// with the file. Then each entry's own words are matched to those times. Without them (no key,
+// no internet…), the times are estimated from the word lengths, so it still works.
+
+const TIMING_ERROR = "Couldn't get exact timing. Check your connection or API key in Settings.";
+const WHISPER_LIMIT_BYTES = 24 * 1024 * 1024; // OpenAI accepts up to 25 MB: stay a little under
+const WHISPER_FILE_TYPES = /\.(mp3|mp4|mpeg|mpga|m4a|wav|webm|ogg|oga|flac)$/i; // What OpenAI can read
+const PART_SECONDS = 600;    // Bigger files are sent in parts of about 10 minutes…
+const OVERLAP_SECONDS = 2;   // …that overlap by 2 seconds, so no word is cut in half
+const SPEECH_RATE = 16000;   // Parts are sent as 16 kHz WAV: plenty for speech, and 10 min ≈ 19 MB
+
+// The state of each file's job: id → { state: "working" | "failed", note }
+const timingState = new Map();
+const timingJobs = new Map(); // id → the running job (so a file is never asked about twice at once)
+
+// Read the saved timings into memory (at start-up)
+async function loadAllTimings() {
+  for (const item of audioLibrary) {
+    try {
+      const words = await loadTiming(item.id);
+      if (Array.isArray(words)) audioTimings.set(item.id, words);
+    } catch { /* Nothing saved: estimated timing is used */ }
+  }
+  showAllTimingStatus();
+  refreshFollowAlong();
+}
+
+// The language code OpenAI wants, e.g. "Polish" → "pl"
+function whisperLanguage(language) {
+  const code = SPEECH_LANGUAGES[language];
+  return code ? code.slice(0, 2) : "";
+}
+
+// Send one sound file to OpenAI and get back every word with its start and end time
+async function askWhisper(file, fileName, languageCode) {
+  const form = new FormData();
+  form.append("file", file, fileName);
+  form.append("model", "whisper-1"); // The model that can give the time of each word
+  form.append("response_format", "verbose_json");
+  form.append("timestamp_granularities[]", "word");
+  if (languageCode) form.append("language", languageCode);
+  let response;
+  try {
+    response = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + openaiKey },
+      body: form,
+    });
+  } catch {
+    throw new Error(TIMING_ERROR);
+  }
+  if (!response.ok) throw new Error(TIMING_ERROR);
+  const data = await response.json();
+  return (data.words || [])
+    .filter(function (word) { return typeof word.word === "string" && isFinite(word.start) && isFinite(word.end); })
+    .map(function (word) { return { word: word.word.trim(), start: word.start, end: word.end }; });
+}
+
+// A part of the decoded sound as a small WAV: one channel at 16 kHz
+function makeSpeechWav(buffer, from, to) {
+  const step = buffer.sampleRate / SPEECH_RATE; // How many original samples make one new one
+  const first = Math.floor(from * buffer.sampleRate);
+  const count = Math.max(0, Math.floor((Math.min(to, buffer.duration) - from) * SPEECH_RATE));
+  const wav = new DataView(new ArrayBuffer(44 + count * 2));
+  const writeText = function (place, text) {
+    for (let i = 0; i < text.length; i++) wav.setUint8(place + i, text.charCodeAt(i));
+  };
+  writeText(0, "RIFF");
+  wav.setUint32(4, 36 + count * 2, true);
+  writeText(8, "WAVEfmt ");
+  wav.setUint32(16, 16, true);
+  wav.setUint16(20, 1, true);
+  wav.setUint16(22, 1, true);
+  wav.setUint32(24, SPEECH_RATE, true);
+  wav.setUint32(28, SPEECH_RATE * 2, true);
+  wav.setUint16(32, 2, true);
+  wav.setUint16(34, 16, true);
+  writeText(36, "data");
+  wav.setUint32(40, count * 2, true);
+  const channels = [];
+  for (let c = 0; c < buffer.numberOfChannels; c++) channels.push(buffer.getChannelData(c));
+  for (let i = 0; i < count; i++) {
+    // The average of the original samples it covers (mixed to one channel), which also softens hiss
+    const a = first + Math.floor(i * step);
+    const b = Math.min(buffer.length, Math.max(a + 1, first + Math.floor((i + 1) * step)));
+    let sum = 0;
+    for (const channel of channels) {
+      for (let j = a; j < b; j++) sum += channel[j];
+    }
+    const sample = Math.max(-1, Math.min(1, sum / ((b - a) * channels.length) || 0));
+    wav.setInt16(44 + i * 2, sample * 32767, true);
+  }
+  return new Blob([wav], { type: "audio/wav" });
+}
+
+// The quietest moment between two times (so a part ends in a pause, not in the middle of a word)
+function quietestMoment(buffer, from, to) {
+  const data = buffer.getChannelData(0);
+  const windowSize = Math.floor(buffer.sampleRate * 0.3);
+  let best = to;
+  let bestLoudness = Infinity;
+  for (let start = Math.floor(from * buffer.sampleRate); start + windowSize < to * buffer.sampleRate; start += windowSize / 2) {
+    let loudness = 0;
+    for (let i = start; i < start + windowSize; i += 4) loudness += data[i] * data[i];
+    if (loudness < bestLoudness) {
+      bestLoudness = loudness;
+      best = (start + windowSize / 2) / buffer.sampleRate;
+    }
+  }
+  return best;
+}
+
+// A big file (or one OpenAI can't read): cut it into parts at quiet moments, ask about each part,
+// move each part's times to their place in the whole file, and join them.
+// Where two parts overlap, words are taken from the first part before the cut and from the next one after it,
+// so no word appears twice.
+async function transcribeInParts(id, languageCode, showProgress) {
+  makeAudioContext();
+  const buffer = await decodeAudioFile(id);
+  const cuts = [];
+  let place = 0;
+  while (place + PART_SECONDS < buffer.duration - 5) {
+    const cut = quietestMoment(buffer, place + PART_SECONDS - 30, place + PART_SECONDS);
+    cuts.push(cut);
+    place = cut;
+  }
+  const edges = [0].concat(cuts, [buffer.duration]);
+  const words = [];
+  for (let i = 0; i < edges.length - 1; i++) {
+    showProgress(edges.length > 2 ? "part " + (i + 1) + " of " + (edges.length - 1) : "");
+    const from = Math.max(0, edges[i] - (i > 0 ? OVERLAP_SECONDS / 2 : 0));
+    const to = Math.min(buffer.duration, edges[i + 1] + OVERLAP_SECONDS / 2);
+    const partWords = await askWhisper(makeSpeechWav(buffer, from, to), "part.wav", languageCode);
+    partWords.forEach(function (word) {
+      const start = word.start + from;
+      const isLast = i === edges.length - 2;
+      // Only the words that start in this part's own stretch (from one cut to the next)
+      if (start >= edges[i] && (isLast || start < edges[i + 1])) {
+        words.push({ word: word.word, start: start, end: word.end + from });
+      }
+    });
+  }
+  return words;
+}
+
+// Get the exact word timing for one audio file (in the background). Returns when it's done.
+function getExactTiming(id) {
+  if (timingJobs.has(id)) return timingJobs.get(id);
+  const job = (async function () {
+    const item = audioLibrary.find(function (other) { return other.id === id; });
+    if (!item) return;
+    timingState.set(id, { state: "working", note: "" });
+    showTimingStatus(id);
+    try {
+      if (!openaiKey) throw new Error(TIMING_ERROR);
+      const file = await loadAudioFile(id);
+      if (!file) throw new Error("The sound file isn't on this device.");
+      const fileName = file.name || item.name + ".mp3";
+      const languageCode = whisperLanguage(item.language);
+      let words;
+      if (file.size <= WHISPER_LIMIT_BYTES && WHISPER_FILE_TYPES.test(fileName)) {
+        words = await askWhisper(file, fileName, languageCode); // Small enough: send it as it is
+      } else {
+        words = await transcribeInParts(id, languageCode, function (note) {
+          timingState.set(id, { state: "working", note: note });
+          showTimingStatus(id);
+        });
+      }
+      await storeTiming(id, words);
+      audioTimings.set(id, words);
+      timingState.delete(id);
+    } catch (error) {
+      timingState.set(id, { state: "failed", note: error.message === TIMING_ERROR ? "" : error.message });
+    }
+    timingJobs.delete(id);
+    showTimingStatus(id);
+    refreshFollowAlong(); // Its entries now follow the exact timing
+  })();
+  timingJobs.set(id, job);
+  return job;
+}
+
+// The timing line under a file in the Audio tab: "Getting timing…", "Exact timing ready" or the error
+function fillTimingStatus(box, item) {
+  box.textContent = "";
+  const state = timingState.get(item.id);
+  const text = document.createElement("span");
+  if (state && state.state === "working") {
+    text.textContent = "Getting timing…" + (state.note ? " (" + state.note + ")" : "");
+    box.append(text);
+  } else if (state && state.state === "failed") {
+    text.className = "error-text";
+    text.textContent = state.note ? "Couldn't get exact timing: " + state.note : TIMING_ERROR;
+    box.append(text, makeButton("Try again", "small-button", function () { getExactTiming(item.id); }));
+  } else if (audioTimings.has(item.id)) {
+    text.textContent = "✓ Exact timing ready";
+    box.append(text);
+  } else {
+    box.append(makeButton("Get exact timing", "small-button", function () { getExactTiming(item.id); }));
+  }
+}
+
+function showTimingStatus(id) {
+  const item = audioLibrary.find(function (other) { return other.id === id; });
+  document.querySelectorAll(".audio-timing").forEach(function (box) {
+    if (item && box.dataset.timingFor === id) fillTimingStatus(box, item);
+  });
+}
+
+function showAllTimingStatus() {
+  audioLibrary.forEach(function (item) { showTimingStatus(item.id); });
+}
+
+// Settings: get the timing for every audio that doesn't have it yet, one after another
+const timingAllButton = document.getElementById("timing-all");
+const timingAllStatus = document.getElementById("timing-all-status");
+timingAllButton.addEventListener("click", async function () {
+  const missing = audioLibrary.filter(function (item) { return !audioTimings.has(item.id); });
+  timingAllStatus.hidden = false;
+  if (missing.length === 0) {
+    timingAllStatus.textContent = "Every audio already has exact timing.";
+    return;
+  }
+  if (!openaiKey) {
+    timingAllStatus.textContent = "Add your OpenAI API key above first.";
+    return;
+  }
+  timingAllButton.disabled = true;
+  let failed = 0;
+  for (let i = 0; i < missing.length; i++) {
+    timingAllStatus.textContent = "Getting timing… " + (i + 1) + " of " + missing.length;
+    await getExactTiming(missing[i].id);
+    if (!audioTimings.has(missing[i].id)) failed++;
+  }
+  timingAllStatus.textContent = (missing.length - failed) + " of " + missing.length + " ready." +
+    (failed > 0 ? " " + TIMING_ERROR : "");
+  timingAllButton.disabled = false;
+});
+
+// ----- Matching the transcript's words to an entry's own words -----
+
+// The words of a text, with where each one is: [{ from, to }] (positions in the text)
+const WORD_PATTERN = /[\p{L}\p{M}\p{N}]+(?:['’\-][\p{L}\p{M}\p{N}]+)*/gu;
+function splitWords(text) {
+  return Array.from(text.matchAll(WORD_PATTERN), function (match) {
+    return { from: match.index, to: match.index + match[0].length };
+  });
+}
+
+// A word made plain for comparing: no capitals, accents or punctuation ("Żółw," → "zołw")
+function plainWord(word) {
+  return word.normalize("NFKC").toLocaleLowerCase().normalize("NFD").replace(/[^\p{L}\p{N}]/gu, "");
+}
+
+// How many letters must change to turn one word into the other
+function editDistance(a, b) {
+  let previous = Array.from({ length: b.length + 1 }, function (_, i) { return i; });
+  for (let i = 1; i <= a.length; i++) {
+    const row = [i];
+    for (let j = 1; j <= b.length; j++) {
+      row[j] = Math.min(previous[j] + 1, row[j - 1] + 1, previous[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    }
+    previous = row;
+  }
+  return previous[b.length];
+}
+
+// 1 = the same word, 0 = nothing alike
+function wordLikeness(a, b) {
+  if (!a || !b) return 0;
+  if (a === b) return 1;
+  return 1 - editDistance(a, b) / Math.max(a.length, b.length);
+}
+
+// Line up the entry's words with the heard words, keeping both in order (like a "diff").
+// Small spelling differences still match; heard words before or after the entry cost nothing
+// (they belong to the entries around it). Returns, for each entry word, the heard word's number or -1.
+const SIMILAR_ENOUGH = 0.6;
+function lineUpWords(mine, heard) {
+  const n = mine.length;
+  const m = heard.length;
+  const score = [];
+  const move = [];
+  for (let i = 0; i <= n; i++) {
+    score.push(new Float64Array(m + 1));
+    move.push(new Uint8Array(m + 1)); // 1 = matched, 2 = entry word skipped, 3 = heard word skipped
+    for (let j = 0; j <= m; j++) {
+      if (i === 0) { score[i][j] = 0; move[i][j] = 3; continue; }
+      if (j === 0) { score[i][j] = score[i - 1][0] - 0.5; move[i][j] = 2; continue; }
+      const likeness = wordLikeness(mine[i - 1], heard[j - 1]);
+      const pair = score[i - 1][j - 1] + (likeness >= SIMILAR_ENOUGH ? 1 + likeness : -1);
+      const skipMine = score[i - 1][j] - 0.5;
+      const skipHeard = score[i][j - 1] - 0.3;
+      if (pair >= skipMine && pair >= skipHeard) { score[i][j] = pair; move[i][j] = 1; }
+      else if (skipMine >= skipHeard) { score[i][j] = skipMine; move[i][j] = 2; }
+      else { score[i][j] = skipHeard; move[i][j] = 3; }
+    }
+  }
+  // Heard words after the entry are free too: end wherever the score is best
+  let j = 0;
+  for (let k = 1; k <= m; k++) if (score[n][k] > score[n][j]) j = k;
+  const matches = new Array(n).fill(-1);
+  let i = n;
+  while (i > 0) {
+    const step = j === 0 ? 2 : move[i][j];
+    if (step === 1) {
+      if (wordLikeness(mine[i - 1], heard[j - 1]) >= SIMILAR_ENOUGH) matches[i - 1] = j - 1;
+      i--; j--;
+    } else if (step === 2) {
+      i--;
+    } else {
+      j--;
+    }
+  }
+  return matches;
+}
+
+// Share a stretch of time between some words, by their length.
+// pauses (optional): extra room after a word with a comma or full stop.
+function shareTime(words, text, from, to, pauses) {
+  const weights = words.map(function (word) {
+    let weight = word.to - word.from;
+    if (pauses) {
+      const after = text.slice(word.to, word.to + 3);
+      if (/^\s*[.!?…]/.test(after)) weight += 4;
+      else if (/^\s*[,;:—–]/.test(after)) weight += 2;
+    }
+    return weight;
+  });
+  const total = weights.reduce(function (a, b) { return a + b; }, 0) || 1;
+  let time = from;
+  words.forEach(function (word, i) {
+    const length = (to - from) * weights[i] / total;
+    // The pause is the end of the word's share: the word itself is said in the first part
+    const spoken = (to - from) * (word.to - word.from) / total;
+    word.start = time;
+    word.end = time + (pauses ? spoken : length);
+    time += length;
+  });
+}
+
+// The timing of every word of an entry: { words: [{ from, to, start, end }], estimated }.
+// Worked out again only when the text, start/end or the file's timing change (no OpenAI request).
+const timingCache = new Map(); // entry id → { key, result }
+function entryTiming(entry) {
+  const heardAll = audioTimings.get(entry.audioId) || null;
+  const start = entry.audioStart || 0;
+  let end = entry.audioEnd;
+  if (end === undefined || end === null) {
+    // The whole file: its length, if known
+    const playing = currentPart && currentPart.buffer;
+    end = playing ? playing.duration : heardAll && heardAll.length ? heardAll[heardAll.length - 1].end : null;
+  }
+  const key = entry.text + "|" + start + "|" + end;
+  const saved = timingCache.get(entry.id);
+  if (saved && saved.key === key && saved.heard === heardAll) return saved.result;
+
+  const words = splitWords(entry.text);
+  if (end === null) end = start + entry.text.length * 0.07; // Unknown: about a normal speaking speed
+  let estimated = true;
+  if (heardAll && words.length > 0) {
+    // The heard words inside the entry's part, with a second to spare on each side
+    const heard = heardAll.filter(function (word) { return word.end > start - 1 && word.start < end + 1; });
+    const matches = lineUpWords(
+      words.map(function (word) { return plainWord(entry.text.slice(word.from, word.to)); }),
+      heard.map(function (word) { return plainWord(word.word); }));
+    if (matches.some(function (match) { return match >= 0; })) {
+      estimated = false;
+      words.forEach(function (word, i) {
+        if (matches[i] >= 0) {
+          word.start = heard[matches[i]].start;
+          word.end = heard[matches[i]].end;
+        }
+      });
+      // Words that weren't matched: share the time between the matched words around them
+      let i = 0;
+      while (i < words.length) {
+        if (matches[i] >= 0) { i++; continue; }
+        let k = i;
+        while (k < words.length && matches[k] < 0) k++;
+        const from = i > 0 ? words[i - 1].end : start;
+        const to = k < words.length ? words[k].start : Math.max(end, from);
+        shareTime(words.slice(i, k), entry.text, from, Math.max(from, to), false);
+        i = k;
+      }
+    }
+  }
+  if (estimated) shareTime(words, entry.text, start, end, true);
+  const result = { words: words, estimated: estimated };
+  timingCache.set(entry.id, { key: key, heard: heardAll, result: result });
+  return result;
+}
+
+// Which word is being said at this time in the file (-1 = none yet)
+function wordIndexAtTime(timing, time) {
+  let index = -1;
+  for (let i = 0; i < timing.words.length; i++) {
+    if (timing.words[i].start <= time) index = i;
+    else break;
+  }
+  return index;
+}
+
+// Which word is at this place in the text (for the device voice)
+function wordIndexAtChar(entry, place) {
+  const words = splitWords(entry.text);
+  for (let i = words.length - 1; i >= 0; i--) {
+    if (words[i].from <= place) return i;
+  }
+  return -1;
+}
+
+// ----- Drawing the words, so each one can light up and be tapped -----
+
+// Wrap each word of the entry inside a sentence box in <span class="kara-word" data-word="3">.
+// It works on whatever is already drawn there (plain text, or nouns coloured by gender),
+// so the gender colours stay. Buttons inside (and anything marked data-no-words) are skipped.
+function markWords(container, entry) {
+  const nodes = [];
+  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, {
+    acceptNode: function (node) {
+      return node.parentElement.closest("button, [data-no-words]") ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT;
+    },
+  });
+  while (walker.nextNode()) nodes.push(walker.currentNode);
+  if (nodes.map(function (node) { return node.data; }).join("") !== entry.text) return; // Something else is shown
+  const words = splitWords(entry.text);
+  let offset = 0;
+  let w = 0;
+  nodes.forEach(function (node) {
+    const text = node.data;
+    const nodeStart = offset;
+    offset += text.length;
+    const pieces = [];
+    let position = 0;
+    while (w < words.length && words[w].from < offset) {
+      const word = words[w];
+      const a = Math.max(word.from, nodeStart) - nodeStart;
+      const b = Math.min(word.to, offset) - nodeStart;
+      if (a > position) pieces.push(text.slice(position, a));
+      const span = document.createElement("span");
+      span.className = "kara-word";
+      span.dataset.word = w;
+      span.textContent = text.slice(a, b);
+      pieces.push(span);
+      position = b;
+      if (word.to <= offset) w++;
+      else break; // The word carries on in the next piece of text
+    }
+    if (pieces.length > 0) {
+      if (position < text.length) pieces.push(text.slice(position));
+      node.replaceWith.apply(node, pieces);
+    }
+  });
+  shownWord = null; // Draw the highlight again on the new words
+}
+
+// The sentence boxes are redrawn in several places (Pure Text, Grammar Lens…). Watching them
+// means the words are marked after every redraw, whatever drew it.
+const karaokeBoxes = [pureTextSentence, document.getElementById("grammar-sentence")];
+const karaokeWatcher = new MutationObserver(function () {
+  karaokeBoxes.forEach(function (box) {
+    const entry = selectedEntry;
+    if (!entry || box.classList.contains("hint") || box.querySelector(".kara-word")) return;
+    markWords(box, entry);
+  });
+});
+karaokeBoxes.forEach(function (box) {
+  karaokeWatcher.observe(box, { childList: true, subtree: true, characterData: true });
+  // Tap a word: play from it
+  box.addEventListener("click", function (event) {
+    const word = event.target.closest(".kara-word");
+    if (word) playFromWord(Number(word.dataset.word));
+  });
+});
+
+function playFromWord(index) {
+  const entry = selectedEntry;
+  if (!entry || !sentences.includes(entry) || entry.language !== myLanguage) return;
+  if (entry.audioId) {
+    const timing = entryTiming(entry);
+    const word = timing.words[index];
+    if (!word) return;
+    const from = Math.max(0, word.start - 0.05); // A hair early, so its first sound isn't cut
+    if (audioPlaying && audioEntry === entry) {
+      clearTimeout(repeatTimer); // Jump within the current round
+      showAudioState();
+      startFollowing();
+      playRecording(entry, from);
+    } else {
+      stopAudio();
+      startListening(entry, from);
+    }
+  } else {
+    stopAudio();
+    startListening(entry, undefined, splitWords(entry.text)[index].from);
+  }
+}
+
+// ----- The highlight itself -----
+
+const followButton = document.getElementById("follow-along");
+let followAlong = loadSaved("followAlong", true);
+
+function showFollowButton() {
+  followButton.classList.toggle("selected", followAlong);
+  followButton.setAttribute("aria-pressed", followAlong);
+}
+followButton.addEventListener("click", function () {
+  followAlong = !followAlong;
+  save("followAlong", followAlong);
+  showFollowButton();
+  refreshFollowAlong();
+});
+showFollowButton();
+
+const karaokeNote = document.getElementById("karaoke-note");
+let spokenWordIndex = -1; // The device voice's current word
+let shownWord = null;     // The word lit up now (null = draw again)
+let litUp = [];           // The elements lit up now
+let followFrame = null;
+let userScrolled = false; // Stop following the words with the scroll once the user scrolls
+
+// Where the sound is now, in seconds from the start of the file (null = nothing playing)
+function playbackTime() {
+  const part = currentPart;
+  if (!part || !part.buffer) return null;
+  if (part.source) {
+    const delay = audioContext.outputLatency || audioContext.baseLatency || 0; // Sound takes a moment to reach the speaker
+    return part.from + (audioContext.currentTime - part.startedAt) * part.speed - delay;
+  }
+  if (part.wavUrl) return part.from + speedPlayer.currentTime;
+  return null;
+}
+
+// Light up one word (-1 = none). Only changes the page when the word changes, so nothing flickers.
+function showWord(index) {
+  if (index === shownWord) return;
+  shownWord = index;
+  litUp.forEach(function (element) {
+    element.classList.remove("kara-current");
+    element.removeAttribute("aria-current");
+  });
+  litUp = [];
+  if (index < 0 || !audioEntry) return;
+  document.querySelectorAll('#immerse-panel .kara-word[data-word="' + index + '"]').forEach(function (element) {
+    litUp.push(element);
+  });
+  // Word Focus: the card that holds this word
+  const word = splitWords(audioEntry.text)[index];
+  if (word && !document.getElementById("word-focus").hidden) {
+    const lowerText = audioEntry.text.toLocaleLowerCase();
+    let searchFrom = 0;
+    document.querySelectorAll("#word-list .word-card").forEach(function (card) {
+      const written = card.querySelector(".word-written");
+      if (!written) return;
+      const place = lowerText.indexOf(written.textContent.toLocaleLowerCase(), searchFrom);
+      if (place < 0) return;
+      searchFrom = place + 1;
+      if (word.from >= place && word.from < place + written.textContent.length) litUp.push(card);
+    });
+  }
+  litUp.forEach(function (element) {
+    element.classList.add("kara-current");
+    element.setAttribute("aria-current", "true");
+  });
+  if (litUp.length > 0) keepInView(litUp[0]);
+}
+
+// Phone: scroll gently so the word stays on screen (unless the user has scrolled themselves)
+function keepInView(element) {
+  if (userScrolled || !window.matchMedia("(max-width: 600px)").matches) return;
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const behavior = reduceMotion ? "auto" : "smooth";
+  const place = element.getBoundingClientRect();
+  const area = element.closest(".panel-scroll");
+  if (area && area.scrollHeight > area.clientHeight + 1) {
+    const box = area.getBoundingClientRect();
+    if (place.top < box.top + 24 || place.bottom > box.bottom - 24) {
+      area.scrollBy({ top: place.top - box.top - box.height / 3, behavior: behavior });
+      return;
+    }
+  }
+  const screenHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+  if (place.top < 24 || place.bottom > screenHeight - 24) {
+    window.scrollBy({ top: place.top - screenHeight / 3, behavior: behavior });
+  }
+}
+["wheel", "touchmove"].forEach(function (name) {
+  window.addEventListener(name, function () { if (audioPlaying) userScrolled = true; }, { passive: true });
+});
+
+// Every screen frame while playing: find the word at the sound's position and light it up
+function followTick() {
+  followFrame = null;
+  if (!audioPlaying || !followAlong || !audioEntry || audioEntry !== selectedEntry) {
+    showWord(-1);
+    return;
+  }
+  if (audioEntry.audioId) {
+    const time = playbackTime();
+    showWord(time === null ? -1 : wordIndexAtTime(entryTiming(audioEntry), time));
+  } else {
+    showWord(spokenWordIndex);
+  }
+  followFrame = requestAnimationFrame(followTick);
+}
+
+// Playing started (or jumped to a word): follow again, scroll again
+function startFollowing() {
+  userScrolled = false;
+  spokenWordIndex = -1;
+  shownWord = null;
+  if (!followFrame) followFrame = requestAnimationFrame(followTick);
+}
+
+// Something changed (the entry, its timing, the toggle): update the "estimated" note and the highlight
+function refreshFollowAlong() {
+  const entry = selectedEntry;
+  const showNote = followAlong && entry && entry.audioId && sentences.includes(entry) &&
+    entry.language === myLanguage && entryTiming(entry).estimated;
+  karaokeNote.hidden = !showNote;
+  if (showNote) {
+    const state = timingState.get(entry.audioId);
+    karaokeNote.textContent = state && state.state === "working"
+      ? "Word timing: estimated (getting exact timing…)"
+      : "Word timing: estimated";
+  }
+  shownWord = null;
+  if (audioPlaying && !followFrame) followFrame = requestAnimationFrame(followTick);
+}
 
 
 // ===== Settings: themes =====
@@ -2805,7 +3488,12 @@ function showAudioLibrary() {
     // Middle column: the name, the source and how many sentences use it
     const main = document.createElement("div");
     main.className = "sentence-main";
-    main.append(name, source, count);
+    // Exact word timing for the karaoke: its state, or a button to get it
+    const timing = document.createElement("div");
+    timing.className = "audio-timing";
+    timing.dataset.timingFor = item.id;
+    fillTimingStatus(timing, item);
+    main.append(name, source, count, timing);
 
     // Right column: the date it was added, with the buttons underneath
     const actions = document.createElement("div");
@@ -3138,6 +3826,7 @@ async function showGrammarLens() {
   const genders = NOUN_GENDERS[entry.language];
   if (genders && genders.length === 0) {
     grammarSentence.textContent = entry.text;
+    markSentences(grammarSentence, entry);
     showGrammarStatus(languageLabel(entry.language) + " nouns don't have grammatical gender, so there's nothing to colour.");
     return;
   }
@@ -3146,6 +3835,7 @@ async function showGrammarLens() {
   const haveGrammar = entry.grammar && entry.grammar.text === entry.text;
   if (haveGrammar && entry.grammar.format === GRAMMAR_FORMAT) {
     drawColouredSentence(entry.text, entry.grammar.nouns);
+    markSentences(grammarSentence, entry);
     showGrammarStatus(entry.grammar.nouns.length === 0 ? "No nouns with a gender found in this sentence." : "");
     return;
   }
@@ -3156,6 +3846,7 @@ async function showGrammarLens() {
   } else {
     grammarSentence.textContent = entry.text;
   }
+  markSentences(grammarSentence, entry);
   if (!openaiKey) {
     showGrammarStatus("Add your OpenAI API key in Settings → OpenAI to use Grammar Lens.");
     return;
@@ -3474,6 +4165,559 @@ async function showWordFocus() {
   if (selectedEntry === entry && !document.getElementById("word-focus").hidden) {
     showWordFocus();
   }
+}
+
+
+// ===== Immerse: Explain this sentence =====
+// A small "?" after each sentence of the entry (in Pure Text and Grammar Lens). Tapping it opens a
+// panel where GPT explains that one sentence: a translation, every word, the grammar worth noticing,
+// one similar example, and a box for asking more. The explanation is saved on the entry
+// (entry.explanations, keyed by the sentence's text), so it opens instantly next time, works
+// offline, and goes into backups with the sentences. Follow-up answers are not saved.
+
+// Saved explanations without this format number are asked for again when opened
+const EXPLAIN_FORMAT = 1;
+
+const explainPanel = document.getElementById("explain-panel");
+const explainBackdrop = document.getElementById("explain-backdrop");
+const explainSentence = document.getElementById("explain-sentence");
+const explainBody = document.getElementById("explain-body");
+const explainPlay = document.getElementById("explain-play");
+const explainRefresh = document.getElementById("explain-refresh");
+const explainClose = document.getElementById("explain-close");
+const explainHome = explainPanel.parentElement; // Its place on a computer: inside the Immerse box
+const phoneScreen = window.matchMedia("(max-width: 600px)");
+
+let explainEntry = null;    // The entry the panel is about
+let explainText = "";       // The sentence the panel is about
+let explainAsking = null;   // "entry id + sentence" while GPT is working on it (so it's asked only once)
+
+// Split a text into sentences: [{ start, end }], where end is just after the final punctuation
+// (closing quotes and brackets included). Uses the browser's own sentence finder when it has one.
+function findSentences(text, language) {
+  const pieces = [];
+  if (window.Intl && Intl.Segmenter) {
+    const segmenter = new Intl.Segmenter(SPEECH_LANGUAGES[language] || undefined, { granularity: "sentence" });
+    for (const piece of segmenter.segment(text)) {
+      pieces.push({ start: piece.index, text: piece.segment });
+    }
+  } else {
+    // Older browsers: cut after . ! ? … (and closing quotes or brackets after them)
+    const pattern = /[^.!?…。？！]+(?:[.!?…。？！]+["'»”’)\]]*|$)\s*/g;
+    let match;
+    while ((match = pattern.exec(text)) && match[0]) {
+      pieces.push({ start: match.index, text: match[0] });
+    }
+  }
+  // Leave out the spaces at the end, and pieces with no letters at all
+  return pieces
+    .map(function (piece) { return { start: piece.start, end: piece.start + piece.text.trimEnd().length }; })
+    .filter(function (piece) { return /[\p{L}\p{N}]/u.test(text.slice(piece.start, piece.end)); });
+}
+
+// Put a "?" button after each sentence of a paragraph that shows the entry's text.
+// The paragraph may already hold coloured nouns (Grammar Lens): the buttons go between them, never inside.
+function markSentences(paragraph, entry) {
+  if (paragraph.querySelector(".explain-marker")) return; // Already done
+  const text = paragraph.textContent;
+  const sentences = findSentences(text, entry.language);
+
+  // Work from the last sentence back, so the earlier positions don't move
+  sentences.reverse().forEach(function (sentence) {
+    const sentenceText = text.slice(sentence.start, sentence.end);
+    const marker = makeButton("?", "explain-marker", function (event) {
+      event.stopPropagation();
+      if (longPressed) return; // A long-press only showed the tooltip
+      openExplanation(entry, sentenceText);
+    });
+    marker.setAttribute("aria-label", "Explain this sentence");
+    marker.dataset.tip = "Explain this sentence";
+    marker.dataset.noWords = ""; // Karaoke follow-along: this "?" isn't a word of the sentence
+    addTooltip(marker);
+
+    // Find the piece of text where the sentence ends
+    let position = 0;
+    const walker = document.createTreeWalker(paragraph, NodeFilter.SHOW_TEXT);
+    let node;
+    while ((node = walker.nextNode())) {
+      if (node.parentElement.closest(".explain-marker")) continue;
+      const nodeEnd = position + node.length;
+      if (sentence.end <= nodeEnd) {
+        if (node.parentElement === paragraph) {
+          node.splitText(sentence.end - position); // Cut the text right after the punctuation
+          node.after(marker);
+        } else {
+          node.parentElement.after(marker); // Ends inside a coloured noun: put it after the noun
+        }
+        return;
+      }
+      position = nodeEnd;
+    }
+    paragraph.append(marker);
+  });
+}
+
+// ----- Opening and closing the panel -----
+
+function openExplanation(entry, sentenceText) {
+  stopAudio(); // The listening loop pauses while you read
+  explainEntry = entry;
+  explainText = sentenceText;
+  explainSentence.textContent = sentenceText;
+
+  // A bottom sheet on a phone (it must leave the Immerse box: inside a see-through box a
+  // fixed-position sheet would be stuck to the box, not the screen), under the passage on a computer
+  if (phoneScreen.matches) {
+    document.body.append(explainPanel);
+    explainPanel.classList.add("sheet");
+    explainBackdrop.hidden = false;
+    document.documentElement.classList.add("sheet-open");
+  } else {
+    explainHome.append(explainPanel);
+    explainPanel.classList.remove("sheet");
+    explainBackdrop.hidden = true;
+    document.documentElement.classList.remove("sheet-open");
+  }
+  explainPanel.hidden = false;
+  explainPanel.style.transform = "";
+  explainPanel.scrollTop = 0;
+  showExplanation(false);
+  if (!phoneScreen.matches) {
+    explainPanel.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }
+  explainClose.focus({ preventScroll: true });
+}
+
+function closeExplanation() {
+  if (explainPanel.hidden) return;
+  explainPanel.hidden = true;
+  explainBackdrop.hidden = true;
+  document.documentElement.classList.remove("sheet-open");
+  if ("speechSynthesis" in window && !audioPlaying) speechSynthesis.cancel();
+  explainEntry = null;
+}
+
+function closeExplanationIfEntryChanged() {
+  if (explainEntry && explainEntry !== selectedEntry) closeExplanation();
+}
+
+explainClose.addEventListener("click", closeExplanation);
+explainBackdrop.addEventListener("click", closeExplanation);
+document.addEventListener("keydown", function (event) {
+  if (event.key === "Escape") closeExplanation();
+});
+
+// Turning the phone, or making the window wider or narrower: move the panel to the right place
+phoneScreen.addEventListener("change", function () {
+  if (explainEntry && !explainPanel.hidden) openExplanation(explainEntry, explainText);
+});
+
+// Swipe down on the sheet to close it (only when it's scrolled to the top, so scrolling still works)
+let swipeStartY = null;
+let swipeDistance = 0;
+explainPanel.addEventListener("touchstart", function (event) {
+  if (!explainPanel.classList.contains("sheet") || explainPanel.scrollTop > 0) return;
+  swipeStartY = event.touches[0].clientY;
+  swipeDistance = 0;
+}, { passive: true });
+explainPanel.addEventListener("touchmove", function (event) {
+  if (swipeStartY === null) return;
+  swipeDistance = Math.max(0, event.touches[0].clientY - swipeStartY);
+  explainPanel.style.transform = swipeDistance ? "translateY(" + swipeDistance + "px)" : "";
+}, { passive: true });
+explainPanel.addEventListener("touchend", function () {
+  if (swipeStartY === null) return;
+  swipeStartY = null;
+  explainPanel.style.transform = "";
+  if (swipeDistance > 90) closeExplanation(); // Pulled down far enough
+});
+
+// ----- Play this sentence (once, with the device's voice) -----
+
+explainPlay.addEventListener("click", function () {
+  if (!("speechSynthesis" in window)) {
+    explainPlay.textContent = "This browser can't read text aloud";
+    return;
+  }
+  stopAudio();
+  speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(explainText);
+  const languageCode = SPEECH_LANGUAGES[explainEntry ? explainEntry.language : ""];
+  if (languageCode) {
+    utterance.lang = languageCode;
+    const voice = voiceFor(languageCode);
+    try {
+      if (voice) utterance.voice = voice;
+    } catch {
+      // The device picks a voice for the language instead
+    }
+  }
+  utterance.rate = 0.9 * audioSpeed; // The same pace as the listening loop
+  speechSynthesis.speak(utterance);
+});
+
+// ----- Showing the explanation -----
+
+// The saved explanation of a sentence (or null)
+function savedExplanation(entry, sentenceText) {
+  const saved = entry.explanations && entry.explanations[sentenceText];
+  return saved && saved.format === EXPLAIN_FORMAT ? saved : null;
+}
+
+// Show the saved explanation, or ask GPT for one (always when "fresh" is true: the Refresh button)
+async function showExplanation(fresh) {
+  const entry = explainEntry;
+  const sentenceText = explainText;
+  const saved = fresh ? null : savedExplanation(entry, sentenceText);
+  explainRefresh.hidden = !saved;
+  if (saved) {
+    drawExplanation(saved);
+    return;
+  }
+
+  const askKey = entry.id + "|" + sentenceText;
+  showExplainLoading();
+  if (!openaiKey || !navigator.onLine) {
+    showExplainError();
+    return;
+  }
+  if (explainAsking === askKey) return; // Already asking
+  explainAsking = askKey;
+  let explanation;
+  try {
+    explanation = await askForExplanation(entry, sentenceText);
+  } catch {
+    explainAsking = null;
+    if (explainEntry === entry && explainText === sentenceText) showExplainError();
+    return;
+  }
+  explainAsking = null;
+
+  // Remember it with the entry. Explanations of sentences no longer in the entry are tidied away.
+  const kept = {};
+  Object.keys(entry.explanations || {}).forEach(function (key) {
+    if (entry.text.includes(key)) kept[key] = entry.explanations[key];
+  });
+  kept[sentenceText] = explanation;
+  entry.explanations = kept;
+  saveSentences();
+
+  // Only show it if the panel is still open on the same sentence
+  if (explainEntry === entry && explainText === sentenceText && !explainPanel.hidden) {
+    explainRefresh.hidden = false;
+    drawExplanation(explanation);
+  }
+}
+
+// A calm "working on it" message, with three softly breathing dots
+function showExplainLoading() {
+  explainBody.innerHTML = "";
+  const loading = document.createElement("p");
+  loading.className = "explain-loading hint";
+  loading.textContent = "Explaining this sentence";
+  const dots = document.createElement("span");
+  dots.className = "explain-dots";
+  dots.setAttribute("aria-hidden", "true");
+  dots.innerHTML = "<span>.</span><span>.</span><span>.</span>";
+  loading.append(dots);
+  explainBody.append(loading);
+}
+
+// No key, no internet, or the request failed: say so, with a Try again button
+function showExplainError() {
+  explainBody.innerHTML = "";
+  const message = document.createElement("p");
+  message.className = "explain-error";
+  message.textContent = "Couldn't load an explanation. Check your connection or API key in Settings.";
+  const again = document.createElement("button");
+  again.type = "button";
+  again.textContent = "Try again"; // No class: a main button
+  again.addEventListener("click", function () { showExplanation(true); });
+  explainBody.append(message, again);
+}
+
+// A small heading for each part of the panel
+function explainHeading(text) {
+  const heading = document.createElement("h4");
+  heading.className = "explain-label type-nav"; // Small labels use the theme's navigation font
+  heading.textContent = text;
+  return heading;
+}
+
+// Reading text in the entry's language (right to left for Hebrew, by itself)
+function foreignText(tag, text, className) {
+  const element = document.createElement(tag);
+  element.className = className;
+  element.textContent = text;
+  element.dir = "auto";
+  return element;
+}
+
+function drawExplanation(data) {
+  explainBody.innerHTML = "";
+
+  // 1. Translation: natural, then word for word
+  explainBody.append(explainHeading("Translation"));
+  const natural = document.createElement("p");
+  natural.className = "explain-translation";
+  natural.textContent = data.translation;
+  const literal = document.createElement("p");
+  literal.className = "explain-literal";
+  literal.textContent = "Word for word: " + data.literal;
+  explainBody.append(natural, literal);
+
+  // 2. Every word: as written (nouns in their gender colour), dictionary form, part of speech, grammar
+  explainBody.append(explainHeading("Word breakdown"));
+  const list = document.createElement("ul");
+  list.className = "explain-words";
+  data.words.forEach(function (word) {
+    const item = document.createElement("li");
+    const written = foreignText("span", word.word, "explain-word");
+    if (word.gender !== "none") {
+      written.classList.add("noun", word.gender);
+      written.title = word.gender;
+    }
+    const top = document.createElement("div");
+    top.className = "explain-word-top";
+    top.append(written);
+    if (word.base && word.base.toLocaleLowerCase() !== word.word.toLocaleLowerCase()) {
+      top.append(foreignText("span", "→ " + word.base, "explain-base"));
+    }
+    const kind = document.createElement("div");
+    kind.className = "explain-kind";
+    kind.textContent = word.partOfSpeech + (word.grammar ? " · " + word.grammar : "");
+    item.append(top, kind);
+    if (word.meaning) {
+      const meaning = document.createElement("div");
+      meaning.className = "explain-meaning";
+      meaning.textContent = word.meaning;
+      item.append(meaning);
+    }
+    list.append(item);
+  });
+  explainBody.append(list);
+
+  // 3. Key grammar points (1 to 3)
+  explainBody.append(explainHeading("Key grammar points"));
+  const points = document.createElement("ol");
+  points.className = "explain-points";
+  data.points.forEach(function (point) {
+    const item = document.createElement("li");
+    const title = document.createElement("strong");
+    title.textContent = point.title;
+    const text = document.createElement("p");
+    text.textContent = point.explanation;
+    item.append(title, text);
+    points.append(item);
+  });
+  explainBody.append(points);
+
+  // 4. A new sentence with the same pattern; its translation is hidden until tapped
+  explainBody.append(explainHeading("Similar example"));
+  explainBody.append(foreignText("p", data.example.sentence, "explain-example"));
+  const exampleTranslation = document.createElement("p");
+  exampleTranslation.className = "explain-example-translation";
+  exampleTranslation.textContent = data.example.translation;
+  exampleTranslation.hidden = true;
+  const showTranslation = makeButton("Show translation", "filter-button explain-show", function () {
+    exampleTranslation.hidden = false;
+    showTranslation.remove();
+  });
+  explainBody.append(showTranslation, exampleTranslation);
+
+  // 5. Ask about this sentence (answers are shown, not saved)
+  explainBody.append(explainHeading("Ask about this sentence"));
+  const form = document.createElement("form");
+  form.className = "try-form explain-ask";
+  const question = document.createElement("input");
+  question.type = "text";
+  question.placeholder = "Ask about this sentence";
+  question.setAttribute("aria-label", "Ask about this sentence");
+  const send = document.createElement("button");
+  send.type = "submit";
+  send.textContent = "Ask"; // No class: a main button
+  form.append(question, send);
+  const answer = document.createElement("p");
+  answer.className = "explain-answer";
+  answer.hidden = true;
+  explainBody.append(form, answer);
+
+  const entry = explainEntry;
+  const sentenceText = explainText;
+  form.addEventListener("submit", async function (event) {
+    event.preventDefault();
+    const asked = question.value.trim();
+    if (!asked) return;
+    answer.hidden = false;
+    answer.classList.add("hint");
+    answer.textContent = "Thinking…";
+    send.disabled = true;
+    try {
+      if (!openaiKey || !navigator.onLine) throw new Error("offline");
+      const reply = await askFollowUp(entry, sentenceText, data, asked);
+      answer.classList.remove("hint");
+      answer.textContent = reply;
+    } catch {
+      answer.textContent = "Couldn't get an answer. Check your connection or API key in Settings.";
+    }
+    send.disabled = false;
+  });
+}
+
+explainRefresh.addEventListener("click", function () { showExplanation(true); });
+
+// ----- Asking GPT -----
+
+// How to write for each level: plain words for beginners, full grammar terms for advanced learners
+function explainStyle(level) {
+  if (level === "A1" || level === "A2") {
+    return "The learner is a beginner (" + level + "). Use short, simple English and everyday words. " +
+      "Use as few grammar terms as possible, and when you need one, explain it in a few plain words.";
+  }
+  if (level === "B1") {
+    return "The learner is intermediate (B1). Use clear English and the common grammar terms, briefly explained.";
+  }
+  return "The learner is advanced (" + level + "). Use full, precise grammar terminology.";
+}
+
+// The answer must follow a fixed shape, so the panel always looks the same:
+// { translation, literal, words: [{ word, base, partOfSpeech, gender, grammar, meaning }],
+//   points: [{ title, explanation }], example: { sentence, translation } }
+async function askForExplanation(entry, sentenceText) {
+  const level = myLevel || "A2"; // No level picked: a gentle A2
+  const answer = await askOpenai({
+    model: openaiModel,
+    temperature: 0.3,
+    messages: [
+      {
+        role: "system",
+        content:
+          "You are a friendly, precise language teacher. Explain one sentence to a learner, in English.\n" +
+          explainStyle(level) + "\n" +
+          "translation: a natural English translation.\n" +
+          "literal: a word-for-word English version that keeps the original word order.\n" +
+          "words: every word of the sentence in order, leaving out punctuation. word: exactly as written. " +
+          "base: its dictionary form. partOfSpeech: e.g. noun, verb, adjective, pronoun, preposition. " +
+          "gender: for nouns only, masculine, feminine or neuter (for languages with grammatical gender); " +
+          "\"none\" for every other word and for languages without gender. " +
+          "grammar: for nouns, adjectives and pronouns give case, gender and number; for verbs give tense, " +
+          "aspect, person and mood (only the ones the language has); otherwise a short note or \"\". " +
+          "meaning: its English meaning here.\n" +
+          "points: 1 to 3 short, clear explanations of what is most worth noticing in this sentence's grammar " +
+          "(title: a few words; explanation: 1-3 sentences).\n" +
+          "example: one new sentence in the same language using the same pattern, at the learner's level, " +
+          "with its English translation.",
+      },
+      {
+        role: "user",
+        content: "Language: " + (entry.language || "unknown") + "\nLevel: " + level +
+          "\nSentence: " + sentenceText + "\nThe whole passage, for context: " + entry.text,
+      },
+    ],
+    response_format: {
+      type: "json_schema",
+      json_schema: {
+        name: "sentence_explanation",
+        strict: true,
+        schema: {
+          type: "object",
+          properties: {
+            translation: { type: "string" },
+            literal: { type: "string" },
+            words: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  word: { type: "string" },
+                  base: { type: "string" },
+                  partOfSpeech: { type: "string" },
+                  gender: { type: "string", enum: ["masculine", "feminine", "neuter", "none"] },
+                  grammar: { type: "string" },
+                  meaning: { type: "string" },
+                },
+                required: ["word", "base", "partOfSpeech", "gender", "grammar", "meaning"],
+                additionalProperties: false,
+              },
+            },
+            points: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  title: { type: "string" },
+                  explanation: { type: "string" },
+                },
+                required: ["title", "explanation"],
+                additionalProperties: false,
+              },
+            },
+            example: {
+              type: "object",
+              properties: {
+                sentence: { type: "string" },
+                translation: { type: "string" },
+              },
+              required: ["sentence", "translation"],
+              additionalProperties: false,
+            },
+          },
+          required: ["translation", "literal", "words", "points", "example"],
+          additionalProperties: false,
+        },
+      },
+    },
+  });
+
+  // Check the answer, so a broken one is never saved
+  const data = JSON.parse(answer);
+  if (!data.translation || !Array.isArray(data.words) || data.words.length === 0 || !data.example) {
+    throw new Error("The explanation came back incomplete.");
+  }
+  const genders = NOUN_GENDERS[entry.language];
+  data.words.forEach(function (word) {
+    // No colours in languages without gender (English, Turkish), whatever GPT says
+    if (genders && !genders.includes(word.gender)) word.gender = "none";
+  });
+  data.points = data.points.slice(0, 3);
+  data.format = EXPLAIN_FORMAT;
+  data.level = level;
+  return data;
+}
+
+// A follow-up question, with the sentence and its explanation as context. Returns the answer's text.
+async function askFollowUp(entry, sentenceText, explanation, question) {
+  const level = myLevel || "A2";
+  const answer = await askOpenai({
+    model: openaiModel,
+    temperature: 0.3,
+    messages: [
+      {
+        role: "system",
+        content: "You are a friendly, precise language teacher. Answer the learner's question about the " +
+          "sentence below, in English, briefly (at most about 120 words). " + explainStyle(level),
+      },
+      {
+        role: "user",
+        content: "Language: " + (entry.language || "unknown") + "\nSentence: " + sentenceText +
+          "\nExplanation already given: " + JSON.stringify(explanation) + "\nQuestion: " + question,
+      },
+    ],
+    response_format: {
+      type: "json_schema",
+      json_schema: {
+        name: "follow_up",
+        strict: true,
+        schema: {
+          type: "object",
+          properties: { answer: { type: "string" } },
+          required: ["answer"],
+          additionalProperties: false,
+        },
+      },
+    },
+  });
+  return JSON.parse(answer).answer;
 }
 
 
@@ -4027,7 +5271,7 @@ makeQuestionsButton.addEventListener("click", async function () {
 // The theme is left out too: it belongs to the device, so a restore never changes it
 // (and a "theme" inside an older backup is simply ignored).
 const BACKUP_KEYS = ["sentences", "audioLibrary", "myLanguage", "myLanguages", LEVEL_KEY,
-  "practiceTarget", "audioLoops", "audioSpeed", "openaiModel", "view", "knownWords", "knownByEntry", "knownWithoutEntry", "learningIds"];
+  "practiceTarget", "audioLoops", "audioSpeed", "openaiModel", "view", "knownWords", "knownByEntry", "knownWithoutEntry", "learningIds", "followAlong"];
 // ("knownWords" is the old format: it only exists in older backups, and is moved over after the restore)
 
 const backupDownload = document.getElementById("backup-download");
@@ -4077,6 +5321,8 @@ backupDownload.addEventListener("click", async function () {
       const file = await loadAudioFile(item.id);
       if (file) {
         audio[item.id] = { name: item.name, type: file.type, data: await fileToText(file) };
+        // Its exact word timing too, so it never has to be asked for again
+        if (audioTimings.has(item.id)) audio[item.id].timing = audioTimings.get(item.id);
       } else {
         missing.push(item.name);
       }
@@ -4158,6 +5404,7 @@ backupYes.addEventListener("click", async function () {
     for (const [id, audio] of Object.entries(backupAudio)) {
       const blob = await (await fetch(audio.data)).blob();
       await storeAudioFile(id, new File([blob], audio.name, { type: audio.type }));
+      if (Array.isArray(audio.timing)) await storeTiming(id, audio.timing);
     }
     for (const item of audioLibrary) {
       if (!(item.id in backupAudio)) await removeAudioFile(item.id);
@@ -4237,6 +5484,7 @@ resetAddFormLanguage();
 refreshAudioPickers(); // The Audio list shows the Add form's language
 showSentences();
 showTopicStatus();
+loadAllTimings(); // Karaoke: each audio's exact word timing
 
 
 

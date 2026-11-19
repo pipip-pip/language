@@ -2835,6 +2835,10 @@ h3,
 .quiz-result,
 .word-written,
 .word-base,
+#explain-sentence,
+.explain-word,
+.explain-base,
+.explain-example,
 .type-reading {
   font-family: var(--font-reading);
   font-weight: var(--reading-weight);
@@ -4799,4 +4803,249 @@ button[aria-disabled="true"] {
   background: var(--selected-bg);
   color: var(--text);
   border: 1px solid var(--accent-ink);
+}
+
+/* ===== Immerse: Explain this sentence ===== */
+/* The small, quiet "?" after each sentence. It looks small (70% of the text) but its tap area is
+   32×32px (an invisible ::after), so it's easy to hit on a phone without moving any words. */
+.immerse-sentence button.explain-marker {
+  position: relative;
+  display: inline;
+  padding: 0 0.15em;
+  margin: 0;
+  background: none;
+  border: none;
+  box-shadow: none;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 0.7em;
+  line-height: 1;
+  vertical-align: baseline;
+  user-select: none;
+  -webkit-user-select: none;
+  overflow: visible;
+}
+.immerse-sentence button.explain-marker::before { content: none; }
+.immerse-sentence button.explain-marker::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 32px;
+  height: 32px;
+  transform: translate(-50%, -50%);
+  background: none;
+  opacity: 1;
+  animation: none;
+}
+.immerse-sentence button.explain-marker:hover { color: var(--accent-ink); }
+
+/* The panel: on a computer a box right under the passage */
+#explain-panel {
+  margin: var(--card-gap) 0 0;
+}
+#explain-panel[hidden],
+#explain-backdrop[hidden] { display: none; }
+
+.explain-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.explain-head h3 {
+  margin: 0;
+  flex: 1;
+}
+#explain-close { min-width: 40px; }
+
+#explain-sentence {
+  font-size: 20px;
+  margin: 12px 0;
+  unicode-bidi: plaintext;
+  text-align: start;
+}
+
+.explain-label {
+  margin: 20px 0 8px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.explain-translation { margin: 0 0 4px; }
+.explain-literal,
+.explain-kind,
+.explain-meaning,
+.explain-example-translation {
+  color: var(--muted);
+  margin: 0;
+  font-size: 14px;
+}
+
+/* Word breakdown: one small card per word, side by side on a computer, one per row on a phone */
+.explain-words {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px;
+}
+.explain-words li {
+  padding: 8px 12px;
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius-small);
+}
+.explain-word-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+}
+.explain-word { font-weight: var(--reading-strong-weight); }
+.explain-base { color: var(--muted); }
+
+.explain-points {
+  margin: 0;
+  padding-inline-start: 20px;
+}
+.explain-points li + li { margin-top: 8px; }
+.explain-points p { margin: 2px 0 0; }
+
+.explain-example,
+.explain-word,
+.explain-base { unicode-bidi: plaintext; }
+.explain-example { margin: 0 0 8px; font-size: 18px; }
+
+.explain-answer { margin: 8px 0 0; white-space: pre-wrap; }
+.explain-error { margin: 0 0 8px; }
+
+/* Loading: three dots breathing softly (only opacity moves; still under reduced motion) */
+.explain-loading { margin: 0; }
+.explain-dots span { animation: explain-breathe 1.4s ease-in-out infinite; }
+.explain-dots span:nth-child(2) { animation-delay: 0.2s; }
+.explain-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes explain-breathe {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .explain-dots span { animation: none; }
+}
+
+.explain-grabber { display: none; }
+
+/* Phone: a sheet that comes up from the bottom of the screen, at most 80% of its height */
+#explain-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(0, 0, 0, 0.4);
+}
+#explain-panel.sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 61;
+  margin: 0;
+  max-height: 80vh;
+  max-height: 80dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  padding-bottom: calc(var(--card-padding) + env(safe-area-inset-bottom));
+}
+#explain-panel.sheet .explain-grabber {
+  display: block;
+  width: 40px;
+  height: 4px;
+  margin: -6px auto 10px;
+  border-radius: 2px;
+  background: var(--muted);
+  opacity: 0.5;
+}
+html.sheet-open body { overflow: hidden; }
+
+/* ===== Immerse: karaoke follow-along =====
+   The word being said gets an underline or glow, never a background fill, so the gender
+   colours of Grammar Lens stay visible underneath. No transitions: it jumps from word to word.
+   Nothing here changes a size, so the layout is the same in every theme. */
+#follow-along { grid-row: 3; grid-column: 3; justify-self: start; }
+#audio-count { grid-row: 4; }
+@media (max-width: 600px) {
+  #follow-along { grid-row: 6; grid-column: 1; justify-self: start; margin-top: 6px; }
+  #audio-count { grid-row: 7; }
+}
+.karaoke-note { margin: -4px 0 8px; font-size: 13px; }
+.audio-timing {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.kara-word { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.kara-word.kara-current {
+  background-image: linear-gradient(var(--accent-ink), var(--accent-ink));
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  background-size: 100% 2px;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+/* Word Focus: the card holding the word gets a thin ring (an outline takes no room) */
+.word-card.kara-current { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
+
+/* Honey Coconut Hour: a warm, sunlit underline glow */
+[data-theme="riviera"] .kara-word.kara-current {
+  background-image: linear-gradient(90deg, rgba(246,213,138,0.25), #F6D58A 20%, #F4E2AE 80%, rgba(246,213,138,0.25));
+  text-shadow: 0 0 10px rgba(246, 213, 138, 0.55);
+}
+[data-theme="riviera"] .word-card.kara-current { outline-color: #F4E2AE; }
+
+/* Cold Brew Coffee: a crisp, icy line */
+[data-theme="coffee"] .kara-word.kara-current {
+  background-image: linear-gradient(#E6F0F4, #E6F0F4);
+  background-size: 100% 1.5px;
+  text-shadow: 0 0 4px rgba(214, 232, 240, 0.35);
+}
+[data-theme="coffee"] .word-card.kara-current { outline: 1px solid #E6F0F4; }
+
+/* Kyoto Iced Matcha: a short tapered brush stroke in matcha */
+[data-theme="matcha"] .kara-word.kara-current {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 10' preserveAspectRatio='none'%3E%3Cpath d='M2 6.5C20 4 60 3 98 4.5C70 6.5 35 8 2 6.5Z' fill='%238FA35A'/%3E%3C/svg%3E");
+  background-size: 100% 0.3em;
+  background-position: 0 105%;
+}
+[data-theme="matcha"] .word-card.kara-current { outline-color: #8FA35A; }
+
+/* Peach Rosewater: a soft rose glow */
+[data-theme="rosewater"] .kara-word.kara-current {
+  background-image: linear-gradient(90deg, rgba(240,178,172,0), #F0B2AC 25%, #F0B2AC 75%, rgba(240,178,172,0));
+  background-size: 100% 1.5px;
+  text-shadow: 0 0 12px rgba(240, 178, 172, 0.9), 0 0 4px rgba(248, 220, 224, 0.6);
+}
+[data-theme="rosewater"] .word-card.kara-current { outline-color: #F0B2AC; }
+
+/* Bubblegum Bling: a pink, backlit LCD glow with a pixel line */
+[data-theme="cosmopolitan"] .kara-word.kara-current {
+  background-image: repeating-linear-gradient(90deg, #FF7AC0 0 2px, transparent 2px 3px);
+  text-shadow: 0 0 6px #FF5FB0, 0 0 14px rgba(255, 95, 176, 0.6);
+}
+[data-theme="cosmopolitan"] .word-card.kara-current { outline-color: #FF7AC0; }
+
+/* Reduced motion: just a plain underline */
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme] .kara-word.kara-current, html .kara-word.kara-current {
+    background-image: none;
+    text-shadow: inherit;
+    text-decoration: underline 2px;
+    text-underline-offset: 3px;
+  }
 }
